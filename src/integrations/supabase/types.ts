@@ -12,7 +12,7 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
   }
-  public: {
+  m8_schema: {
     Tables: {
       ai_recommendations: {
         Row: {

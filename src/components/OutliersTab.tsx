@@ -160,7 +160,7 @@ export const OutliersTab: React.FC<OutliersTabProps> = ({
                       {outlier.capped_value.toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {outlier.avg_deviation.toFixed(2)}%
+                      {outlier.percentage_deviation.toFixed(2)}%
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">

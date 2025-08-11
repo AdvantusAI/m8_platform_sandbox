@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, CheckSquare } from "lucide-react";
+import { Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, ChartScatter, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, Rocket, GitBranch, Network, TrendingDown, ArrowLeftRight, UserCheck } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useState, useEffect } from "react";
@@ -12,12 +12,29 @@ const items = [
   /*{
   title: "Inicio",
   url: "/planner-dashboard",
-  icon: Home
+  icon: Homelucid
 }, */{
   title: "Pronóstico de Demanda",
   url: "/demand-forecast",
   icon: TrendingUp
+},/* {
+  title: "Retail Forecast",
+  url: "/retail-forecast",
+  icon: BarChart3
+},*/
+{
+  title: "Colaboración Comercial",
+  url: "/commercial-collaboration",
+  icon: Users
 }, {
+  title: "Supply Workbench",
+  url: "/supply-workbench",
+  icon: Warehouse
+}, {
+  title: "Red de Suministro",
+  url: "/supply-network",
+  icon: Network
+}, /*{
   title: "Análisis What-If",
   url: "/what-if-analysis",
   icon: Brain
@@ -25,78 +42,92 @@ const items = [
   title: "Proyecciones de Inventario",
   url: "/inventory-projections",
   icon: Warehouse
-}, {
+},*/ {
   title: "Gestión de Compras",
   url: "/purchase-management",
   icon: ShoppingCart
+},  {
+  title: "Análisis Sell-Through",
+  url: "/sell-through-analytics",
+  icon: TrendingDown
 }, {
-  title: "Colaboración Comercial",
-  url: "/commercial-collaboration",
-  icon: Users
-}, {
-  title: "Revisión Plan Comercial",
-  url: "/commercial-approve",
-  icon: Users
-}, {
-  title: "Dashboard Revisiones Comerciales",
-  url: "/commercial-reviewed",
-  icon: CheckSquare
-}, {
+  title: "Reconciliación de Pronósticos",
+  url: "/forecast-reconciliation",
+  icon: ArrowLeftRight
+}
+, {
   title: "Dashboard de KPIs",
   url: "/kpi-dashboard",
   icon: Target
+},
+{
+  title: "Análisis What-If",
+  url: "/what-if-analysis",
+  icon: Brain
 }
+
 /*, {
   title: "Analítica",
   url: "/advanced-reports",
   icon: BarChart3
 }*/];
-
+/*
+// NPI items
+const npiItems = [{
+  title: "NPI Dashboard",
+  url: "/npi-dashboard",
+  icon: Rocket
+}, {
+  title: "NPI Milestones",
+  url: "/npi-milestones",
+  icon: Target
+}, {
+  title: "NPI Scenarios",
+  url: "/npi-scenarios",
+  icon: GitBranch
+}, {
+  title: "NPI Analytics",
+  url: "/npi-analytics",
+  icon: BarChart3
+}];
+*/
 // Admin-only items
 const adminItems = [{
-  title: "Catálogo de Productos",
+  title: "Productos",
   url: "/products-catalog",
   icon: Tag
 }, {
-  title: "Catálogo de Clientes",
+  title: "Ventas",
+  url: "/historydataview",
+  icon: ChartScatter
+},{
+  title: "Clientes",
   url: "/customers-catalog",
   icon: Users
 }, {
-  title: "Catálogo de Ubicaciones",
-  url: "/locations-catalog",
-  icon: Building2
-}, {
-  title: "Análisis de Inventario",
-  url: "/inventory-analysis",
+  title: "Inventarios",
+  url: "/inventory-catalog",
   icon: Package
 }, {
-  title: "Reportes Avanzados",
-  url: "/advanced-reports",
-  icon: FileText
-}, {
-  title: "Configuración de la Compañía",
-  url: "/company-config",
+  title: "Cedis",
+  url: "/locations-catalog",
   icon: Building2
 }, {
   title: "Gestión de Usuarios",
   url: "/user-management",
   icon: UserPlus
 }, {
-  title: "Asignación de Proveedores",
-  url: "/vendor-assignments",
+  title: "Roles de Usuario",
+  url: "/user-roles",
+  icon: UserPlus
+}, {
+  title: "Asignaciones de Usuario",
+  url: "/user-assignments",
+  icon: UserCheck
+} ,{
+  title: "Configuración de la Compañía",
+  url: "/company-config",
   icon: Building2
-}, {
-  title: "Búsquedas rápidas",
-  url: "/saved-searches",
-  icon: Settings
-}, {
-  title: "Configuración del Sistema",
-  url: "/system-config",
-  icon: Settings
-}, {
-  title: "Base de Datos",
-  url: "/database-management",
-  icon: Database
 }];
 export function AppSidebar() {
   const navigate = useNavigate();
@@ -113,7 +144,9 @@ export function AppSidebar() {
         const {
           data,
           error
-        } = await supabase.from('company_config').select('company_name, company_logo').limit(1).single();
+        } = await supabase
+        .schema('m8_schema')
+        .from('company_config').select('company_name, company_logo').limit(1).single();
         if (error) {
           console.error('Error fetching company config:', error);
           return;
@@ -180,6 +213,8 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+
 
         {isAdministrator && <SidebarGroup>
             <SidebarGroupLabel className="text-gray-600 font-semibold">

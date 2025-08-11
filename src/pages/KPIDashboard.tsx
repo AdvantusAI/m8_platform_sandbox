@@ -105,6 +105,7 @@ export default function KPIDashboard() {
       
       // First, get all forecast data
       const { data: forecastData, error: forecastError } = await supabase
+       .schema('m8_schema')
         .from('forecast_interpretability')
         .select('product_id, interpretability_score, confidence_level, created_at')
         .not('product_id', 'is', null)
@@ -202,6 +203,7 @@ export default function KPIDashboard() {
       
       // First, get all forecast data for customers
       const { data: forecastData, error: forecastError } = await supabase
+       .schema('m8_schema')
         .from('forecast_interpretability')
         .select('customer_id, interpretability_score, confidence_level, created_at')
         .not('customer_id', 'is', null)
@@ -296,6 +298,7 @@ export default function KPIDashboard() {
       
       // Get forecast data with both customer and product IDs
       const { data: forecastData, error: forecastError } = await supabase
+       .schema('m8_schema')
         .from('forecast_interpretability')
         .select('customer_id, product_id, interpretability_score, confidence_level, created_at')
         .not('customer_id', 'is', null)
@@ -402,6 +405,7 @@ export default function KPIDashboard() {
     try {
       // Mock summary calculation - adjust based on your data
       const { data: allData, error } = await supabase
+       .schema('m8_schema')
         .from('forecast_interpretability')
         .select('interpretability_score, product_id, customer_id')
         .order('created_at', { ascending: false })

@@ -75,11 +75,13 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
       
       // Build filters based on selected product, location, and vendor
       let errorMetricsQuery = supabase
+        .schema('m8_schema')
         .from('forecast_error_metrics')
         .select('*')
         .order('created_at', { ascending: false });
       
       let interpretabilityQuery = supabase
+       .schema('m8_schema')
         .from('forecast_interpretability')
         .select('*')
         .order('created_at', { ascending: false });

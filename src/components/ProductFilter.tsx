@@ -41,7 +41,7 @@ export function ProductFilter({
       const {
         data,
         error
-      } = await supabase.from('system_config').select('product_levels');
+      } = await supabase.schema('m8_schema').from('system_config').select('product_levels');
       if (error) {
         console.error('Error fetching product levels:', error);
         setProductLevels(2); // Default to 2 levels

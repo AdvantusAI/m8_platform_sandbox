@@ -42,7 +42,7 @@ export function LocationFilter({
       const {
         data,
         error
-      } = await supabase.from('system_config').select('location_levels');
+      } = await supabase.schema('m8_schema').from('system_config').select('location_levels');
       if (error) {
         console.error('Error fetching location levels:', error);
         setLocationLevels(2);
@@ -66,7 +66,9 @@ export function LocationFilter({
     setLoading(true);
     try {
      
-      let query = supabase.from('locations').select('*');
+      let query = supabase
+      .schema('m8_schema')
+      .from('locations').select('*');
       if (searchTerm) {
         query = query.or(`location_name.ilike.%${searchTerm}%,level_1.ilike.%${searchTerm}%,level_2.ilike.%${searchTerm}%,level_3.ilike.%${searchTerm}%,level_4.ilike.%${searchTerm}%`);
       }

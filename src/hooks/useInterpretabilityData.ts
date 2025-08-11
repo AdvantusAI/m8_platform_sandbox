@@ -34,7 +34,8 @@ export function useInterpretabilityData(productId?: string, locationId?: string,
       setError(null);
 
       let query = supabase
-        .from('forecast_interpretability')
+       .schema('m8_schema')
+        .from('forecast_interpretability')        
         .select('*')
         .order('created_at', { ascending: false });
 

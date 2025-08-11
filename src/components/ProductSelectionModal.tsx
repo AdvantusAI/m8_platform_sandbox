@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,6 +48,7 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
     try {
       setLoading(true);
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('products')
         .select('product_id, product_name, category_name, subcategory_name, category_id, subcategory_id')
         .order('product_name');
@@ -214,12 +215,12 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Seleccionar Producto
-          </DialogTitle>
-        </DialogHeader>
+       <DialogHeader>
+  <DialogTitle>Seleccionar producto</DialogTitle>
+  <DialogDescription>
+    Elige un producto de la lista para asignarlo.
+  </DialogDescription>
+</DialogHeader>
 
         <div className="space-y-4">
           <div className="relative">

@@ -58,6 +58,7 @@ const CompanyConfig = () => {
 
     try {
       const { error } = await supabase
+      .schema('m8_schema')
         .from('company_config')
         .delete()
         .eq('id', id);

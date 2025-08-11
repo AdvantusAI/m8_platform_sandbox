@@ -20,6 +20,7 @@ export function useProducts() {
     try {
       setLoading(true);
       const { data, error } = await supabase
+       .schema('m8_schema')
         .from('products')
         .select('*')
         .order('product_name');

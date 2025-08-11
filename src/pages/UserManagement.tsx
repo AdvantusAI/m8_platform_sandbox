@@ -1,143 +1,151 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useState, useEffect, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { UserPlus, Plus, Search, Edit, Trash2, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { AgGridReact } from 'ag-grid-react';
+import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-enterprise';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { UserPlus, Edit, Trash2, Users } from 'lucide-react';
 
-type User = {
+import 'ag-grid-enterprise';
+import '../styles/ag-grid-custom.css';
+import { configureAGGridLicense, defaultGridOptions } from '@/lib/ag-grid-config';
+
+interface UserProfile {
   id: string;
   email: string;
-  user_metadata: {
-    first_name?: string;
-    last_name?: string;
-  };
+  full_name: string | null;
+  company_id: number | null;
+  active: boolean | null;
   created_at: string;
-  role?: string;
-};
+  updated_at: string;
+}
+
+interface UserForm {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface EditUserForm {
+  full_name: string;
+  active: boolean;
+}
 
 export default function UserManagement() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
+  const [createLoading, setCreateLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [users, setUsers] = useState<User[]>([]);
-  const [loadingUsers, setLoadingUsers] = useState(true);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({
-    firstName: '',
-    lastName: '',
-    role: 'user'
-  });
   
+  const [createForm, setCreateForm] = useState<UserForm>({
+    email: "",
+    password: "",
+    firstName: "",
+    lastName: ""
+  });
+
+  const [editForm, setEditForm] = useState<EditUserForm>({
+    full_name: "",
+    active: true
+  });
+
   const { signUp } = useAuth();
+
+  useEffect(() => {
+    configureAGGridLicense();
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
     try {
-      setLoadingUsers(true);
+      setLoading(true);
+      const { data, error } = await supabase
+        .schema('m8_schema')
+        .from('user_profiles')
+        .select('*')
+        .order('email');
+
+      if (error) throw error;
       
-      // Get users from auth.users
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) throw authError;
-
-      // Get user roles
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      // Combine user data with roles
-      const usersWithRoles = authUsers.users.map(user => ({
-        ...user,
-        role: userRoles.find(r => r.user_id === user.id)?.role || 'user'
-      }));
-
-      setUsers(usersWithRoles);
+      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Error al cargar usuarios');
     } finally {
-      setLoadingUsers(false);
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setCreateLoading(true);
     setError(null);
 
-    const { error } = await signUp(email, password, firstName, lastName);
-    
-    if (error) {
-      setError(error.message);
-      toast.error('Error al crear usuario: ' + error.message);
-    } else {
-      toast.success('¡Usuario creado exitosamente!');
-      // Reset form
-      setEmail('');
-      setPassword('');
-      setFirstName('');
-      setLastName('');
-      // Refresh users list
-      fetchUsers();
+    try {
+      const { error } = await signUp(
+        createForm.email, 
+        createForm.password, 
+        createForm.firstName, 
+        createForm.lastName
+      );
+      
+      if (error) {
+        setError(error.message);
+        toast.error('Error al crear usuario: ' + error.message);
+      } else {
+        toast.success('¡Usuario creado exitosamente!');
+        setIsCreateDialogOpen(false);
+        resetCreateForm();
+        fetchUsers();
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error('Error al crear usuario');
+    } finally {
+      setCreateLoading(false);
     }
-    
-    setLoading(false);
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEdit = (user: UserProfile) => {
     setEditingUser(user);
     setEditForm({
-      firstName: user.user_metadata.first_name || '',
-      lastName: user.user_metadata.last_name || '',
-      role: user.role || 'user'
+      full_name: user.full_name || "",
+      active: user.active ?? true
     });
+    setIsEditDialogOpen(true);
   };
 
-  const handleUpdateUser = async () => {
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     if (!editingUser) return;
 
     try {
-      // Update user metadata
-      const { error: updateError } = await supabase.auth.admin.updateUserById(
-        editingUser.id,
-        {
-          user_metadata: {
-            first_name: editForm.firstName,
-            last_name: editForm.lastName
-          }
-        }
-      );
-
-      if (updateError) throw updateError;
-
-      // Update user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .upsert({
-          user_id: editingUser.id,
-          role: editForm.role as 'user' | 'administrator'
-        });
-
-      if (roleError) throw roleError;
-
+      const { error } = await supabase
+        .schema('m8_schema')
+        .from('user_profiles')
+        .update({
+          full_name: editForm.full_name,
+          active: editForm.active
+        })
+        .eq('id', editingUser.id);
+      
+      if (error) throw error;
+      
       toast.success('Usuario actualizado exitosamente');
+      setIsEditDialogOpen(false);
       setEditingUser(null);
       fetchUsers();
     } catch (error) {
@@ -147,15 +155,19 @@ export default function UserManagement() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('¿Está seguro de que desea eliminar este usuario?')) {
-      return;
-    }
+    if (!confirm('¿Está seguro de que desea eliminar este usuario?')) return;
 
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
-      
-      if (error) throw error;
+      // Note: This will delete from user_profiles, but the auth user will remain
+      // For complete deletion, you'd need to use supabase.auth.admin.deleteUser()
+      const { error } = await supabase
+        .schema('m8_schema')
+        .from('user_profiles')
+        .delete()
+        .eq('id', userId);
 
+      if (error) throw error;
+      
       toast.success('Usuario eliminado exitosamente');
       fetchUsers();
     } catch (error) {
@@ -164,198 +176,305 @@ export default function UserManagement() {
     }
   };
 
+  const resetCreateForm = () => {
+    setCreateForm({
+      email: "",
+      password: "",
+      firstName: "",
+      lastName: ""
+    });
+    setError(null);
+  };
+
+  const onGridReady = (params: GridReadyEvent) => {
+    setGridApi(params.api);
+  };
+
+  const ActionCellRenderer = (props: any) => {
+    const user = props.data;
+    
+    return (
+      <div className="flex space-x-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleEdit(user)}
+          title="Editar usuario"
+        >
+          <Edit className="h-3 w-3" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleDeleteUser(user.id)}
+          title="Eliminar usuario"
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  };
+
+  const StatusCellRenderer = (props: any) => {
+    const isActive = props.value;
+    
+    return (
+      <span
+        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+          isActive
+            ? 'bg-green-100 text-green-800'
+            : 'bg-red-100 text-red-800'
+        }`}
+      >
+        {isActive ? 'Activo' : 'Inactivo'}
+      </span>
+    );
+  };
+
+  const columnDefs: ColDef[] = useMemo(() => [
+    {
+      headerName: "Email",
+      field: "email",
+      sortable: true,
+      filter: true,
+      flex: 1,
+      resizable: true
+    },
+    {
+      headerName: "Nombre Completo",
+      field: "full_name",
+      sortable: true,
+      filter: true,
+      flex: 1,
+      resizable: true,
+      valueFormatter: (params) => params.value || '-'
+    },
+    {
+      headerName: "Estado",
+      field: "active",
+      cellRenderer: StatusCellRenderer,
+      sortable: true,
+      filter: true,
+      width: 120,
+      resizable: true
+    },
+    {
+      headerName: "Fecha Creación",
+      field: "created_at",
+      sortable: true,
+      filter: true,
+      width: 150,
+      resizable: true,
+      valueFormatter: (params) => {
+        if (!params.value) return '-';
+        return new Date(params.value).toLocaleDateString('es-ES');
+      }
+    },
+    {
+      headerName: "Última Actualización",
+      field: "updated_at",
+      sortable: true,
+      filter: true,
+      width: 170,
+      resizable: true,
+      valueFormatter: (params) => {
+        if (!params.value) return '-';
+        return new Date(params.value).toLocaleDateString('es-ES');
+      }
+    },
+    {
+      headerName: "Acciones",
+      field: "actions",
+      cellRenderer: ActionCellRenderer,
+      width: 120,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      pinned: 'right'
+    }
+  ], []);
+
+  // Filter data based on search term
+  const filteredUsersForGrid = useMemo(() => {
+    if (!searchTerm) return users;
+    
+    return users.filter(user =>
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.full_name && user.full_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [users, searchTerm]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <Users className="h-8 w-8 animate-spin mx-auto mb-2" />
+          <p>Cargando usuarios...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Administrar Usuarios</h1>
-        <p className="text-gray-600">Crear y gestionar usuarios del sistema</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+          <p className="text-muted-foreground">Administra los usuarios del sistema</p>
+        </div>
+        
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button onClick={() => { resetCreateForm(); }}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Usuario
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Crear Nuevo Usuario</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName">Nombre</Label>
+                  <Input
+                    id="firstName"
+                    value={createForm.firstName}
+                    onChange={(e) => setCreateForm({...createForm, firstName: e.target.value})}
+                    placeholder="Nombre"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName">Apellido</Label>
+                  <Input
+                    id="lastName"
+                    value={createForm.lastName}
+                    onChange={(e) => setCreateForm({...createForm, lastName: e.target.value})}
+                    placeholder="Apellido"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={createForm.email}
+                  onChange={(e) => setCreateForm({...createForm, email: e.target.value})}
+                  required
+                  placeholder="usuario@email.com"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={createForm.password}
+                  onChange={(e) => setCreateForm({...createForm, password: e.target.value})}
+                  required
+                  placeholder="••••••••"
+                  minLength={6}
+                />
+              </div>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button type="submit" disabled={createLoading || !createForm.email || !createForm.password}>
+                  {createLoading ? 'Creando...' : 'Crear Usuario'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Create User Form */}
-      <Card className="max-w-2xl">
+      {/* Search */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Crear Nuevo Usuario
-          </CardTitle>
+          <CardTitle>Buscar Usuarios</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleCreateUser} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">Nombre</Label>
-                <Input
-                  id="firstName"
-                  type="text"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder="Nombre"
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Apellido</Label>
-                <Input
-                  id="lastName"
-                  type="text"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder="Apellido"
-                />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="email-create">Email</Label>
-              <Input
-                id="email-create"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="usuario@email.com"
-              />
-            </div>
-            <div>
-              <Label htmlFor="password-create">Contraseña</Label>
-              <Input
-                id="password-create"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-                minLength={6}
-              />
-            </div>
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Creando usuario...' : 'Crear Usuario'}
-            </Button>
-          </form>
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por email o nombre..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </CardContent>
       </Card>
 
-      {/* Users List */}
+      {/* Users Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Usuarios Existentes
-          </CardTitle>
+          <CardTitle>Usuarios Existentes ({filteredUsersForGrid.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {loadingUsers ? (
-            <div className="text-center py-4">Cargando usuarios...</div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Fecha Creación</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      {user.user_metadata.first_name || ''} {user.user_metadata.last_name || ''}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.role === 'administrator' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {user.role === 'administrator' ? 'Administrador' : 'Usuario'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {new Date(user.created_at).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteUser(user.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <div className="ag-theme-quartz ag-theme-custom" style={{ height: '600px', width: '100%' }}>
+            <AgGridReact
+              rowData={filteredUsersForGrid}
+              columnDefs={columnDefs}
+              onGridReady={onGridReady}
+              {...defaultGridOptions}
+              rowHeight={50}
+              getRowId={(params) => params.data.id}
+            />
+          </div>
         </CardContent>
       </Card>
 
       {/* Edit User Dialog */}
-      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
-        <DialogContent>
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Usuario</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-firstName">Nombre</Label>
-                <Input
-                  id="edit-firstName"
-                  value={editForm.firstName}
-                  onChange={(e) => setEditForm({...editForm, firstName: e.target.value})}
-                  placeholder="Nombre"
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-lastName">Apellido</Label>
-                <Input
-                  id="edit-lastName"
-                  value={editForm.lastName}
-                  onChange={(e) => setEditForm({...editForm, lastName: e.target.value})}
-                  placeholder="Apellido"
-                />
-              </div>
-            </div>
+          <form onSubmit={handleUpdateUser} className="space-y-4">
             <div>
-              <Label htmlFor="edit-role">Rol</Label>
-              <Select 
-                value={editForm.role} 
-                onValueChange={(value) => setEditForm({...editForm, role: value})}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar rol" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="user">Usuario</SelectItem>
-                  <SelectItem value="administrator">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="full_name">Nombre Completo</Label>
+              <Input
+                id="full_name"
+                value={editForm.full_name}
+                onChange={(e) => setEditForm({...editForm, full_name: e.target.value})}
+                placeholder="Nombre completo"
+              />
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" onClick={() => setEditingUser(null)}>
+            
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="active"
+                checked={editForm.active}
+                onChange={(e) => setEditForm({...editForm, active: e.target.checked})}
+                className="rounded"
+              />
+              <Label htmlFor="active">Usuario activo</Label>
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleUpdateUser}>
-                Guardar Cambios
+              <Button type="submit">
+                Actualizar Usuario
               </Button>
             </div>
-          </div>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

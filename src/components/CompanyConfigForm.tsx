@@ -50,6 +50,7 @@ export const CompanyConfigForm: React.FC<CompanyConfigFormProps> = ({
       if (config) {
         // Update existing config
         const { error } = await supabase
+        .schema('m8_schema')
           .from('company_config')
           .update(updateData)
           .eq('id', config.id);
@@ -64,6 +65,7 @@ export const CompanyConfigForm: React.FC<CompanyConfigFormProps> = ({
       } else {
         // Create new config
         const { error } = await supabase
+        .schema('m8_schema')
           .from('company_config')
           .insert(updateData as any);
 

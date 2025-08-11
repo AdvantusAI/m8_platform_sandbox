@@ -58,6 +58,7 @@ const fetchLocations = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('locations')
         .select('location_id, location_name, level_1, level_2, level_3, level_4, type')
         .order('location_name');

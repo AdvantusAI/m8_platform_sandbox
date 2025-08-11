@@ -20,6 +20,7 @@ export function useUserRole() {
 
       try {
         const { data, error } = await supabase
+          .schema('m8_schema')
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)

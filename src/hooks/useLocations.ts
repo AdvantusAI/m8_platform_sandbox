@@ -20,6 +20,7 @@ export function useLocations() {
     try {
       setLoading(true);
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('locations')
         .select('*')
         .order('location_name');

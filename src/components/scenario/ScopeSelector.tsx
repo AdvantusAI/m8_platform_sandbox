@@ -68,6 +68,7 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
 
       // Fetch locations
       const { data: locationsData, error: locationsError } = await supabase
+        .schema('m8_schema')
         .from('locations')
         .select('location_id, location_name')
         .limit(100);

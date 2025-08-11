@@ -67,6 +67,7 @@ export function ForecastDataTable({
   const fetchAndAggregateManually = async () => {
     try {
       let query = supabase
+        .schema('m8_schema')
         .from('forecast_with_fitted_history')
         .select('product_id,location_id,customer_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history')
         .eq('product_id', selectedProductId!)

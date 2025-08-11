@@ -15,6 +15,7 @@ export const useScenarios = () => {
     queryFn: async () => {
       console.log('🔍 Fetching scenarios from database...');
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('what_if_scenarios')
         .select('*')
         .order('created_at', { ascending: false });
@@ -89,6 +90,7 @@ export const useScenarios = () => {
       }
 
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('what_if_scenarios')
         .insert([insertData])
         .select()

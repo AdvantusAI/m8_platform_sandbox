@@ -3,9 +3,11 @@ import { Search, Users, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface CustomerNode {
   id: string;
@@ -33,21 +35,42 @@ export function CustomerSelectionModal({
   const [customers, setCustomers] = useState<CustomerNode[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { isAdministrator } = useUserRole();
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && user) {
       fetchCustomers();
     }
-  }, [isOpen, searchTerm]);
+  }, [isOpen, searchTerm, user, isAdministrator]);
 
   const fetchCustomers = async () => {
     setLoading(true);
     try {
       console.log('Fetching customers...');
-      let query = supabase
-        .from('customers')
-        .select('*')
-        .order('customer_name');
+      
+      if (!user) {
+        setCustomers([]);
+        return;
+      }
+
+       let query;
+       if (isAdministrator) {
+       // Admin users can see all customers from customers table
+       query = supabase
+       .schema('m8_schema')
+       .from('customers')
+       .select('*')
+       .order('customer_name');
+       } else {
+       // Regular users use the simplified v_customers view with user email
+       query = supabase
+       .schema('m8_schema')
+       .from('v_customers')
+       .select('*')
+       .eq('email', user.email)
+       .order('customer_name');
+       }
 
       if (searchTerm) {
         query = query.or(`customer_name.ilike.%${searchTerm}%,customer_id.ilike.%${searchTerm}%`);
@@ -119,9 +142,11 @@ export function CustomerSelectionModal({
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center">
-            <Users className="w-5 h-5 mr-2 text-blue-500" />
-            Seleccionar Cliente
+                        Seleccionar Cliente
           </DialogTitle>
+            <DialogDescription>
+              Elige un cliente de la lista para asignarlo.
+            </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col h-[500px]">

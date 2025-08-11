@@ -17,6 +17,7 @@ interface DemandOutlier {
   demand_outliers: number;
   score: number;
   postdate: string;
+  percentage_deviation?: number; // Optional, if not present in the data
 }
 
 export const useOutliersData = (selectedProductId?: string, selectedCustomerId?: string, selectedLocationId?: string) => {
@@ -37,6 +38,7 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
       }
 
       const { data, error } = await supabase
+       .schema('m8_schema')
         .from('demand_outliers')
         .select('*')
         .match(filters);
@@ -58,7 +60,8 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
         avg_deviation: item.avg_deviation || 0,
         demand_outliers: item.demand_outliers || 0,
         score: item.score || 0,
-        postdate: item.postdate || new Date().toISOString().split('T')[0]
+        postdate: item.postdate || new Date().toISOString().split('T')[0],
+        percentage_deviation: item.percentage_deviation  || 0
       })) || [];
     },
     enabled: !!(selectedProductId && selectedCustomerId)

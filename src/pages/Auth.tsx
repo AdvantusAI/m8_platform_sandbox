@@ -47,6 +47,7 @@ export default function Auth() {
   const fetchCompanyConfig = async () => {
     try {
       const { data, error } = await supabase
+      .schema('m8_schema')
         .from('company_config')
         .select('company_name, company_logo')
         .limit(1)
@@ -115,6 +116,7 @@ export default function Auth() {
               <Input
                 id="email"
                 type="email"
+                autoComplete="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -126,6 +128,7 @@ export default function Auth() {
               <Input
                 id="password"
                 type="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

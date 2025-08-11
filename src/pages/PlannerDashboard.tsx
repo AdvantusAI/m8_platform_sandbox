@@ -130,6 +130,7 @@ export default function PlannerDashboard() {
   const fetchForecastAccuracy = async () => {
     try {
       const { data, error } = await supabase
+       .schema('m8_schema')
         .from('forecast_error_metrics')
         .select('mae, product_id, location_id')
         .not('mae', 'is', null);
@@ -209,6 +210,7 @@ export default function PlannerDashboard() {
       
       // Fetch outlier products
       const { count: outlierProducts } = await supabase
+       .schema('m8_schema')
         .from('demand_outliers')
         .select('*', { count: 'exact', head: true })
         .gte('postdate', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);

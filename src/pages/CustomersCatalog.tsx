@@ -1,13 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Users, Plus, Search, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { AgGridReact } from 'ag-grid-react';
+import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-enterprise';
+
+
+import 'ag-grid-enterprise';
+import '../styles/ag-grid-custom.css';
+import { configureAGGridLicense, defaultGridOptions } from '@/lib/ag-grid-config';
 
 interface Customer {
   id: string;
@@ -38,6 +44,7 @@ export default function CustomersCatalog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [gridApi, setGridApi] = useState<GridApi | null>(null);
   const [formData, setFormData] = useState<CustomerForm>({
     customer_id: "",
     customer_name: "",
@@ -49,6 +56,7 @@ export default function CustomersCatalog() {
   });
 
   useEffect(() => {
+    configureAGGridLicense();
     fetchCustomers();
   }, []);
 
@@ -56,6 +64,7 @@ export default function CustomersCatalog() {
     try {
       setLoading(true);
       const { data, error } = await supabase
+        .schema('m8_schema') // Ensure to use the correct schema if needed
         .from('customers')
         .select('*')
         .order('customer_id');
@@ -77,6 +86,7 @@ export default function CustomersCatalog() {
     try {
       if (editingCustomer) {
         const { error } = await supabase
+          .schema('m8_schema') // Ensure to use the correct schema if needed    
           .from('customers')
           .update(formData)
           .eq('id', editingCustomer.id);
@@ -85,6 +95,7 @@ export default function CustomersCatalog() {
         toast.success('Cliente actualizado exitosamente');
       } else {
         const { error } = await supabase
+          .schema('m8_schema') // Ensure to use the correct schema if needed
           .from('customers')
           .insert([formData]);
         
@@ -121,6 +132,7 @@ export default function CustomersCatalog() {
 
     try {
       const { error } = await supabase
+        .schema('m8_schema') // Ensure to use the correct schema if needed
         .from('customers')
         .delete()
         .eq('id', customerId);
@@ -151,6 +163,92 @@ export default function CustomersCatalog() {
     customer.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (customer.level_1_name && customer.level_1_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const onGridReady = (params: GridReadyEvent) => {
+    setGridApi(params.api);
+  };
+
+  const ActionCellRenderer = (props: any) => {
+    const customer = props.data;
+    
+    return (
+      <div className="flex space-x-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleEdit(customer)}
+        >
+          <Edit className="h-3 w-3" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleDelete(customer.id)}
+        >
+          <Trash2 className="h-3 w-3" />
+        </Button>
+      </div>
+    );
+  };
+
+  const columnDefs: ColDef[] = useMemo(() => [
+    {
+      headerName: "ID",
+      field: "customer_id",
+      sortable: true,
+      filter: true,
+      width: 150,
+      resizable: true
+    },
+    {
+      headerName: "Nombre",
+      field: "customer_name",
+      sortable: true,
+      filter: true,
+      flex: 1,
+      resizable: true
+    },
+    {
+      headerName: "Nivel 1",
+      field: "level_1_name",
+      sortable: true,
+      filter: true,
+      width: 200,
+      resizable: true,
+      valueFormatter: (params) => params.value || '-'
+    },
+    {
+      headerName: "Nivel 2",
+      field: "level_2_name",
+      sortable: true,
+      filter: true,
+      width: 200,
+      resizable: true,
+      valueFormatter: (params) => params.value || '-'
+    },
+    {
+      headerName: "Acciones",
+      field: "actions",
+      cellRenderer: ActionCellRenderer,
+      width: 150,
+      sortable: false,
+      filter: false,
+      resizable: false,
+      pinned: 'right'
+    }
+  ], []);
+
+  // Filter data based on search term
+  const filteredCustomersForGrid = useMemo(() => {
+    if (!searchTerm) return customers;
+    
+    return customers.filter(customer =>
+      customer.customer_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (customer.level_1_name && customer.level_1_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (customer.level_2_name && customer.level_2_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [customers, searchTerm]);
 
   if (loading) {
     return (
@@ -290,49 +388,18 @@ export default function CustomersCatalog() {
       {/* Customers Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Clientes ({filteredCustomers.length})</CardTitle>
+          <CardTitle>Lista de Clientes ({filteredCustomersForGrid.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Nivel 1</TableHead>
-                  <TableHead>Nivel 2</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCustomers.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.customer_id}</TableCell>
-                    <TableCell>{customer.customer_name}</TableCell>
-                    <TableCell>{customer.level_1_name || '-'}</TableCell>
-                    <TableCell>{customer.level_2_name || '-'}</TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(customer)}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDelete(customer.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="ag-theme-quartz ag-theme-custom" style={{ height: '600px', width: '100%' }}>
+            <AgGridReact
+              rowData={filteredCustomersForGrid}
+              columnDefs={columnDefs}
+              onGridReady={onGridReady}
+              {...defaultGridOptions}
+              rowHeight={40}
+              getRowId={(params) => params.data.id}
+            />
           </div>
         </CardContent>
       </Card>

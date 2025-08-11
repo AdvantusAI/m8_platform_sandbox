@@ -27,6 +27,7 @@ export function useCustomers() {
     try {
       setLoading(true);
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('customers')
         .select('*')
         .order('customer_name');
