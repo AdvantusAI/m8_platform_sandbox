@@ -27,6 +27,10 @@ const items = [
   url: "/commercial-collaboration",
   icon: Users
 }, {
+  title: "Colaboración en Pronósticos",
+  url: "/forecast-collaboration",
+  icon: Users
+}, {
   title: "Supply Workbench",
   url: "/supply-workbench",
   icon: Warehouse
@@ -64,6 +68,12 @@ const items = [
   title: "Análisis What-If",
   url: "/what-if-analysis",
   icon: Brain
+},
+
+{
+  title: "Ag-Data-Grids",
+  url: "/ag-data-grids",
+  icon: BarChart3
 }
 
 /*, {

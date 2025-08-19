@@ -157,7 +157,7 @@ export default function InventoryProjections() {
       locationId: selectedLocationId,
       customerId: selectedCustomerId
     });
-    console.log('Producto seleccionado en Inventory Projections:', productId);
+    //console.log('Producto seleccionado en Inventory Projections:', productId);
   };
 
   const handleLocationSelect = (locationId: string) => {
@@ -167,7 +167,7 @@ export default function InventoryProjections() {
       locationId,
       customerId: selectedCustomerId
     });
-    console.log('Ubicación seleccionada en Inventory Projections:', locationId);
+    //console.log('Ubicación seleccionada en Inventory Projections:', locationId);
   };
 
   const handleCustomerSelect = (customerId: string) => {
@@ -177,7 +177,7 @@ export default function InventoryProjections() {
       locationId: selectedLocationId,
       customerId
     });
-    console.log('Cliente seleccionado en Inventory Projections:', customerId);
+    //console.log('Cliente seleccionado en Inventory Projections:', customerId);
   };
 
   const handleClearFilters = () => {
@@ -189,12 +189,12 @@ export default function InventoryProjections() {
       locationId: '',
       customerId: ''
     });
-    console.log('Filtros limpiados');
+    //console.log('Filtros limpiados');
   };
 
   // Load projections when filters change
   useEffect(() => {
-    console.log('Filters changed:', { selectedProductId, selectedLocationId, selectedCustomerId, viewMode });
+    //console.log('Filters changed:', { selectedProductId, selectedLocationId, selectedCustomerId, viewMode });
     if (selectedProductId) {
       if (viewMode === 'monthly') {
         loadMonthlyProjections();
@@ -234,7 +234,7 @@ export default function InventoryProjections() {
   };
 
   const loadMonthlyProjections = async () => {
-    console.log('Loading monthly projections for:', { selectedProductId, selectedLocationId });
+    //console.log('Loading monthly projections for:', { selectedProductId, selectedLocationId });
     setLoadingMonthlyData(true);
     try {
       let query = supabase
@@ -250,18 +250,18 @@ export default function InventoryProjections() {
         query = query.eq('location_id', selectedLocationId);
       }
 
-      console.log('Executing query for monthly projections...');
+      //console.log('Executing query for monthly projections...');
       const { data, error } = await query;
       
       if (error) throw error;
       
-      console.log('Monthly projections data received:', data?.length || 0, 'records');
+      //console.log('Monthly projections data received:', data?.length || 0, 'records');
       setInventoryProjectionData(data || []);
       
       // Transform data to monthly projections format
       const monthlyData = transformToMonthlyProjections(data || []);
       setMonthlyProjections(monthlyData);
-      console.log('Transformed monthly data:', monthlyData.length, 'records');
+      //console.log('Transformed monthly data:', monthlyData.length, 'records');
       
       if (monthlyData.length === 0) {
         toast({

@@ -3,19 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, TrendingDown, Target, AlertTriangle, CheckCircle, XCircle, BarChart3, Calendar, Package, Truck, MapPin, Users, X, Filter } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ProductFilter } from "@/components/ProductFilter";
-import { LocationFilter } from "@/components/LocationFilter";
-import { CustomerFilter } from "@/components/CustomerFilter";
+import { Package, Truck, MapPin, X, Filter } from "lucide-react";
 import { ForecastDataTable } from "@/components/ForecastDataTable";
 import { ForecastChart } from "@/components/ForecastChart";
 import { MetricsDashboard } from "@/components/MetricsDashboard";
-
 import { DynamicUpcomingChallenges } from "@/components/DynamicUpcomingChallenges";
 import { DynamicActionItems } from "@/components/DynamicActionItems";
-import { AIRecommendationsPanel } from "@/components/AIRecommendationsPanel";
-import { AIScenarioBuilder } from "@/components/AIScenarioBuilder";
 import { ProductSelectionModal } from "@/components/ProductSelectionModal";
 import { LocationSelectionModal } from "@/components/LocationSelectionModal";
 import { CustomerSelectionModal } from "@/components/CustomerSelectionModal";
@@ -27,12 +20,47 @@ import { useLocations } from "@/hooks/useLocations";
 import { useCustomers } from "@/hooks/useCustomers";
 import OutliersTab from "@/components/OutliersTab";
 
+// Import the ForecastData interface from ForecastDataTable
+interface ForecastData {
+  postdate: string;
+  forecast: number | null;
+  actual: number | null;
+  sales_plan: number | null;
+  demand_planner: number | null;
+  forecast_ly: number | null;
+  upper_bound: number | null;
+  lower_bound: number | null;
+  commercial_input: number | null;
+  fitted_history?: number | null;
+}
 
+// Type definition for filter storage
+interface FilterStorage {
+  productId: string;
+  locationId: string;
+  customerId: string;
+}
+
+/**
+ * DemandForecast Component
+ * 
+ * Main component for demand forecasting functionality. Provides:
+ * - Filter management (Product, Location, Customer)
+ * - Chart visualization of forecast data
+ * - Data table with editing capabilities
+ * - Metrics dashboard
+ * - Outliers analysis
+ * - Collaboration features
+ */
 export default function DemandForecast() {
   const [searchParams] = useSearchParams();
   
-  // Helper functions for localStorage persistence
-  const getStoredFilters = () => {
+  // ===== LOCAL STORAGE HELPERS =====
+  /**
+   * Retrieves stored filters from localStorage
+   * @returns Object containing stored filter values or empty object if none exist
+   */
+  const getStoredFilters = (): Partial<FilterStorage> => {
     try {
       const stored = localStorage.getItem('demandForecastFilters');
       return stored ? JSON.parse(stored) : {};
@@ -41,7 +69,11 @@ export default function DemandForecast() {
     }
   };
 
-  const saveFiltersToStorage = (filters: { productId: string; locationId: string; customerId: string }) => {
+  /**
+   * Saves current filter state to localStorage for persistence
+   * @param filters - Object containing filter values to store
+   */
+  const saveFiltersToStorage = (filters: FilterStorage): void => {
     try {
       localStorage.setItem('demandForecastFilters', JSON.stringify(filters));
     } catch (error) {
@@ -49,28 +81,41 @@ export default function DemandForecast() {
     }
   };
 
+  // ===== STATE MANAGEMENT =====
   // Initialize state with localStorage values, fallback to URL params
   const storedFilters = getStoredFilters();
+  
+  // Filter state - product is required, location and customer are optional
   const [selectedProductId, setSelectedProductId] = useState<string>(
     searchParams.get('product_id') || storedFilters.productId || ''
   );
   const [selectedLocationId, setSelectedLocationId] = useState<string>(
     searchParams.get('location_id') || storedFilters.locationId || ''
   );
-  const [selectedCustomerId, setselectedCustomerId] = useState<string>(
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     searchParams.get('customer_id') || storedFilters.customerId || ''
   );
-  const [chartData, setChartData] = useState<any[]>([]);
+  
+  // Chart data state for forecast visualization
+  const [chartData, setChartData] = useState<ForecastData[]>([]);
+  
+  // Modal visibility states
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   
+  // ===== HOOKS =====
+  // Data hooks for interpretability and name resolution
   const { data: interpretabilityData } = useInterpretabilityData(selectedProductId, selectedLocationId, selectedCustomerId);
   const { getProductName } = useProducts();
   const { getLocationName } = useLocations();
   const { getCustomerName } = useCustomers();
 
-  // Update state when URL parameters change
+  // ===== URL PARAMETER SYNC =====
+  /**
+   * Syncs component state with URL parameters when they change
+   * This allows for deep linking and browser navigation
+   */
   useEffect(() => {
     const productParam = searchParams.get('product_id');
     const locationParam = searchParams.get('location_id');
@@ -83,57 +128,81 @@ export default function DemandForecast() {
       setSelectedLocationId(locationParam);
     }
     if (customerParam && customerParam !== selectedCustomerId) {
-      setselectedCustomerId(customerParam);
+      setSelectedCustomerId(customerParam);
     }
-  }, [searchParams]);
+  }, [searchParams, selectedProductId, selectedLocationId, selectedCustomerId]);
 
-  const handleProductSelect = (productId: string) => {
+  // ===== EVENT HANDLERS =====
+  /**
+   * Handles product selection from modal
+   * @param productId - Selected product ID
+   */
+  const handleProductSelect = (productId: string): void => {
     setSelectedProductId(productId);
     saveFiltersToStorage({
       productId,
       locationId: selectedLocationId,
       customerId: selectedCustomerId
     });
-    console.log('Producto seleccionado en Demand Forecast:', productId);
+    //console.log('Producto seleccionado en Demand Forecast:', productId);
   };
 
-  const handleLocationSelect = (locationId: string) => {
+  /**
+   * Handles location selection from modal
+   * @param locationId - Selected location ID
+   */
+  const handleLocationSelect = (locationId: string): void => {
     setSelectedLocationId(locationId);
     saveFiltersToStorage({
       productId: selectedProductId,
       locationId,
       customerId: selectedCustomerId
     });
-    console.log('Ubicación seleccionada en Demand Forecast:', locationId);
+    //console.log('Ubicación seleccionada en Demand Forecast:', locationId);
   };
 
-  const handleCustomerSelect = (CustomerId: string) => {
-    setselectedCustomerId(CustomerId);
+  /**
+   * Handles customer selection from modal
+   * @param customerId - Selected customer ID
+   */
+  const handleCustomerSelect = (customerId: string): void => {
+    setSelectedCustomerId(customerId);
     saveFiltersToStorage({
       productId: selectedProductId,
       locationId: selectedLocationId,
-      customerId: CustomerId
+      customerId
     });
-    console.log('Cliente seleccionado en Demand Forecast:', CustomerId);
+    //console.log('Cliente seleccionado en Demand Forecast:', customerId);
   };
 
-  const handleForecastDataUpdate = (data: any[]) => {
+  /**
+   * Updates chart data when forecast data changes
+   * @param data - New forecast data array
+   */
+  const handleForecastDataUpdate = (data: ForecastData[]): void => {
     setChartData(data);
   };
 
-  const handleClearFilters = () => {
+  /**
+   * Clears all filters and resets to default state
+   */
+  const handleClearFilters = (): void => {
     setSelectedProductId('');
     setSelectedLocationId('');
-    setselectedCustomerId('');
+    setSelectedCustomerId('');
     saveFiltersToStorage({
       productId: '',
       locationId: '',
       customerId: ''
     });
-    console.log('Filtros limpiados');
+    //console.log('Filtros limpiados');
   };
 
-  // Calculate dynamic collaboration metrics from interpretability data
+  // ===== COLLABORATION METRICS CALCULATION =====
+  /**
+   * Calculates dynamic collaboration metrics based on interpretability data
+   * @returns Object containing calculated metrics or default values
+   */
   const calculateCollaborationMetrics = () => {
     if (!interpretabilityData.length) {
       return {
@@ -158,14 +227,16 @@ export default function DemandForecast() {
 
   const collaborationMetrics = calculateCollaborationMetrics();
 
+  // ===== RENDER =====
   return (
     <div className="space-y-6">
-      {/* Always visible filter info */}
+      {/* ===== FILTER SECTION ===== */}
       <Card>
         <CardContent className="p-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap items-center gap-4">
               
+              {/* Product Filter - Required */}
               <div className="flex items-center gap-2">
                 <Package className="h-4 w-4 text-blue-500" />
                 <span className="text-sm font-medium">Producto:</span>
@@ -187,6 +258,7 @@ export default function DemandForecast() {
                 </Button>
               </div>
               
+              {/* Location Filter - Optional */}
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-green-500" />
                 <span className="text-sm font-medium">Ubicación:</span>
@@ -206,31 +278,69 @@ export default function DemandForecast() {
                 >
                   <Filter className="h-4 w-4" />
                 </Button>
+                {/* Individual clear button for location */}
+                {selectedLocationId && (
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => {
+                      setSelectedLocationId('');
+                      saveFiltersToStorage({
+                        productId: selectedProductId,
+                        locationId: '',
+                        customerId: selectedCustomerId
+                      });
+                    }}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
 
-                <div className="flex items-center gap-2">
-                  <Truck className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm font-medium">Cliente:</span>           
-              {selectedCustomerId ? (
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{selectedCustomerId}</Badge>
-                  <Badge variant="secondary">{getCustomerName(selectedCustomerId)}</Badge>
-                </div>
-              ) : (
+              {/* Customer Filter - Optional */}
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-orange-500" />
+                <span className="text-sm font-medium">Cliente:</span>           
+                {selectedCustomerId ? (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{selectedCustomerId}</Badge>
+                    <Badge variant="secondary">{getCustomerName(selectedCustomerId)}</Badge>
+                  </div>
+                ) : (
                   <span className="text-sm text-muted-foreground">No seleccionado (opcional)</span>
                 )}
                 <Button 
+                  variant="outline" 
+                  size="icon"
+                  onClick={() => setIsCustomerModalOpen(true)}
+                  className="ml-2 h-8 w-8"
+                >
+                  <Filter className="h-4 w-4" />
+                </Button>
+                {/* Individual clear button for customer */}
+                {selectedCustomerId && (
+                  <Button 
                     variant="outline" 
                     size="icon"
-                    onClick={() => setIsCustomerModalOpen(true)}
-                    className="ml-2 h-8 w-8"
+                    onClick={() => {
+                      setSelectedCustomerId('');
+                      saveFiltersToStorage({
+                        productId: selectedProductId,
+                        locationId: selectedLocationId,
+                        customerId: ''
+                      });
+                    }}
+                    className="h-8 w-8"
                   >
-                    <Filter className="h-4 w-4" />
+                    <X className="h-4 w-4" />
                   </Button>
-                </div>
+                )}
+              </div>
               
             </div>
             
+            {/* Global clear all filters button */}
             {(selectedProductId || selectedLocationId || selectedCustomerId) && (
               <Button 
                 variant="outline" 
@@ -245,63 +355,57 @@ export default function DemandForecast() {
         </CardContent>
       </Card>
 
-      {/* Tab Interface */}
+      {/* ===== TAB INTERFACE ===== */}
       <Tabs defaultValue="plan-demanda" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="plan-demanda">Plan de la demanda</TabsTrigger>
           <TabsTrigger value="metricas">Métricas</TabsTrigger>
           <TabsTrigger value="outliers">Outliers</TabsTrigger>
-          
-         {/* <TabsTrigger value="ai-asistente">IA Asistente</TabsTrigger>*/}
-          
         </TabsList>
 
+        {/* ===== PLAN DE DEMANDA TAB ===== */}
         <TabsContent value="plan-demanda" className="space-y-6 mt-6">
-          {/* Product Filter Row */}
-          <div className="space-y-6 mt-6">
-            
-            {/* Chart Card - spans 4 columns on large screens */}
-            <Card className="lg:col-span-4">
-              <CardHeader>
-                <CardTitle>Gráfico de Pronósticos</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Visualización de datos de pronóstico vs. valores reales
-                  {!selectedProductId ? 
-                    " - Selecciona producto para ver datos" : 
-                    `${selectedLocationId ? ` - Ubicación: ${selectedLocationId}` : ' - Todas las ubicaciones'}${selectedCustomerId ? ` - Proveedor: ${selectedCustomerId}` : " - Todos los proveedores"}`
-                  }
-                </p>
-              </CardHeader>
-              <CardContent>
-                <ForecastChart data={chartData} />
-              </CardContent>
-            </Card>
-          </div>
+          {/* Chart Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Gráfico de Pronósticos</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Visualización de datos de pronóstico vs. valores reales
+                {!selectedProductId ? 
+                  " - Selecciona producto para ver datos" : 
+                  `${selectedLocationId ? ` - Ubicación: ${selectedLocationId}` : ' - Todas las ubicaciones'}${selectedCustomerId ? ` - Cliente: ${selectedCustomerId}` : " - Todos los clientes"}`
+                }
+              </p>
+            </CardHeader>
+            <CardContent>
+              <ForecastChart data={chartData} />
+            </CardContent>
+          </Card>
 
-            {/* Forecast Data Table - spans remaining columns */}
-            <Card className="lg:col-span-6">
-              <CardHeader>
-                <CardTitle>Tabla de Datos de Pronóstico</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Datos detallados con capacidad de edición para Demand Planner
-                  {!selectedProductId ? 
-                    " - Selecciona producto para ver datos" : 
-                    `${selectedLocationId ? ` - Ubicación: ${selectedLocationId}` : ' - Todas las ubicaciones'}${selectedCustomerId ? ` - Proveedor: ${selectedCustomerId}` : " - Todos los proveedores"}`
-                  }
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <ForecastDataTable 
-                  selectedProductId={selectedProductId}
-                  selectedLocationId={selectedLocationId}
-                  selectedCustomerId={selectedCustomerId}
-                  onDataUpdate={handleForecastDataUpdate}
-                />
-              </CardContent>
-            </Card>
-
+          {/* Forecast Data Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Tabla de Datos de Pronóstico</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Datos detallados con capacidad de edición para Demand Planner
+                {!selectedProductId ? 
+                  " - Selecciona producto para ver datos" : 
+                  `${selectedLocationId ? ` - Ubicación: ${selectedLocationId}` : ' - Todas las ubicaciones'}${selectedCustomerId ? ` - Cliente: ${selectedCustomerId}` : " - Todos los clientes"}`
+                }
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <ForecastDataTable 
+                selectedProductId={selectedProductId}
+                selectedLocationId={selectedLocationId}
+                selectedCustomerId={selectedCustomerId}
+                onDataUpdate={handleForecastDataUpdate}
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
+        {/* ===== MÉTRICAS TAB ===== */}
         <TabsContent value="metricas" className="space-y-6 mt-6">
           <MetricsDashboard 
             selectedProductId={selectedProductId}
@@ -310,6 +414,7 @@ export default function DemandForecast() {
           />
         </TabsContent>
 
+        {/* ===== OUTLIERS TAB ===== */}
         <TabsContent value="outliers" className="space-y-6 mt-6">
           <OutliersTab 
             selectedProductId={selectedProductId}
@@ -317,103 +422,9 @@ export default function DemandForecast() {
             selectedLocationId={selectedLocationId}
           />
         </TabsContent>
-
-        <TabsContent value="colaboracion" className="space-y-6 mt-6">
-          {!selectedProductId ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <Card className="w-full max-w-md">
-                <CardContent className="flex flex-col items-center justify-center p-8 text-center space-y-4">
-                  <div className="flex items-center gap-4 text-muted-foreground">
-                    <Package className="h-8 w-8" />
-                  </div>
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">Selecciona Producto</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Para ver la información de colaboración, selecciona un producto.
-                    </p>
-                    <Button 
-                      onClick={() => setIsProductModalOpen(true)}
-                      className="mt-2"
-                    >
-                      Seleccionar Producto
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <>
-              {/* Dynamic Upcoming Challenges */}
-              <div className="grid grid-cols-1 gap-6">
-                <DynamicUpcomingChallenges 
-                  selectedProductId={selectedProductId}
-                  selectedLocationId={selectedLocationId}
-                />
-              </div>
-
-              {/* Action Items and Collaboration Metrics */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DynamicActionItems 
-                  selectedProductId={selectedProductId}
-                  selectedLocationId={selectedLocationId}
-                />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Métricas de Colaboración</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Ventas - Precisión Compartida</span>
-                        <span className="font-semibold">{collaborationMetrics.forecastAccuracy}%</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Compras - Tiempo de Respuesta</span>
-                        <span className="font-semibold">{collaborationMetrics.responseTime}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Supply Chain - Cumplimiento</span>
-                        <span className="font-semibold">{collaborationMetrics.compliance}%</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm">Marketing - Alineación Promocional</span>
-                        <span className="font-semibold">{collaborationMetrics.marketAlignment}%</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t">
-                      <Button className="w-full">
-                        <Truck className="h-4 w-4 mr-2" />
-                        Generar Reporte S&OP
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
-        </TabsContent>
-        {/*  <TabsContent value="ai-asistente" className="space-y-6 mt-6">
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">            
-          
-           <AIRecommendationsPanel
-              selectedProductId={selectedProductId}
-              selectedLocationId={selectedLocationId}
-              selectedCustomerId={selectedCustomerId}
-            />
-            
-            <AIScenarioBuilder
-              selectedProductId={selectedProductId}
-              selectedLocationId={selectedLocationId}
-              selectedCustomerId={selectedCustomerId}
-              
-            />
-          
-          </div>
-        </TabsContent>*/}
       </Tabs>
 
+      {/* ===== MODALS ===== */}
       {/* Product Selection Modal */}
       <ProductSelectionModal
         isOpen={isProductModalOpen}

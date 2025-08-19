@@ -5,8 +5,10 @@ import { embedDashboard } from "@superset-ui/embedded-sdk";
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-const supersetUrl = 'https://analytics.m8solutions.com.mx/';
-const supersetApiUrl = `${supersetUrl}api/v1/security`;
+
+
+const supersetUrl = 'https://gipsy-bi.apps-m8solutions.com';
+const supersetApiUrl = `${supersetUrl}/api/v1/`;
 
 export function AdvancedReportsDashboard() {
   const [dashboardId, setDashboardId] = useState(null);
@@ -42,11 +44,10 @@ export function AdvancedReportsDashboard() {
       // Step 1: Login to Superset
       const login_body = {
         username: "admin",
-        password: "admin",
+        password: "Gipsy2025!",
         provider: "db",
         refresh: true,
       };
-
       const login_headers = {
         headers: {
           "Content-Type": "application/json",
@@ -54,14 +55,14 @@ export function AdvancedReportsDashboard() {
       };
 
       const loginResponse = await axios.post(
-        `${supersetApiUrl}/login`,
+        `${supersetApiUrl}security/login/`,
         login_body,
         login_headers
       );
 
       const access_token = loginResponse.data.access_token;
 
-      console.log("✅ Logged into Superset:", access_token);
+      //console.log("✅ Logged into Superset:", access_token);
 
       // Step 2: Generate Guest Token
       const guestTokenBody = {
@@ -87,14 +88,14 @@ export function AdvancedReportsDashboard() {
       };
 
       const guestTokenResponse = await axios.post(
-        `${supersetApiUrl}/guest_token/`,
+        `${supersetApiUrl}/security/guest_token/`,
         guestTokenBody,
         guestTokenHeaders
       );
 
       const guest_token = guestTokenResponse.data.token;
 
-      console.log("✅ Guest token received:", guest_token);
+      //console.log("✅ Guest token received:", guest_token);
 
       // Step 3: Embed the dashboard
       const container = document.getElementById("superset-container");

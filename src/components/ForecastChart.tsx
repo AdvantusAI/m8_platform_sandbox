@@ -1,7 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Chart from 'react-apexcharts';
 import { ApexOptions } from 'apexcharts';
+import { Button } from '@/components/ui/button';
+import { Palette, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface ForecastData {
   postdate: string;
@@ -19,8 +22,19 @@ interface ForecastChartProps {
   data: ForecastData[];
 }
 
-export function ForecastChart({ data }: ForecastChartProps) {
+// Default colors for each series
+const defaultColors = {
+  'Historia de ventas': '#3B82F6',
+  'Forecast': '#EF4444',
+  'Objetivo de ventas': '#10B981',
+  'Demand Planner': '#F59E0B',
+  'Historia Ajustada': '#8B5CF6',
+  'Tendencia': '#DC2626'
+};
 
+export function ForecastChart({ data }: ForecastChartProps) {
+  const [customColors, setCustomColors] = useState<Record<string, string>>(defaultColors);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   if (!data.length) {
     return (
@@ -124,6 +138,20 @@ export function ForecastChart({ data }: ForecastChartProps) {
     
   ];
 
+  // Get colors in the same order as series
+  const seriesColors = series.map(s => customColors[s.name] || defaultColors[s.name]);
+
+  const handleColorChange = (seriesName: string, color: string) => {
+    setCustomColors(prev => ({
+      ...prev,
+      [seriesName]: color
+    }));
+  };
+
+  const resetColors = () => {
+    setCustomColors(defaultColors);
+  };
+
  
   // Create a unique key based on data length and first/last dates to force complete remount
   const chartKey = `chart-${data.length}-${categories[0]}-${categories[categories.length - 1]}-${Date.now()}`;
@@ -144,7 +172,7 @@ export function ForecastChart({ data }: ForecastChartProps) {
       redrawOnParentResize: true,
       redrawOnWindowResize: true,
     },
-    colors: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#DC2626'],
+    colors: seriesColors,
     stroke: {
       width: [3, 3, 2, 2, 2, 2],
       curve: 'smooth',
@@ -264,6 +292,52 @@ export function ForecastChart({ data }: ForecastChartProps) {
 
   return (
     <div className="w-full">
+      {/* Color Customization Controls */}
+      <div className="flex justify-end mb-4">
+        <Popover open={showColorPicker} onOpenChange={setShowColorPicker}>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Palette className="h-4 w-4" />
+              Personalizar Colores
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium">Personalizar Colores de Series</h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={resetColors}
+                  className="h-6 px-2 text-xs"
+                >
+                  Restablecer
+                </Button>
+              </div>
+              <div className="space-y-3">
+                {series.map((s) => (
+                  <div key={s.name} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-4 h-4 rounded border"
+                        style={{ backgroundColor: customColors[s.name] || defaultColors[s.name] }}
+                      />
+                      <span className="text-sm">{s.name}</span>
+                    </div>
+                    <input
+                      type="color"
+                      value={customColors[s.name] || defaultColors[s.name]}
+                      onChange={(e) => handleColorChange(s.name, e.target.value)}
+                      className="w-8 h-8 rounded border cursor-pointer"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+      </div>
+
       <Chart
         key={chartKey}
         options={options}

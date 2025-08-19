@@ -68,6 +68,7 @@ export function useCommercialCollaboration() {
 
       // Fetch commercial profile
       const { data: profileData, error: profileError } = await supabase
+        .schema('m8_schema')
         .from('commercial_team_profiles')
         .select('*')
         .eq('user_id', user.id)
@@ -81,6 +82,7 @@ export function useCommercialCollaboration() {
 
       // Fetch customer assignments
       const { data: assignmentsData, error: assignmentsError } = await supabase
+        .schema('m8_schema')
         .from('customer_assignments')
         .select('*')
         .eq('commercial_user_id', user.id);
@@ -93,6 +95,7 @@ export function useCommercialCollaboration() {
 
       // Fetch market intelligence
       const { data: intelligenceData, error: intelligenceError } = await supabase
+        .schema('m8_schema')
         .from('market_intelligence')
         .select('*')
         .eq('commercial_user_id', user.id)
@@ -122,6 +125,7 @@ export function useCommercialCollaboration() {
       }
 
       const { error } = await supabase
+        .schema('m8_schema')
         .from('commercial_team_profiles')
         .upsert({
           user_id: user.id,
@@ -151,7 +155,7 @@ export function useCommercialCollaboration() {
       }
 
       // For now, just store in local state since table doesn't exist
-      console.log('Would add market intelligence:', intelligence);
+      //console.log('Would add market intelligence:', intelligence);
       toast.success('Inteligencia de mercado agregada (simulado)');
       
       // Add to local state

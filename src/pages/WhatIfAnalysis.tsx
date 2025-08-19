@@ -29,10 +29,10 @@ const WhatIfAnalysis = () => {
   };
 
   const handleViewScenario = (scenarioId: string) => {
-    console.log('🔍 Viewing scenario:', scenarioId);
-    console.log('📊 Available scenarios:', scenarios);
+    //console.log('🔍 Viewing scenario:', scenarioId);
+    //console.log('📊 Available scenarios:', scenarios);
     const selectedScenarioData = scenarios?.find(s => s.id === selectedScenario);
-    console.log('🎯 Selected scenario data:', selectedScenarioData);
+    //console.log('🎯 Selected scenario data:', selectedScenarioData);
     setSelectedScenario(scenarioId);
     setActiveTab('library');
   };
@@ -129,7 +129,7 @@ const WhatIfAnalysis = () => {
                   },
                   detailed_changes: []
                 };
-                console.log('🎯 Passing results to ScenarioResults:', results);
+                //console.log('🎯 Passing results to ScenarioResults:', results);
                 return (
                   <ScenarioResults 
                     results={results}

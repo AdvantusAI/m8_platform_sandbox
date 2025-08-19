@@ -37,7 +37,7 @@ export function ProductFilter({
   }, [productLevels, searchTerm]);
   const fetchProductLevels = async () => {
     try {
-      console.log('Fetching product levels...');
+      //console.log('Fetching product levels...');
       const {
         data,
         error
@@ -47,14 +47,14 @@ export function ProductFilter({
         setProductLevels(2); // Default to 2 levels
         return;
       }
-      console.log('System config data:', data);
+      //console.log('System config data:', data);
       if (!data || data.length === 0) {
-        console.log('No system config found, using default 2 levels');
+        //console.log('No system config found, using default 2 levels');
         setProductLevels(2);
         return;
       }
       const levels = data[0]?.product_levels || 2;
-      console.log('Product levels from database:', levels);
+      //console.log('Product levels from database:', levels);
       setProductLevels(levels);
     } catch (error) {
       console.error('Error fetching product levels:', error);
@@ -64,7 +64,7 @@ export function ProductFilter({
   const fetchProducts = async () => {
     setLoading(true);
     try {
-      console.log('Fetching products with levels:', productLevels);
+      //console.log('Fetching products with levels:', productLevels);
       let query = supabase.from('products').select('*');
       if (searchTerm) {
         query = query.or(`product_name.ilike.%${searchTerm}%,category_name.ilike.%${searchTerm}%,subcategory_name.ilike.%${searchTerm}%,class_name.ilike.%${searchTerm}%,subclass_name.ilike.%${searchTerm}%`);
@@ -74,9 +74,9 @@ export function ProductFilter({
         error
       } = await query;
       if (error) throw error;
-      console.log('Products data:', data);
+      //console.log('Products data:', data);
       const tree = buildProductTree(data || [], productLevels);
-      console.log('Built tree:', tree);
+      //console.log('Built tree:', tree);
       setProductTree(tree);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -85,7 +85,7 @@ export function ProductFilter({
     }
   };
   const buildProductTree = (products: any[], levels: number): ProductNode[] => {
-    console.log('Building tree with levels:', levels);
+    //console.log('Building tree with levels:', levels);
     const tree: Map<string, ProductNode> = new Map();
     products.forEach(product => {
       // Level 1: Category (always included)

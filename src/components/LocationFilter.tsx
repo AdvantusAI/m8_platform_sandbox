@@ -88,7 +88,7 @@ export function LocationFilter({
     }
   };
   const buildLocationTree = (locations: any[], levels: number): LocationNode[] => {
-    console.log('Building location tree with levels:', levels);
+    //console.log('Building location tree with levels:', levels);
     const tree: Map<string, LocationNode> = new Map();
     locations.forEach(location => {
       // Level 1: Always included

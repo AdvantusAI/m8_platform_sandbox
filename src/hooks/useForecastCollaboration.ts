@@ -35,63 +35,208 @@ interface CollaborationComment {
   updated_at: string;
 }
 
-export function useForecastCollaboration(productId?: string, locationId?: string, customerId?: string) {
+
+
+export function useForecastCollaboration(
+  productId?: string, 
+  locationId?: string, 
+  customerId?: string,
+  selectionType?: 'category' | 'subcategory' | 'product'
+) {
   const [forecastData, setForecastData] = useState<ForecastCollaboration[]>([]);
   const [comments, setComments] = useState<CollaborationComment[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch data when both productId and customerId are selected
-    if (productId && customerId) {
+    // Fetch data when productId is selected (customerId is optional)
+    if (productId) {
       fetchCollaborationData();
     } else {
-      // Clear data when filters are not complete
+      // Clear data when no product is selected
       setForecastData([]);
       setComments([]);
       setLoading(false);
     }
-  }, [productId, locationId, customerId]);
+  }, [productId, locationId, customerId, selectionType]);
 
   const fetchCollaborationData = async () => {
     try {
       setLoading(true);
       
-      let query = supabase
-        .from('forecast_data')
-        .select('*')
-        .order('postdate', { ascending: false });
+   
+      
+      let forecastData: Array<{
+        postdate: string;
+        product_id: string;
+        location_id: string;
+        customer_id: string;
+        forecast: number | null;
+        actual: number | null;
+        sales_plan: number | null;
+        demand_planner: number | null;
+        commercial_input: number | null;
+        commercial_notes: string | null;
+        collaboration_status: string | null;
+        products: {
+          category_id: string | null;
+          category_name: string | null;
+          subcategory_id: string | null;
+          subcategory_name: string | null;
+        } | null;
+      }> = [];
+      
+      // Determine the selection type and build appropriate query
+      if (selectionType === 'category') {
+        
+        
+        const { data, error } = await supabase
+          .schema('m8_schema')
+          .from('forecast_data')
+          .select(`
+            postdate,
+            product_id,
+            location_id,
+            customer_id,
+            forecast,
+            actual,
+            sales_plan,
+            demand_planner,
+            commercial_input,
+            commercial_notes,
+            collaboration_status,
+            products!inner(category_id, category_name, subcategory_id, subcategory_name)
+          `)
+          .eq('products.category_id', productId)
+          .order('postdate', { ascending: false });
 
-      if (productId) query = query.eq('product_id', productId);
-      if (locationId) query = query.eq('location_id', locationId);
-      if (customerId) query = query.eq('customer_id', customerId);
+        if (error) throw error;
+        forecastData = data || [];
+        
+      } else if (selectionType === 'subcategory') {
+        ////console.log('Fetching data for subcategory:', productId);
+        
+        const { data, error } = await supabase
+          .schema('m8_schema')
+          .from('forecast_data')
+          .select(`
+            postdate,
+            product_id,
+            location_id,
+            customer_id,
+            forecast,
+            actual,
+            sales_plan,
+            demand_planner,
+            commercial_input,
+            commercial_notes,
+            collaboration_status,
+            products!inner(category_id, category_name, subcategory_id, subcategory_name)
+          `)
+          .eq('products.subcategory_id', productId)
+          .order('postdate', { ascending: false });
 
-      const { data: forecastData, error } = await query;
+        if (error) throw error;
+        forecastData = data || [];
+        
+      } else if (selectionType === 'product') {
+        ////console.log('Fetching data for product:', productId);
+        
+        const { data, error } = await supabase
+          .schema('m8_schema')
+          .from('forecast_data')
+          .select(`
+            postdate,
+            product_id,
+            location_id,
+            customer_id,
+            forecast,
+            actual,
+            sales_plan,
+            demand_planner,
+            commercial_input,
+            commercial_notes,
+            collaboration_status,
+            products(category_id, category_name, subcategory_id, subcategory_name)
+          `)
+          .eq('product_id', productId)
+          .order('postdate', { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
+        forecastData = data || [];
+      }
 
-      // Map the data to ensure collaboration_status is present
-      const mappedData = (forecastData || []).map(item => ({
-        ...item,
-        collaboration_status: item.collaboration_status || 'pending_review'
+      // Apply additional filters
+      if (locationId) {
+        forecastData = forecastData.filter(item => item.location_id === locationId);
+      }
+      if (customerId) {
+        forecastData = forecastData.filter(item => item.customer_id === customerId);
+      }
+
+     
+
+      // Aggregate data by postdate
+      const aggregatedData = new Map<string, {
+        postdate: string;
+        product_id: string;
+        location_id: string;
+        customer_id: string;
+        forecast: number;
+        actual: number;
+        sales_plan: number;
+        demand_planner: number;
+        commercial_input: number;
+        commercial_notes: string;
+        collaboration_status: string;
+      }>();
+      
+      forecastData.forEach(item => {
+        const postdate = item.postdate;
+        if (!aggregatedData.has(postdate)) {
+          aggregatedData.set(postdate, {
+            postdate,
+            product_id: item.product_id,
+            location_id: item.location_id,
+            customer_id: item.customer_id,
+            forecast: 0,
+            actual: 0,
+            sales_plan: 0,
+            demand_planner: 0,
+            commercial_input: 0,
+            commercial_notes: item.commercial_notes || '',
+            collaboration_status: item.collaboration_status || 'pending_review'
+          });
+        }
+        
+        const existing = aggregatedData.get(postdate);
+        existing.forecast += (item.forecast || 0);
+        existing.actual += (item.actual || 0);
+        existing.sales_plan += (item.sales_plan || 0);
+        existing.demand_planner += (item.demand_planner || 0);
+        existing.commercial_input += (item.commercial_input || 0);
+      });
+
+      // Convert to array and map to expected format
+      const processedData = Array.from(aggregatedData.values()).map(item => ({
+        id: `agg_${item.postdate}_${item.product_id}`,
+        postdate: item.postdate,
+        product_id: item.product_id,
+        location_id: item.location_id,
+        customer_id: item.customer_id,
+        forecast: item.forecast,
+        actual: item.actual,
+        sales_plan: item.sales_plan,
+        demand_planner: item.demand_planner,
+        commercial_input: item.commercial_input,
+        commercial_notes: item.commercial_notes,
+        collaboration_status: item.collaboration_status
       })) as unknown as ForecastCollaboration[];
 
-      setForecastData(mappedData);
+    
+      setForecastData(processedData);
 
-      // Fetch comments for the forecast data
-      if (forecastData && forecastData.length > 0) {
-        const forecastIds = forecastData.map(f => f.id);
-        const { data: commentsData, error: commentsError } = await supabase
-          .from('forecast_collaboration_comments')
-          .select('*')
-          .in('forecast_data_id', forecastIds)
-          .order('created_at', { ascending: true });
-
-        if (commentsError) {
-          console.error('Error fetching comments:', commentsError);
-        } else {
-          setComments((commentsData || []) as unknown as CollaborationComment[]);
-        }
-      }
+      // For aggregated data, we don't fetch comments
+      setComments([]);
 
     } catch (error) {
       console.error('Error fetching collaboration data:', error);
@@ -103,6 +248,7 @@ export function useForecastCollaboration(productId?: string, locationId?: string
   const fetchFilteredDataByProductIds = async (productIds: string[]) => {
     try {
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('forecast_data')
         .select('*')
         .in('product_id', productIds);
@@ -128,7 +274,8 @@ export function useForecastCollaboration(productId?: string, locationId?: string
         return false;
       }
 
-      const { error } = await supabase
+      const { error } = await supabase  
+        .schema('m8_schema')
         .from('forecast_data')
         .update({
           ...updates,
@@ -164,6 +311,7 @@ export function useForecastCollaboration(productId?: string, locationId?: string
       }
 
       const { error } = await supabase
+        .schema('m8_schema')
         .from('forecast_collaboration_comments')
         .insert({
           forecast_data_id: forecastId,

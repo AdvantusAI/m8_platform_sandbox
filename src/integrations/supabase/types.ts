@@ -7,76 +7,340 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
-  m8_schema: {
+  public: {
     Tables: {
-      ai_recommendations: {
+      ab_group: {
         Row: {
-          applied_at: string | null
-          applied_by: string | null
-          confidence_score: number | null
-          context_data: Json | null
-          created_at: string | null
-          customer_id: string | null
-          description: string
-          expected_impact: string | null
-          id: string
-          location_id: string
-          priority: string | null
-          product_id: string
-          reasoning: string | null
-          recommendation_type: string
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string | null
-          suggested_action: Json | null
-          title: string
+          description: string | null
+          id: number
+          label: string | null
+          name: string
         }
         Insert: {
-          applied_at?: string | null
-          applied_by?: string | null
-          confidence_score?: number | null
-          context_data?: Json | null
-          created_at?: string | null
-          customer_id?: string | null
-          description: string
-          expected_impact?: string | null
-          id?: string
-          location_id: string
-          priority?: string | null
-          product_id: string
-          reasoning?: string | null
-          recommendation_type: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string | null
-          suggested_action?: Json | null
-          title: string
+          description?: string | null
+          id: number
+          label?: string | null
+          name: string
         }
         Update: {
-          applied_at?: string | null
-          applied_by?: string | null
-          confidence_score?: number | null
-          context_data?: Json | null
-          created_at?: string | null
-          customer_id?: string | null
-          description?: string
-          expected_impact?: string | null
-          id?: string
-          location_id?: string
-          priority?: string | null
-          product_id?: string
-          reasoning?: string | null
-          recommendation_type?: string
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string | null
-          suggested_action?: Json | null
-          title?: string
+          description?: string | null
+          id?: number
+          label?: string | null
+          name?: string
+        }
+        Relationships: []
+      }
+      ab_group_role: {
+        Row: {
+          group_id: number | null
+          id: number
+          role_id: number | null
+        }
+        Insert: {
+          group_id?: number | null
+          id: number
+          role_id?: number | null
+        }
+        Update: {
+          group_id?: number | null
+          id?: number
+          role_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_group_role_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "ab_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_group_role_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "ab_role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_permission: {
+        Row: {
+          id: number
+          name: string
+        }
+        Insert: {
+          id: number
+          name: string
+        }
+        Update: {
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      ab_permission_view: {
+        Row: {
+          id: number
+          permission_id: number | null
+          view_menu_id: number | null
+        }
+        Insert: {
+          id: number
+          permission_id?: number | null
+          view_menu_id?: number | null
+        }
+        Update: {
+          id?: number
+          permission_id?: number | null
+          view_menu_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_permission_view_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "ab_permission"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_permission_view_view_menu_id_fkey"
+            columns: ["view_menu_id"]
+            isOneToOne: false
+            referencedRelation: "ab_view_menu"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_permission_view_role: {
+        Row: {
+          id: number
+          permission_view_id: number | null
+          role_id: number | null
+        }
+        Insert: {
+          id: number
+          permission_view_id?: number | null
+          role_id?: number | null
+        }
+        Update: {
+          id?: number
+          permission_view_id?: number | null
+          role_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_permission_view_role_permission_view_id_fkey"
+            columns: ["permission_view_id"]
+            isOneToOne: false
+            referencedRelation: "ab_permission_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_permission_view_role_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "ab_role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_register_user: {
+        Row: {
+          email: string
+          first_name: string
+          id: number
+          last_name: string
+          password: string | null
+          registration_date: string | null
+          registration_hash: string | null
+          username: string
+        }
+        Insert: {
+          email: string
+          first_name: string
+          id: number
+          last_name: string
+          password?: string | null
+          registration_date?: string | null
+          registration_hash?: string | null
+          username: string
+        }
+        Update: {
+          email?: string
+          first_name?: string
+          id?: number
+          last_name?: string
+          password?: string | null
+          registration_date?: string | null
+          registration_hash?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
+      ab_role: {
+        Row: {
+          id: number
+          name: string
+        }
+        Insert: {
+          id: number
+          name: string
+        }
+        Update: {
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      ab_user: {
+        Row: {
+          active: boolean | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          email: string
+          fail_login_count: number | null
+          first_name: string
+          id: number
+          last_login: string | null
+          last_name: string
+          login_count: number | null
+          password: string | null
+          username: string
+        }
+        Insert: {
+          active?: boolean | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          email: string
+          fail_login_count?: number | null
+          first_name: string
+          id: number
+          last_login?: string | null
+          last_name: string
+          login_count?: number | null
+          password?: string | null
+          username: string
+        }
+        Update: {
+          active?: boolean | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          email?: string
+          fail_login_count?: number | null
+          first_name?: string
+          id?: number
+          last_login?: string | null
+          last_name?: string
+          login_count?: number | null
+          password?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_user_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_user_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_user_group: {
+        Row: {
+          group_id: number | null
+          id: number
+          user_id: number | null
+        }
+        Insert: {
+          group_id?: number | null
+          id: number
+          user_id?: number | null
+        }
+        Update: {
+          group_id?: number | null
+          id?: number
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_user_group_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "ab_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_user_group_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_user_role: {
+        Row: {
+          id: number
+          role_id: number | null
+          user_id: number | null
+        }
+        Insert: {
+          id: number
+          role_id?: number | null
+          user_id?: number | null
+        }
+        Update: {
+          id?: number
+          role_id?: number | null
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ab_user_role_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "ab_role"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ab_user_role_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ab_view_menu: {
+        Row: {
+          id: number
+          name: string
+        }
+        Insert: {
+          id: number
+          name: string
+        }
+        Update: {
+          id?: number
+          name?: string
         }
         Relationships: []
       }
@@ -91,6 +355,70 @@ export type Database = {
           version_num?: string
         }
         Relationships: []
+      }
+      annotation: {
+        Row: {
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          end_dttm: string | null
+          id: number
+          json_metadata: string | null
+          layer_id: number | null
+          long_descr: string | null
+          short_descr: string | null
+          start_dttm: string | null
+        }
+        Insert: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          end_dttm?: string | null
+          id?: number
+          json_metadata?: string | null
+          layer_id?: number | null
+          long_descr?: string | null
+          short_descr?: string | null
+          start_dttm?: string | null
+        }
+        Update: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          end_dttm?: string | null
+          id?: number
+          json_metadata?: string | null
+          layer_id?: number | null
+          long_descr?: string | null
+          short_descr?: string | null
+          start_dttm?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "annotation_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "annotation_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "annotation_layer_id_fkey"
+            columns: ["layer_id"]
+            isOneToOne: false
+            referencedRelation: "annotation_layer"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       annotation_layer: {
         Row: {
@@ -120,667 +448,486 @@ export type Database = {
           id?: number
           name?: string | null
         }
-        Relationships: []
-      }
-      buyers: {
-        Row: {
-          active: boolean | null
-          code: string
-          company_id: number | null
-          created_at: string | null
-          email: string | null
-          id: number
-          name: string
-        }
-        Insert: {
-          active?: boolean | null
-          code: string
-          company_id?: number | null
-          created_at?: string | null
-          email?: string | null
-          id?: number
-          name: string
-        }
-        Update: {
-          active?: boolean | null
-          code?: string
-          company_id?: number | null
-          created_at?: string | null
-          email?: string | null
-          id?: number
-          name?: string
-        }
         Relationships: [
           {
-            foreignKeyName: "buyers_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "annotation_layer_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
             isOneToOne: false
-            referencedRelation: "companies"
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "annotation_layer_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
         ]
       }
-      channel_partners: {
+      cache_keys: {
         Row: {
-          contact_information: Json | null
-          country: string | null
-          created_at: string | null
-          id: string
-          partner_code: string
-          partner_name: string
-          partner_type: string
-          performance_metrics: Json | null
-          region: string | null
-          status: string | null
-          updated_at: string | null
+          cache_key: string
+          cache_timeout: number | null
+          created_on: string | null
+          datasource_uid: string
+          id: number
         }
         Insert: {
-          contact_information?: Json | null
-          country?: string | null
-          created_at?: string | null
-          id?: string
-          partner_code: string
-          partner_name: string
-          partner_type: string
-          performance_metrics?: Json | null
-          region?: string | null
-          status?: string | null
-          updated_at?: string | null
+          cache_key: string
+          cache_timeout?: number | null
+          created_on?: string | null
+          datasource_uid: string
+          id?: number
         }
         Update: {
-          contact_information?: Json | null
-          country?: string | null
-          created_at?: string | null
-          id?: string
-          partner_code?: string
-          partner_name?: string
-          partner_type?: string
-          performance_metrics?: Json | null
-          region?: string | null
-          status?: string | null
-          updated_at?: string | null
+          cache_key?: string
+          cache_timeout?: number | null
+          created_on?: string | null
+          datasource_uid?: string
+          id?: number
         }
         Relationships: []
       }
-      chatbot_conversations: {
+      css_templates: {
         Row: {
-          context_filters: Json | null
-          conversation_title: string | null
-          created_at: string | null
-          id: string
-          updated_at: string | null
-          user_id: string
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          css: string | null
+          id: number
+          template_name: string | null
+          uuid: string | null
         }
         Insert: {
-          context_filters?: Json | null
-          conversation_title?: string | null
-          created_at?: string | null
-          id?: string
-          updated_at?: string | null
-          user_id: string
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          css?: string | null
+          id?: number
+          template_name?: string | null
+          uuid?: string | null
         }
         Update: {
-          context_filters?: Json | null
-          conversation_title?: string | null
-          created_at?: string | null
-          id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      chatbot_messages: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string | null
-          id: string
-          message_type: string
-          metadata: Json | null
-        }
-        Insert: {
-          content: string
-          conversation_id: string
-          created_at?: string | null
-          id?: string
-          message_type: string
-          metadata?: Json | null
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string | null
-          id?: string
-          message_type?: string
-          metadata?: Json | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          css?: string | null
+          id?: number
+          template_name?: string | null
+          uuid?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "chatbot_messages_conversation_id_fkey"
-            columns: ["conversation_id"]
+            foreignKeyName: "css_templates_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
             isOneToOne: false
-            referencedRelation: "chatbot_conversations"
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "css_templates_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
         ]
       }
-      collaboration_workflows: {
+      dashboard_roles: {
         Row: {
-          assigned_commercial: string | null
-          assigned_planner: string | null
-          created_at: string | null
-          customer_id: string | null
-          due_date: string | null
-          id: string
-          location_id: string
-          priority: string | null
-          product_id: string
-          status: string | null
-          updated_at: string | null
-          workflow_name: string
-          workflow_type: string
-        }
-        Insert: {
-          assigned_commercial?: string | null
-          assigned_planner?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          due_date?: string | null
-          id?: string
-          location_id: string
-          priority?: string | null
-          product_id: string
-          status?: string | null
-          updated_at?: string | null
-          workflow_name: string
-          workflow_type: string
-        }
-        Update: {
-          assigned_commercial?: string | null
-          assigned_planner?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          due_date?: string | null
-          id?: string
-          location_id?: string
-          priority?: string | null
-          product_id?: string
-          status?: string | null
-          updated_at?: string | null
-          workflow_name?: string
-          workflow_type?: string
-        }
-        Relationships: []
-      }
-      commercial_team_profiles: {
-        Row: {
-          created_at: string | null
-          customer_segments: string[] | null
-          id: string
-          manager_level: string | null
-          phone: string | null
-          region: string | null
-          specialization: string | null
-          territory: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          customer_segments?: string[] | null
-          id?: string
-          manager_level?: string | null
-          phone?: string | null
-          region?: string | null
-          specialization?: string | null
-          territory?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          customer_segments?: string[] | null
-          id?: string
-          manager_level?: string | null
-          phone?: string | null
-          region?: string | null
-          specialization?: string | null
-          territory?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      companies: {
-        Row: {
-          capital_cost_rate: number | null
-          carrying_cost_rate: number | null
-          created_at: string | null
+          dashboard_id: number | null
           id: number
-          name: string
-          order_header_cost: number | null
-          order_line_cost: number | null
-          service_level_default: number | null
+          role_id: number
         }
         Insert: {
-          capital_cost_rate?: number | null
-          carrying_cost_rate?: number | null
-          created_at?: string | null
+          dashboard_id?: number | null
           id?: number
-          name: string
-          order_header_cost?: number | null
-          order_line_cost?: number | null
-          service_level_default?: number | null
+          role_id: number
         }
         Update: {
-          capital_cost_rate?: number | null
-          carrying_cost_rate?: number | null
-          created_at?: string | null
+          dashboard_id?: number | null
           id?: number
-          name?: string
-          order_header_cost?: number | null
-          order_line_cost?: number | null
-          service_level_default?: number | null
-        }
-        Relationships: []
-      }
-      company_config: {
-        Row: {
-          company_logo: string | null
-          company_name: string | null
-          id: number
-          planning_buckets: string | null
-        }
-        Insert: {
-          company_logo?: string | null
-          company_name?: string | null
-          id?: number
-          planning_buckets?: string | null
-        }
-        Update: {
-          company_logo?: string | null
-          company_name?: string | null
-          id?: number
-          planning_buckets?: string | null
-        }
-        Relationships: []
-      }
-      current_inventory: {
-        Row: {
-          available_stock: number | null
-          committed_stock: number
-          created_at: string | null
-          current_stock: number
-          economic_order_quantity: number
-          holding_cost_rate: number
-          inventory_id: string
-          last_count_date: string | null
-          last_updated: string | null
-          lead_time_days: number
-          max_stock: number
-          min_stock: number
-          product_id: string
-          reorder_point: number
-          safety_stock: number
-          stockout_cost_per_unit: number
-          unit_cost: number
-          updated_at: string | null
-          warehouse_id: number
-        }
-        Insert: {
-          available_stock?: number | null
-          committed_stock?: number
-          created_at?: string | null
-          current_stock?: number
-          economic_order_quantity?: number
-          holding_cost_rate?: number
-          inventory_id?: string
-          last_count_date?: string | null
-          last_updated?: string | null
-          lead_time_days?: number
-          max_stock?: number
-          min_stock?: number
-          product_id: string
-          reorder_point?: number
-          safety_stock?: number
-          stockout_cost_per_unit?: number
-          unit_cost?: number
-          updated_at?: string | null
-          warehouse_id: number
-        }
-        Update: {
-          available_stock?: number | null
-          committed_stock?: number
-          created_at?: string | null
-          current_stock?: number
-          economic_order_quantity?: number
-          holding_cost_rate?: number
-          inventory_id?: string
-          last_count_date?: string | null
-          last_updated?: string | null
-          lead_time_days?: number
-          max_stock?: number
-          min_stock?: number
-          product_id?: string
-          reorder_point?: number
-          safety_stock?: number
-          stockout_cost_per_unit?: number
-          unit_cost?: number
-          updated_at?: string | null
-          warehouse_id?: number
+          role_id?: number
         }
         Relationships: [
           {
-            foreignKeyName: "current_inventory_product_id_fkey"
-            columns: ["product_id"]
+            foreignKeyName: "fk_dashboard_roles_dashboard_id_dashboards"
+            columns: ["dashboard_id"]
             isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["product_id"]
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "current_inventory_warehouse_id_fkey"
-            columns: ["warehouse_id"]
+            foreignKeyName: "fk_dashboard_roles_role_id_ab_role"
+            columns: ["role_id"]
             isOneToOne: false
-            referencedRelation: "warehouses"
+            referencedRelation: "ab_role"
             referencedColumns: ["id"]
           },
         ]
       }
-      customer_assignments: {
+      dashboard_slices: {
         Row: {
-          assignment_type: string | null
-          commercial_user_id: string
-          created_at: string | null
-          customer_id: string
-          end_date: string | null
-          id: string
-          start_date: string | null
+          dashboard_id: number | null
+          id: number
+          slice_id: number | null
         }
         Insert: {
-          assignment_type?: string | null
-          commercial_user_id: string
-          created_at?: string | null
-          customer_id: string
-          end_date?: string | null
-          id?: string
-          start_date?: string | null
+          dashboard_id?: number | null
+          id?: number
+          slice_id?: number | null
         }
         Update: {
-          assignment_type?: string | null
-          commercial_user_id?: string
-          created_at?: string | null
-          customer_id?: string
-          end_date?: string | null
-          id?: string
-          start_date?: string | null
+          dashboard_id?: number | null
+          id?: number
+          slice_id?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_dashboard_slices_dashboard_id_dashboards"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dashboard_slices_slice_id_slices"
+            columns: ["slice_id"]
+            isOneToOne: false
+            referencedRelation: "slices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      customers: {
+      dashboard_user: {
         Row: {
-          created_at: string
-          customer_id: string | null
-          customer_logo: string | null
-          customer_name: string | null
-          id: string
-          level_1: string | null
-          level_1_name: string | null
-          level_2: string | null
-          level_2_name: string | null
-          updated_at: string | null
+          dashboard_id: number | null
+          id: number
+          user_id: number | null
         }
         Insert: {
-          created_at?: string
-          customer_id?: string | null
-          customer_logo?: string | null
-          customer_name?: string | null
-          id?: string
-          level_1?: string | null
-          level_1_name?: string | null
-          level_2?: string | null
-          level_2_name?: string | null
-          updated_at?: string | null
+          dashboard_id?: number | null
+          id?: number
+          user_id?: number | null
         }
         Update: {
-          created_at?: string
-          customer_id?: string | null
-          customer_logo?: string | null
-          customer_name?: string | null
-          id?: string
-          level_1?: string | null
-          level_1_name?: string | null
-          level_2?: string | null
-          level_2_name?: string | null
-          updated_at?: string | null
+          dashboard_id?: number | null
+          id?: number
+          user_id?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_dashboard_user_dashboard_id_dashboards"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_dashboard_user_user_id_ab_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      demand_events: {
+      dashboards: {
         Row: {
-          actual_impact: number | null
-          created_at: string | null
-          customer_id: string | null
+          certification_details: string | null
+          certified_by: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          css: string | null
+          dashboard_title: string | null
           description: string | null
-          end_date: string
-          event_name: string
-          event_subtype: string | null
-          event_type: string
-          expected_impact_max: number | null
-          expected_impact_min: number | null
+          external_url: string | null
           id: number
-          impact_direction: string | null
-          location_id: string | null
-          metadata: Json | null
-          product_id: string | null
-          start_date: string
-          updated_at: string | null
+          is_managed_externally: boolean
+          json_metadata: string | null
+          position_json: string | null
+          published: boolean | null
+          slug: string | null
+          uuid: string | null
         }
         Insert: {
-          actual_impact?: number | null
-          created_at?: string | null
-          customer_id?: string | null
+          certification_details?: string | null
+          certified_by?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          css?: string | null
+          dashboard_title?: string | null
           description?: string | null
-          end_date: string
-          event_name: string
-          event_subtype?: string | null
-          event_type: string
-          expected_impact_max?: number | null
-          expected_impact_min?: number | null
+          external_url?: string | null
           id?: number
-          impact_direction?: string | null
-          location_id?: string | null
-          metadata?: Json | null
-          product_id?: string | null
-          start_date: string
-          updated_at?: string | null
+          is_managed_externally?: boolean
+          json_metadata?: string | null
+          position_json?: string | null
+          published?: boolean | null
+          slug?: string | null
+          uuid?: string | null
         }
         Update: {
-          actual_impact?: number | null
-          created_at?: string | null
-          customer_id?: string | null
+          certification_details?: string | null
+          certified_by?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          css?: string | null
+          dashboard_title?: string | null
           description?: string | null
-          end_date?: string
-          event_name?: string
-          event_subtype?: string | null
-          event_type?: string
-          expected_impact_max?: number | null
-          expected_impact_min?: number | null
+          external_url?: string | null
           id?: number
-          impact_direction?: string | null
-          location_id?: string | null
-          metadata?: Json | null
-          product_id?: string | null
-          start_date?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      demand_forecasts: {
-        Row: {
-          created_at: string | null
-          forecast_method: string | null
-          forecast_period: string
-          freeze_until: string | null
-          id: number
-          madp: number | null
-          monthly_forecast: number | null
-          product_id: string | null
-          quarterly_forecast: number | null
-          seasonal_profile_id: number | null
-          track: number | null
-          updated_at: string | null
-          warehouse_id: number | null
-          weekly_forecast: number | null
-          yearly_forecast: number | null
-        }
-        Insert: {
-          created_at?: string | null
-          forecast_method?: string | null
-          forecast_period: string
-          freeze_until?: string | null
-          id?: number
-          madp?: number | null
-          monthly_forecast?: number | null
-          product_id?: string | null
-          quarterly_forecast?: number | null
-          seasonal_profile_id?: number | null
-          track?: number | null
-          updated_at?: string | null
-          warehouse_id?: number | null
-          weekly_forecast?: number | null
-          yearly_forecast?: number | null
-        }
-        Update: {
-          created_at?: string | null
-          forecast_method?: string | null
-          forecast_period?: string
-          freeze_until?: string | null
-          id?: number
-          madp?: number | null
-          monthly_forecast?: number | null
-          product_id?: string | null
-          quarterly_forecast?: number | null
-          seasonal_profile_id?: number | null
-          track?: number | null
-          updated_at?: string | null
-          warehouse_id?: number | null
-          weekly_forecast?: number | null
-          yearly_forecast?: number | null
+          is_managed_externally?: boolean
+          json_metadata?: string | null
+          position_json?: string | null
+          published?: boolean | null
+          slug?: string | null
+          uuid?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "demand_forecasts_product_id_fkey"
-            columns: ["product_id"]
+            foreignKeyName: "dashboards_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
             isOneToOne: false
-            referencedRelation: "products"
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "demand_forecasts_warehouse_id_fkey"
-            columns: ["warehouse_id"]
+            foreignKeyName: "dashboards_created_by_fk_fkey"
+            columns: ["created_by_fk"]
             isOneToOne: false
-            referencedRelation: "warehouses"
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
         ]
       }
-      demand_history: {
+      database_user_oauth2_tokens: {
         Row: {
-          created_at: string | null
+          access_token: string | null
+          access_token_expiration: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          database_id: number
           id: number
-          lost_sales: number | null
-          period_date: string
-          product_id: string | null
-          promotional_demand: number | null
-          shipped_quantity: number | null
-          total_demand: number | null
+          refresh_token: string | null
+          user_id: number
         }
         Insert: {
-          created_at?: string | null
+          access_token?: string | null
+          access_token_expiration?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id: number
           id?: number
-          lost_sales?: number | null
-          period_date: string
-          product_id?: string | null
-          promotional_demand?: number | null
-          shipped_quantity?: number | null
-          total_demand?: number | null
+          refresh_token?: string | null
+          user_id: number
         }
         Update: {
-          created_at?: string | null
+          access_token?: string | null
+          access_token_expiration?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id?: number
           id?: number
-          lost_sales?: number | null
-          period_date?: string
-          product_id?: string | null
-          promotional_demand?: number | null
-          shipped_quantity?: number | null
-          total_demand?: number | null
+          refresh_token?: string | null
+          user_id?: number
         }
         Relationships: [
           {
-            foreignKeyName: "demand_history_product_id_fkey"
-            columns: ["product_id"]
+            foreignKeyName: "database_user_oauth2_tokens_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
             isOneToOne: false
-            referencedRelation: "products"
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "database_user_oauth2_tokens_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "database_user_oauth2_tokens_database_id_fkey"
+            columns: ["database_id"]
+            isOneToOne: false
+            referencedRelation: "dbs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "database_user_oauth2_tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
         ]
       }
-      demand_outliers: {
+      dbs: {
         Row: {
-          avg_deviation: number | null
-          capped_value: number
-          created_at: string | null
-          customer_id: string
-          demand_outliers: number | null
-          detection_method: string
-          expected_value: number | null
-          explanation: string | null
+          allow_ctas: boolean | null
+          allow_cvas: boolean | null
+          allow_dml: boolean | null
+          allow_file_upload: boolean
+          allow_run_async: boolean | null
+          cache_timeout: number | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          configuration_method: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          database_name: string
+          encrypted_extra: string | null
+          expose_in_sqllab: boolean | null
+          external_url: string | null
+          extra: string | null
+          force_ctas_schema: string | null
           id: number
-          location_id: string | null
-          original_value: number
-          postdate: string
-          product_id: string
-          score: number | null
-          severity: string | null
-          vendor_id: string | null
+          impersonate_user: boolean | null
+          is_managed_externally: boolean
+          password: string | null
+          select_as_create_table_as: boolean | null
+          server_cert: string | null
+          sqlalchemy_uri: string
+          uuid: string | null
+          verbose_name: string | null
         }
         Insert: {
-          avg_deviation?: number | null
-          capped_value: number
-          created_at?: string | null
-          customer_id?: string
-          demand_outliers?: number | null
-          detection_method?: string
-          expected_value?: number | null
-          explanation?: string | null
+          allow_ctas?: boolean | null
+          allow_cvas?: boolean | null
+          allow_dml?: boolean | null
+          allow_file_upload?: boolean
+          allow_run_async?: boolean | null
+          cache_timeout?: number | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          configuration_method?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_name: string
+          encrypted_extra?: string | null
+          expose_in_sqllab?: boolean | null
+          external_url?: string | null
+          extra?: string | null
+          force_ctas_schema?: string | null
           id?: number
-          location_id?: string | null
-          original_value: number
-          postdate: string
-          product_id: string
-          score?: number | null
-          severity?: string | null
-          vendor_id?: string | null
+          impersonate_user?: boolean | null
+          is_managed_externally?: boolean
+          password?: string | null
+          select_as_create_table_as?: boolean | null
+          server_cert?: string | null
+          sqlalchemy_uri: string
+          uuid?: string | null
+          verbose_name?: string | null
         }
         Update: {
-          avg_deviation?: number | null
-          capped_value?: number
-          created_at?: string | null
-          customer_id?: string
-          demand_outliers?: number | null
-          detection_method?: string
-          expected_value?: number | null
-          explanation?: string | null
+          allow_ctas?: boolean | null
+          allow_cvas?: boolean | null
+          allow_dml?: boolean | null
+          allow_file_upload?: boolean
+          allow_run_async?: boolean | null
+          cache_timeout?: number | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          configuration_method?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_name?: string
+          encrypted_extra?: string | null
+          expose_in_sqllab?: boolean | null
+          external_url?: string | null
+          extra?: string | null
+          force_ctas_schema?: string | null
           id?: number
-          location_id?: string | null
-          original_value?: number
-          postdate?: string
-          product_id?: string
-          score?: number | null
-          severity?: string | null
-          vendor_id?: string | null
+          impersonate_user?: boolean | null
+          is_managed_externally?: boolean
+          password?: string | null
+          select_as_create_table_as?: boolean | null
+          server_cert?: string | null
+          sqlalchemy_uri?: string
+          uuid?: string | null
+          verbose_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "dbs_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dbs_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dynamic_plugin: {
+        Row: {
+          bundle_url: string
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          id: number
+          key: string
+          name: string
+        }
+        Insert: {
+          bundle_url: string
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          id?: number
+          key: string
+          name: string
+        }
+        Update: {
+          bundle_url?: string
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          id?: number
+          key?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dynamic_plugin_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dynamic_plugin_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       embedded_dashboards: {
         Row: {
@@ -810,3424 +957,1715 @@ export type Database = {
           dashboard_id?: number
           uuid?: string | null
         }
-        Relationships: []
-      }
-      event_impact_analysis: {
-        Row: {
-          actual_demand: number | null
-          analysis_date: string | null
-          baseline_demand: number | null
-          confidence_score: number | null
-          created_at: string | null
-          customer_id: string | null
-          event_id: number | null
-          id: number
-          impact_multiplier: number | null
-          is_significant: boolean | null
-          location_id: string | null
-          notes: string | null
-          product_id: string | null
-        }
-        Insert: {
-          actual_demand?: number | null
-          analysis_date?: string | null
-          baseline_demand?: number | null
-          confidence_score?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          event_id?: number | null
-          id?: number
-          impact_multiplier?: number | null
-          is_significant?: boolean | null
-          location_id?: string | null
-          notes?: string | null
-          product_id?: string | null
-        }
-        Update: {
-          actual_demand?: number | null
-          analysis_date?: string | null
-          baseline_demand?: number | null
-          confidence_score?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          event_id?: number | null
-          id?: number
-          impact_multiplier?: number | null
-          is_significant?: boolean | null
-          location_id?: string | null
-          notes?: string | null
-          product_id?: string | null
-        }
         Relationships: [
           {
-            foreignKeyName: "event_impact_analysis_event_id_fkey"
-            columns: ["event_id"]
+            foreignKeyName: "fk_embedded_dashboards_dashboard_id_dashboards"
+            columns: ["dashboard_id"]
             isOneToOne: false
-            referencedRelation: "demand_events"
+            referencedRelation: "dashboards"
             referencedColumns: ["id"]
           },
         ]
       }
-      exogenous_variables: {
+      favstar: {
         Row: {
-          confidence_level: number | null
-          created_at: string | null
-          customer_id: string | null
-          date_effective: string
-          id: string
-          impact_coefficient: number | null
-          location_id: string | null
-          metadata: Json | null
-          product_id: string | null
-          updated_at: string | null
-          variable_category: string | null
-          variable_name: string
-          variable_type: string
-          variable_value: number | null
-        }
-        Insert: {
-          confidence_level?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          date_effective: string
-          id?: string
-          impact_coefficient?: number | null
-          location_id?: string | null
-          metadata?: Json | null
-          product_id?: string | null
-          updated_at?: string | null
-          variable_category?: string | null
-          variable_name: string
-          variable_type: string
-          variable_value?: number | null
-        }
-        Update: {
-          confidence_level?: number | null
-          created_at?: string | null
-          customer_id?: string | null
-          date_effective?: string
-          id?: string
-          impact_coefficient?: number | null
-          location_id?: string | null
-          metadata?: Json | null
-          product_id?: string | null
-          updated_at?: string | null
-          variable_category?: string | null
-          variable_name?: string
-          variable_type?: string
-          variable_value?: number | null
-        }
-        Relationships: []
-      }
-      feature_importance: {
-        Row: {
-          created_at: string | null
-          customer_id: string | null
-          feature_category: string | null
-          feature_name: string
-          forecast_run_id: string | null
-          id: number
-          importance_percentage: number
-          importance_rank: number | null
-          importance_value: number
-          location_id: string
-          model_name: string
-          product_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          customer_id?: string | null
-          feature_category?: string | null
-          feature_name: string
-          forecast_run_id?: string | null
-          id?: number
-          importance_percentage: number
-          importance_rank?: number | null
-          importance_value: number
-          location_id: string
-          model_name: string
-          product_id: string
-        }
-        Update: {
-          created_at?: string | null
-          customer_id?: string | null
-          feature_category?: string | null
-          feature_name?: string
-          forecast_run_id?: string | null
-          id?: number
-          importance_percentage?: number
-          importance_rank?: number | null
-          importance_value?: number
-          location_id?: string
-          model_name?: string
-          product_id?: string
-        }
-        Relationships: []
-      }
-      forecast_collaboration_comments: {
-        Row: {
-          comment_text: string
-          comment_type: string | null
-          created_at: string | null
-          forecast_data_id: string
-          id: string
-          parent_comment_id: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          comment_text: string
-          comment_type?: string | null
-          created_at?: string | null
-          forecast_data_id: string
-          id?: string
-          parent_comment_id?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          comment_text?: string
-          comment_type?: string | null
-          created_at?: string | null
-          forecast_data_id?: string
-          id?: string
-          parent_comment_id?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forecast_collaboration_comments_forecast_data_id_fkey"
-            columns: ["forecast_data_id"]
-            isOneToOne: false
-            referencedRelation: "forecast_data"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forecast_collaboration_comments_parent_comment_id_fkey"
-            columns: ["parent_comment_id"]
-            isOneToOne: false
-            referencedRelation: "forecast_collaboration_comments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forecast_data: {
-        Row: {
-          actual: number | null
-          channel_partner_id: string | null
-          collaboration_status: string | null
-          commercial_confidence: string | null
-          commercial_input: number | null
-          commercial_notes: string | null
-          commercial_reviewed_at: string | null
-          commercial_reviewed_by: string | null
-          competitive_impact: string | null
-          competitor_promo_activity: string | null
-          created_at: string
-          customer_id: string | null
-          data_driven_events: number | null
-          day_of_week: number | null
-          demand_planner: number | null
-          exogenous_variables_impact: Json | null
-          forecast: number | null
-          forecast_ly: number | null
-          forecast_reconciliation_id: string | null
-          holiday_type: string | null
-          id: string
-          inventory: number | null
-          is_holiday: boolean | null
-          is_npi_forecast: boolean | null
-          location_id: string | null
-          lower_bound: number | null
-          market_intelligence: string | null
-          npi_product_id: string | null
-          npi_scenario_type: string | null
-          postdate: string
-          precipitation_mm: number | null
-          product_id: string | null
-          promotion_duration: number | null
-          promotion_intensity: number | null
-          promotional_activity: string | null
-          sales_plan: number | null
-          sell_in_forecast: number | null
-          sell_out_forecast: number | null
-          temperature_avg: number | null
-          updated_at: string | null
-          upper_bound: number | null
-          weather_category: string | null
-          week_of_month: number | null
-        }
-        Insert: {
-          actual?: number | null
-          channel_partner_id?: string | null
-          collaboration_status?: string | null
-          commercial_confidence?: string | null
-          commercial_input?: number | null
-          commercial_notes?: string | null
-          commercial_reviewed_at?: string | null
-          commercial_reviewed_by?: string | null
-          competitive_impact?: string | null
-          competitor_promo_activity?: string | null
-          created_at?: string
-          customer_id?: string | null
-          data_driven_events?: number | null
-          day_of_week?: number | null
-          demand_planner?: number | null
-          exogenous_variables_impact?: Json | null
-          forecast?: number | null
-          forecast_ly?: number | null
-          forecast_reconciliation_id?: string | null
-          holiday_type?: string | null
-          id?: string
-          inventory?: number | null
-          is_holiday?: boolean | null
-          is_npi_forecast?: boolean | null
-          location_id?: string | null
-          lower_bound?: number | null
-          market_intelligence?: string | null
-          npi_product_id?: string | null
-          npi_scenario_type?: string | null
-          postdate: string
-          precipitation_mm?: number | null
-          product_id?: string | null
-          promotion_duration?: number | null
-          promotion_intensity?: number | null
-          promotional_activity?: string | null
-          sales_plan?: number | null
-          sell_in_forecast?: number | null
-          sell_out_forecast?: number | null
-          temperature_avg?: number | null
-          updated_at?: string | null
-          upper_bound?: number | null
-          weather_category?: string | null
-          week_of_month?: number | null
-        }
-        Update: {
-          actual?: number | null
-          channel_partner_id?: string | null
-          collaboration_status?: string | null
-          commercial_confidence?: string | null
-          commercial_input?: number | null
-          commercial_notes?: string | null
-          commercial_reviewed_at?: string | null
-          commercial_reviewed_by?: string | null
-          competitive_impact?: string | null
-          competitor_promo_activity?: string | null
-          created_at?: string
-          customer_id?: string | null
-          data_driven_events?: number | null
-          day_of_week?: number | null
-          demand_planner?: number | null
-          exogenous_variables_impact?: Json | null
-          forecast?: number | null
-          forecast_ly?: number | null
-          forecast_reconciliation_id?: string | null
-          holiday_type?: string | null
-          id?: string
-          inventory?: number | null
-          is_holiday?: boolean | null
-          is_npi_forecast?: boolean | null
-          location_id?: string | null
-          lower_bound?: number | null
-          market_intelligence?: string | null
-          npi_product_id?: string | null
-          npi_scenario_type?: string | null
-          postdate?: string
-          precipitation_mm?: number | null
-          product_id?: string | null
-          promotion_duration?: number | null
-          promotion_intensity?: number | null
-          promotional_activity?: string | null
-          sales_plan?: number | null
-          sell_in_forecast?: number | null
-          sell_out_forecast?: number | null
-          temperature_avg?: number | null
-          updated_at?: string | null
-          upper_bound?: number | null
-          weather_category?: string | null
-          week_of_month?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forecast_data_channel_partner_id_fkey"
-            columns: ["channel_partner_id"]
-            isOneToOne: false
-            referencedRelation: "channel_partners"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forecast_data_forecast_reconciliation_id_fkey"
-            columns: ["forecast_reconciliation_id"]
-            isOneToOne: false
-            referencedRelation: "forecast_reconciliation"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forecast_data_npi_product_id_fkey"
-            columns: ["npi_product_id"]
-            isOneToOne: false
-            referencedRelation: "npi_products"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "forecast_data_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["product_id"]
-          },
-        ]
-      }
-      forecast_error_metrics: {
-        Row: {
-          business_acceptability: boolean | null
-          coverage_deviation: number | null
-          coverage_probability: number | null
-          created_at: string | null
-          customer_id: string
-          cv: number | null
-          data_points: number | null
-          data_points_used: number | null
-          evaluation_period_end: string | null
-          evaluation_period_start: string | null
-          forecast_accuracy_category: string | null
-          forecast_bias: number | null
-          forecast_period_end: string | null
-          forecast_period_start: string | null
-          forecast_run_id: string | null
-          id: number
-          interval_score: number | null
-          location_id: string | null
-          mae: number | null
-          mape: number | null
-          mean_demand: number | null
-          mean_interval_width: number | null
-          model_convergence: boolean | null
-          model_name: string
-          mse: number | null
-          prediction_time_seconds: number | null
-          product_id: string
-          relative_interval_width: number | null
-          rmse: number | null
-          safe_mape: number | null
-          seasonality_strength: number | null
-          segment_name: string | null
-          smape: number | null
-          std_demand: number | null
-          target_coverage: number | null
-          training_time_seconds: number | null
-          trend_strength: number | null
-          uncertainty_quality_score: number | null
-          volatility_coefficient: number | null
-          wmape: number | null
-          zero_frequency: number | null
-        }
-        Insert: {
-          business_acceptability?: boolean | null
-          coverage_deviation?: number | null
-          coverage_probability?: number | null
-          created_at?: string | null
-          customer_id?: string
-          cv?: number | null
-          data_points?: number | null
-          data_points_used?: number | null
-          evaluation_period_end?: string | null
-          evaluation_period_start?: string | null
-          forecast_accuracy_category?: string | null
-          forecast_bias?: number | null
-          forecast_period_end?: string | null
-          forecast_period_start?: string | null
-          forecast_run_id?: string | null
-          id?: number
-          interval_score?: number | null
-          location_id?: string | null
-          mae?: number | null
-          mape?: number | null
-          mean_demand?: number | null
-          mean_interval_width?: number | null
-          model_convergence?: boolean | null
-          model_name: string
-          mse?: number | null
-          prediction_time_seconds?: number | null
-          product_id: string
-          relative_interval_width?: number | null
-          rmse?: number | null
-          safe_mape?: number | null
-          seasonality_strength?: number | null
-          segment_name?: string | null
-          smape?: number | null
-          std_demand?: number | null
-          target_coverage?: number | null
-          training_time_seconds?: number | null
-          trend_strength?: number | null
-          uncertainty_quality_score?: number | null
-          volatility_coefficient?: number | null
-          wmape?: number | null
-          zero_frequency?: number | null
-        }
-        Update: {
-          business_acceptability?: boolean | null
-          coverage_deviation?: number | null
-          coverage_probability?: number | null
-          created_at?: string | null
-          customer_id?: string
-          cv?: number | null
-          data_points?: number | null
-          data_points_used?: number | null
-          evaluation_period_end?: string | null
-          evaluation_period_start?: string | null
-          forecast_accuracy_category?: string | null
-          forecast_bias?: number | null
-          forecast_period_end?: string | null
-          forecast_period_start?: string | null
-          forecast_run_id?: string | null
-          id?: number
-          interval_score?: number | null
-          location_id?: string | null
-          mae?: number | null
-          mape?: number | null
-          mean_demand?: number | null
-          mean_interval_width?: number | null
-          model_convergence?: boolean | null
-          model_name?: string
-          mse?: number | null
-          prediction_time_seconds?: number | null
-          product_id?: string
-          relative_interval_width?: number | null
-          rmse?: number | null
-          safe_mape?: number | null
-          seasonality_strength?: number | null
-          segment_name?: string | null
-          smape?: number | null
-          std_demand?: number | null
-          target_coverage?: number | null
-          training_time_seconds?: number | null
-          trend_strength?: number | null
-          uncertainty_quality_score?: number | null
-          volatility_coefficient?: number | null
-          wmape?: number | null
-          zero_frequency?: number | null
-        }
-        Relationships: []
-      }
-      forecast_interpretability: {
-        Row: {
-          confidence_level: string | null
-          created_at: string | null
-          customer_id: string
-          data_pattern_type: string | null
-          forecast_error_id: number | null
-          forecast_explanation: string | null
-          forecast_run_id: string | null
-          id: number
-          interpretability_score: number | null
-          inventory_recommendations: string | null
-          location_id: string | null
-          model_complexity: string | null
-          model_name: string
-          model_selection_reason: string | null
-          planning_horizon_days: number | null
-          primary_drivers: string[] | null
-          product_id: string
-          recommended_actions: string[] | null
-          risk_factors: string[] | null
-          segment_classification: string | null
-        }
-        Insert: {
-          confidence_level?: string | null
-          created_at?: string | null
-          customer_id?: string
-          data_pattern_type?: string | null
-          forecast_error_id?: number | null
-          forecast_explanation?: string | null
-          forecast_run_id?: string | null
-          id?: number
-          interpretability_score?: number | null
-          inventory_recommendations?: string | null
-          location_id?: string | null
-          model_complexity?: string | null
-          model_name: string
-          model_selection_reason?: string | null
-          planning_horizon_days?: number | null
-          primary_drivers?: string[] | null
-          product_id: string
-          recommended_actions?: string[] | null
-          risk_factors?: string[] | null
-          segment_classification?: string | null
-        }
-        Update: {
-          confidence_level?: string | null
-          created_at?: string | null
-          customer_id?: string
-          data_pattern_type?: string | null
-          forecast_error_id?: number | null
-          forecast_explanation?: string | null
-          forecast_run_id?: string | null
-          id?: number
-          interpretability_score?: number | null
-          inventory_recommendations?: string | null
-          location_id?: string | null
-          model_complexity?: string | null
-          model_name?: string
-          model_selection_reason?: string | null
-          planning_horizon_days?: number | null
-          primary_drivers?: string[] | null
-          product_id?: string
-          recommended_actions?: string[] | null
-          risk_factors?: string[] | null
-          segment_classification?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forecast_interpretability_forecast_error_id_fkey"
-            columns: ["forecast_error_id"]
-            isOneToOne: false
-            referencedRelation: "forecast_error_metrics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forecast_lag_analysis: {
-        Row: {
-          absolute_error: number | null
-          actual_value: number | null
-          analysis_date: string
-          created_at: string | null
-          customer_id: string | null
-          forecast_accuracy_category: string | null
-          forecast_creation_date: string | null
-          forecast_target_date: string | null
-          forecast_value: number | null
-          id: number
-          lag_days: number | null
-          location_id: string
-          mae: number | null
-          mape: number | null
-          percentage_error: number | null
-          planning_bucket: string
-          product_id: string
-          rmse: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          absolute_error?: number | null
-          actual_value?: number | null
-          analysis_date: string
-          created_at?: string | null
-          customer_id?: string | null
-          forecast_accuracy_category?: string | null
-          forecast_creation_date?: string | null
-          forecast_target_date?: string | null
-          forecast_value?: number | null
-          id?: number
-          lag_days?: number | null
-          location_id: string
-          mae?: number | null
-          mape?: number | null
-          percentage_error?: number | null
-          planning_bucket: string
-          product_id: string
-          rmse?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          absolute_error?: number | null
-          actual_value?: number | null
-          analysis_date?: string
-          created_at?: string | null
-          customer_id?: string | null
-          forecast_accuracy_category?: string | null
-          forecast_creation_date?: string | null
-          forecast_target_date?: string | null
-          forecast_value?: number | null
-          id?: number
-          lag_days?: number | null
-          location_id?: string
-          mae?: number | null
-          mape?: number | null
-          percentage_error?: number | null
-          planning_bucket?: string
-          product_id?: string
-          rmse?: number | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      forecast_reconciliation: {
-        Row: {
-          action_items: string[] | null
-          actual_sell_in: number | null
-          actual_sell_out: number | null
-          channel_partner_id: string | null
-          created_at: string | null
-          forecast_period: string
-          gap_analysis: Json | null
-          id: string
-          location_id: string
-          product_id: string
-          reconciliation_status: string | null
-          sell_in_accuracy_percentage: number | null
-          sell_in_forecast: number
-          sell_in_variance: number | null
-          sell_out_accuracy_percentage: number | null
-          sell_out_forecast: number
-          sell_out_variance: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          action_items?: string[] | null
-          actual_sell_in?: number | null
-          actual_sell_out?: number | null
-          channel_partner_id?: string | null
-          created_at?: string | null
-          forecast_period: string
-          gap_analysis?: Json | null
-          id?: string
-          location_id: string
-          product_id: string
-          reconciliation_status?: string | null
-          sell_in_accuracy_percentage?: number | null
-          sell_in_forecast?: number
-          sell_in_variance?: number | null
-          sell_out_accuracy_percentage?: number | null
-          sell_out_forecast?: number
-          sell_out_variance?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          action_items?: string[] | null
-          actual_sell_in?: number | null
-          actual_sell_out?: number | null
-          channel_partner_id?: string | null
-          created_at?: string | null
-          forecast_period?: string
-          gap_analysis?: Json | null
-          id?: string
-          location_id?: string
-          product_id?: string
-          reconciliation_status?: string | null
-          sell_in_accuracy_percentage?: number | null
-          sell_in_forecast?: number
-          sell_in_variance?: number | null
-          sell_out_accuracy_percentage?: number | null
-          sell_out_forecast?: number
-          sell_out_variance?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "forecast_reconciliation_channel_partner_id_fkey"
-            columns: ["channel_partner_id"]
-            isOneToOne: false
-            referencedRelation: "channel_partners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      forecast_results: {
-        Row: {
-          actual: number | null
-          avg_data_quality_score: number | null
-          bucket: string | null
-          cleansing_version: string | null
-          created_at: string | null
-          customer_id: string | null
-          data_source: string | null
-          explanation: string | null
-          forecast: number | null
-          forecast_bucket: string | null
-          forecast_periods: string | null
-          forecast_run_id: string | null
-          forecast_timestamp: string | null
-          historical_date: string | null
-          id: number
-          location_id: string
-          lower_bound: number | null
-          model: string
-          normalized_actual: number | null
-          p10: number | null
-          p25: number | null
-          p50: number | null
-          p75: number | null
-          p90: number | null
-          p95: number | null
-          product_id: string
-          segment: string | null
-          time_bucket: string
-          top_features: Json | null
-          upper_bound: number | null
-        }
-        Insert: {
-          actual?: number | null
-          avg_data_quality_score?: number | null
-          bucket?: string | null
-          cleansing_version?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          data_source?: string | null
-          explanation?: string | null
-          forecast?: number | null
-          forecast_bucket?: string | null
-          forecast_periods?: string | null
-          forecast_run_id?: string | null
-          forecast_timestamp?: string | null
-          historical_date?: string | null
-          id?: number
-          location_id: string
-          lower_bound?: number | null
-          model: string
-          normalized_actual?: number | null
-          p10?: number | null
-          p25?: number | null
-          p50?: number | null
-          p75?: number | null
-          p90?: number | null
-          p95?: number | null
-          product_id: string
-          segment?: string | null
-          time_bucket: string
-          top_features?: Json | null
-          upper_bound?: number | null
-        }
-        Update: {
-          actual?: number | null
-          avg_data_quality_score?: number | null
-          bucket?: string | null
-          cleansing_version?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          data_source?: string | null
-          explanation?: string | null
-          forecast?: number | null
-          forecast_bucket?: string | null
-          forecast_periods?: string | null
-          forecast_run_id?: string | null
-          forecast_timestamp?: string | null
-          historical_date?: string | null
-          id?: number
-          location_id?: string
-          lower_bound?: number | null
-          model?: string
-          normalized_actual?: number | null
-          p10?: number | null
-          p25?: number | null
-          p50?: number | null
-          p75?: number | null
-          p90?: number | null
-          p95?: number | null
-          product_id?: string
-          segment?: string | null
-          time_bucket?: string
-          top_features?: Json | null
-          upper_bound?: number | null
-        }
-        Relationships: []
-      }
-      forecast_waterfall_components: {
-        Row: {
-          analysis_date: string
-          baseline_value: number | null
-          component_name: string
-          component_order: number
-          component_value: number
-          created_at: string | null
-          customer_id: string | null
-          final_value: number | null
-          id: string
-          is_positive: boolean
-          location_id: string
-          period_end: string | null
-          period_start: string | null
-          product_id: string
-          updated_at: string | null
-          waterfall_type: string
-        }
-        Insert: {
-          analysis_date: string
-          baseline_value?: number | null
-          component_name: string
-          component_order: number
-          component_value: number
-          created_at?: string | null
-          customer_id?: string | null
-          final_value?: number | null
-          id?: string
-          is_positive?: boolean
-          location_id: string
-          period_end?: string | null
-          period_start?: string | null
-          product_id: string
-          updated_at?: string | null
-          waterfall_type: string
-        }
-        Update: {
-          analysis_date?: string
-          baseline_value?: number | null
-          component_name?: string
-          component_order?: number
-          component_value?: number
-          created_at?: string | null
-          customer_id?: string | null
-          final_value?: number | null
-          id?: string
-          is_positive?: boolean
-          location_id?: string
-          period_end?: string | null
-          period_start?: string | null
-          product_id?: string
-          updated_at?: string | null
-          waterfall_type?: string
-        }
-        Relationships: []
-      }
-      history: {
-        Row: {
-          created_at: string
-          customer_id: string | null
-          event_adjusted_quantity: number | null
-          event_ids: number[] | null
-          has_event: boolean | null
-          id: number
-          is_outlier: boolean | null
-          location_id: string | null
-          normalized_quantity: number | null
-          outlier_method: string | null
-          postdate: string | null
-          product_id: string | null
-          quantity: number | null
-          type: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          customer_id?: string | null
-          event_adjusted_quantity?: number | null
-          event_ids?: number[] | null
-          has_event?: boolean | null
-          id?: number
-          is_outlier?: boolean | null
-          location_id?: string | null
-          normalized_quantity?: number | null
-          outlier_method?: string | null
-          postdate?: string | null
-          product_id?: string | null
-          quantity?: number | null
-          type?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          customer_id?: string | null
-          event_adjusted_quantity?: number | null
-          event_ids?: number[] | null
-          has_event?: boolean | null
-          id?: number
-          is_outlier?: boolean | null
-          location_id?: string | null
-          normalized_quantity?: number | null
-          outlier_method?: string | null
-          postdate?: string | null
-          product_id?: string | null
-          quantity?: number | null
-          type?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "history_location_id_fkey"
-            columns: ["location_id"]
-            isOneToOne: false
-            referencedRelation: "locations"
-            referencedColumns: ["location_id"]
-          },
-        ]
-      }
-      inventory_projections: {
-        Row: {
-          calculation_method: string | null
-          created_at: string | null
-          demand_variability: number | null
-          forecasted_demand: number | null
-          id: string
-          lead_time_days: number | null
-          location_id: string
-          planned_receipts: number | null
-          product_id: string
-          projected_ending_inventory: number | null
-          projection_accuracy: number | null
-          projection_month: string
-          safety_stock_current: number | null
-          safety_stock_recommended: number | null
-          service_level_target: number | null
-          starting_inventory: number | null
-          stockout_risk_percentage: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          calculation_method?: string | null
-          created_at?: string | null
-          demand_variability?: number | null
-          forecasted_demand?: number | null
-          id?: string
-          lead_time_days?: number | null
-          location_id: string
-          planned_receipts?: number | null
-          product_id: string
-          projected_ending_inventory?: number | null
-          projection_accuracy?: number | null
-          projection_month: string
-          safety_stock_current?: number | null
-          safety_stock_recommended?: number | null
-          service_level_target?: number | null
-          starting_inventory?: number | null
-          stockout_risk_percentage?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          calculation_method?: string | null
-          created_at?: string | null
-          demand_variability?: number | null
-          forecasted_demand?: number | null
-          id?: string
-          lead_time_days?: number | null
-          location_id?: string
-          planned_receipts?: number | null
-          product_id?: string
-          projected_ending_inventory?: number | null
-          projection_accuracy?: number | null
-          projection_month?: string
-          safety_stock_current?: number | null
-          safety_stock_recommended?: number | null
-          service_level_target?: number | null
-          starting_inventory?: number | null
-          stockout_risk_percentage?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_inventory_projections_product"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["product_id"]
-          },
-        ]
-      }
-      locations: {
-        Row: {
-          borrowing_pct: number | null
-          created_at: string
-          level_1: string | null
-          level_2: string | null
-          level_3: string | null
-          level_4: string | null
-          location_id: string
-          location_name: string | null
-          service_level_goal: number | null
-          type: string | null
-          updated_at: string | null
-          warehouse_control_factors_active: boolean | null
-          working_cal: string | null
-        }
-        Insert: {
-          borrowing_pct?: number | null
-          created_at?: string
-          level_1?: string | null
-          level_2?: string | null
-          level_3?: string | null
-          level_4?: string | null
-          location_id: string
-          location_name?: string | null
-          service_level_goal?: number | null
-          type?: string | null
-          updated_at?: string | null
-          warehouse_control_factors_active?: boolean | null
-          working_cal?: string | null
-        }
-        Update: {
-          borrowing_pct?: number | null
-          created_at?: string
-          level_1?: string | null
-          level_2?: string | null
-          level_3?: string | null
-          level_4?: string | null
-          location_id?: string
-          location_name?: string | null
-          service_level_goal?: number | null
-          type?: string | null
-          updated_at?: string | null
-          warehouse_control_factors_active?: boolean | null
-          working_cal?: string | null
-        }
-        Relationships: []
-      }
-      market_intelligence: {
-        Row: {
-          commercial_user_id: string
-          confidence_level: string | null
-          created_at: string | null
-          customer_id: string
-          description: string
-          effective_from: string | null
-          effective_to: string | null
-          id: string
-          impact_assessment: string
-          intelligence_type: string
-          location_id: string | null
-          product_id: string | null
-          quantitative_impact: number | null
-          status: string | null
-          time_horizon: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          commercial_user_id: string
-          confidence_level?: string | null
-          created_at?: string | null
-          customer_id: string
-          description: string
-          effective_from?: string | null
-          effective_to?: string | null
-          id?: string
-          impact_assessment: string
-          intelligence_type: string
-          location_id?: string | null
-          product_id?: string | null
-          quantitative_impact?: number | null
-          status?: string | null
-          time_horizon?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          commercial_user_id?: string
-          confidence_level?: string | null
-          created_at?: string | null
-          customer_id?: string
-          description?: string
-          effective_from?: string | null
-          effective_to?: string | null
-          id?: string
-          impact_assessment?: string
-          intelligence_type?: string
-          location_id?: string | null
-          product_id?: string | null
-          quantitative_impact?: number | null
-          status?: string | null
-          time_horizon?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      npi_forecast_scenarios: {
-        Row: {
-          assumptions: string | null
-          confidence_level: string | null
-          created_at: string | null
-          forecast_value: number
-          id: string
-          npi_product_id: string | null
-          postdate: string
-          scenario_name: string
-          scenario_type: string
-          updated_at: string | null
-        }
-        Insert: {
-          assumptions?: string | null
-          confidence_level?: string | null
-          created_at?: string | null
-          forecast_value: number
-          id?: string
-          npi_product_id?: string | null
-          postdate: string
-          scenario_name: string
-          scenario_type: string
-          updated_at?: string | null
-        }
-        Update: {
-          assumptions?: string | null
-          confidence_level?: string | null
-          created_at?: string | null
-          forecast_value?: number
-          id?: string
-          npi_product_id?: string | null
-          postdate?: string
-          scenario_name?: string
-          scenario_type?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "npi_forecast_scenarios_npi_product_id_fkey"
-            columns: ["npi_product_id"]
-            isOneToOne: false
-            referencedRelation: "npi_products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      npi_milestones: {
-        Row: {
-          created_at: string | null
-          dependencies: string[] | null
-          id: string
-          milestone_date: string
-          milestone_name: string
-          milestone_priority: string | null
-          milestone_status: string
-          notes: string | null
-          npi_product_id: string | null
-          responsible_person: string | null
-          responsible_team: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          dependencies?: string[] | null
-          id?: string
-          milestone_date: string
-          milestone_name: string
-          milestone_priority?: string | null
-          milestone_status: string
-          notes?: string | null
-          npi_product_id?: string | null
-          responsible_person?: string | null
-          responsible_team?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          dependencies?: string[] | null
-          id?: string
-          milestone_date?: string
-          milestone_name?: string
-          milestone_priority?: string | null
-          milestone_status?: string
-          notes?: string | null
-          npi_product_id?: string | null
-          responsible_person?: string | null
-          responsible_team?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "npi_milestones_npi_product_id_fkey"
-            columns: ["npi_product_id"]
-            isOneToOne: false
-            referencedRelation: "npi_products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      npi_products: {
-        Row: {
-          cannibalization_products: string[] | null
-          created_at: string | null
-          expected_roi: number | null
-          id: string
-          launch_confidence_level: string | null
-          launch_date: string | null
-          launch_locations: string[] | null
-          launch_volume_projection: number | null
-          market_penetration_rate: number | null
-          market_segment: string | null
-          notes: string | null
-          npi_status: string
-          product_id: string | null
-          ramp_up_weeks: number | null
-          responsible_planner: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          cannibalization_products?: string[] | null
-          created_at?: string | null
-          expected_roi?: number | null
-          id?: string
-          launch_confidence_level?: string | null
-          launch_date?: string | null
-          launch_locations?: string[] | null
-          launch_volume_projection?: number | null
-          market_penetration_rate?: number | null
-          market_segment?: string | null
-          notes?: string | null
-          npi_status: string
-          product_id?: string | null
-          ramp_up_weeks?: number | null
-          responsible_planner?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          cannibalization_products?: string[] | null
-          created_at?: string | null
-          expected_roi?: number | null
-          id?: string
-          launch_confidence_level?: string | null
-          launch_date?: string | null
-          launch_locations?: string[] | null
-          launch_volume_projection?: number | null
-          market_penetration_rate?: number | null
-          market_segment?: string | null
-          notes?: string | null
-          npi_status?: string
-          product_id?: string | null
-          ramp_up_weeks?: number | null
-          responsible_planner?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "npi_products_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      opa_results: {
-        Row: {
-          annual_cost: number | null
-          average_order_amount: number | null
-          calculated_date: string
-          carrying_cost_rate: number | null
-          created_at: string | null
-          header_cost: number | null
-          id: number
-          line_cost: number | null
-          optimal_order_cycle: number | null
-          profit_ratio: number | null
-          recommended_bracket: number | null
-          vendor_id: number | null
-        }
-        Insert: {
-          annual_cost?: number | null
-          average_order_amount?: number | null
-          calculated_date: string
-          carrying_cost_rate?: number | null
-          created_at?: string | null
-          header_cost?: number | null
-          id?: number
-          line_cost?: number | null
-          optimal_order_cycle?: number | null
-          profit_ratio?: number | null
-          recommended_bracket?: number | null
-          vendor_id?: number | null
-        }
-        Update: {
-          annual_cost?: number | null
-          average_order_amount?: number | null
-          calculated_date?: string
-          carrying_cost_rate?: number | null
-          created_at?: string | null
-          header_cost?: number | null
-          id?: number
-          line_cost?: number | null
-          optimal_order_cycle?: number | null
-          profit_ratio?: number | null
-          recommended_bracket?: number | null
-          vendor_id?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "opa_results_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      outliers: {
-        Row: {
-          avg_deviation: number | null
-          capped_value: number
-          created_at: string | null
-          customer_id: string | null
-          detection_method: string
-          expected_value: number | null
-          explanation: string | null
-          id: number
-          location_id: string
-          original_value: number
-          postdate: string
-          product_id: string
-          score: number | null
-          severity: string | null
-          vendor_id: string | null
-        }
-        Insert: {
-          avg_deviation?: number | null
-          capped_value: number
-          created_at?: string | null
-          customer_id?: string | null
-          detection_method: string
-          expected_value?: number | null
-          explanation?: string | null
-          id?: number
-          location_id: string
-          original_value: number
-          postdate: string
-          product_id: string
-          score?: number | null
-          severity?: string | null
-          vendor_id?: string | null
-        }
-        Update: {
-          avg_deviation?: number | null
-          capped_value?: number
-          created_at?: string | null
-          customer_id?: string | null
-          detection_method?: string
-          expected_value?: number | null
-          explanation?: string | null
-          id?: number
-          location_id?: string
-          original_value?: number
-          postdate?: string
-          product_id?: string
-          score?: number | null
-          severity?: string | null
-          vendor_id?: string | null
-        }
-        Relationships: []
-      }
-      product_sourcing: {
-        Row: {
-          active: boolean | null
-          buying_multiple: number | null
-          created_at: string | null
-          id: number
-          lead_time_days: number | null
-          lead_time_variance: number | null
-          minimum_quantity: number | null
-          order_point_override: number | null
-          product_id: string
-          purchase_price: number | null
-          safety_stock_override: number | null
-          service_level_goal: number | null
-          unit_cost: number | null
-          updated_at: string | null
-          vendor_id: number
-          warehouse_id: number
-        }
-        Insert: {
-          active?: boolean | null
-          buying_multiple?: number | null
-          created_at?: string | null
-          id?: number
-          lead_time_days?: number | null
-          lead_time_variance?: number | null
-          minimum_quantity?: number | null
-          order_point_override?: number | null
-          product_id: string
-          purchase_price?: number | null
-          safety_stock_override?: number | null
-          service_level_goal?: number | null
-          unit_cost?: number | null
-          updated_at?: string | null
-          vendor_id: number
-          warehouse_id: number
-        }
-        Update: {
-          active?: boolean | null
-          buying_multiple?: number | null
-          created_at?: string | null
-          id?: number
-          lead_time_days?: number | null
-          lead_time_variance?: number | null
-          minimum_quantity?: number | null
-          order_point_override?: number | null
-          product_id?: string
-          purchase_price?: number | null
-          safety_stock_override?: number | null
-          service_level_goal?: number | null
-          unit_cost?: number | null
-          updated_at?: string | null
-          vendor_id?: number
-          warehouse_id?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_product_sourcing_product"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["product_id"]
-          },
-          {
-            foreignKeyName: "fk_product_sourcing_warehouse"
-            columns: ["warehouse_id"]
-            isOneToOne: false
-            referencedRelation: "warehouses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "product_sourcing_vendor_id_fkey"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      products: {
-        Row: {
-          active: boolean | null
-          attr_1: string | null
-          attr_2: string | null
-          attr_3: string | null
-          attr_4: string | null
-          buyer_class: string | null
-          buying_multiple: number | null
-          category_id: string | null
-          category_name: string | null
-          class_id: string | null
           class_name: string | null
-          code: string
-          created_at: string | null
-          cube_per_unit: number | null
-          description: string | null
-          id: string
-          is_npi: boolean | null
-          lead_time_forecast: number | null
-          lead_time_variance: number | null
-          minimum_quantity: number | null
-          npi_launch_date: string | null
-          npi_status: string | null
-          product_id: string | null
-          product_name: string
-          purchase_price: number | null
-          sales_price: number | null
-          service_level_goal: number | null
-          shelf_life_days: number | null
-          subcategory_id: string | null
-          subcategory_name: string | null
-          subclass_id: string | null
-          subclass_name: string | null
-          system_class: string | null
-          units_per_case: number | null
-          units_per_layer: number | null
-          units_per_pallet: number | null
-          updated_at: string | null
-          vendor_id: number | null
-          warehouse_id: number | null
-          weight_per_unit: number | null
+          dttm: string | null
+          id: number
+          obj_id: number | null
+          user_id: number | null
+          uuid: string | null
         }
         Insert: {
-          active?: boolean | null
-          attr_1?: string | null
-          attr_2?: string | null
-          attr_3?: string | null
-          attr_4?: string | null
-          buyer_class?: string | null
-          buying_multiple?: number | null
-          category_id?: string | null
-          category_name?: string | null
-          class_id?: string | null
           class_name?: string | null
-          code: string
-          created_at?: string | null
-          cube_per_unit?: number | null
-          description?: string | null
-          id: string
-          is_npi?: boolean | null
-          lead_time_forecast?: number | null
-          lead_time_variance?: number | null
-          minimum_quantity?: number | null
-          npi_launch_date?: string | null
-          npi_status?: string | null
-          product_id?: string | null
-          product_name: string
-          purchase_price?: number | null
-          sales_price?: number | null
-          service_level_goal?: number | null
-          shelf_life_days?: number | null
-          subcategory_id?: string | null
-          subcategory_name?: string | null
-          subclass_id?: string | null
-          subclass_name?: string | null
-          system_class?: string | null
-          units_per_case?: number | null
-          units_per_layer?: number | null
-          units_per_pallet?: number | null
-          updated_at?: string | null
-          vendor_id?: number | null
-          warehouse_id?: number | null
-          weight_per_unit?: number | null
+          dttm?: string | null
+          id?: number
+          obj_id?: number | null
+          user_id?: number | null
+          uuid?: string | null
         }
         Update: {
-          active?: boolean | null
-          attr_1?: string | null
-          attr_2?: string | null
-          attr_3?: string | null
-          attr_4?: string | null
-          buyer_class?: string | null
-          buying_multiple?: number | null
-          category_id?: string | null
-          category_name?: string | null
-          class_id?: string | null
           class_name?: string | null
-          code?: string
-          created_at?: string | null
-          cube_per_unit?: number | null
-          description?: string | null
-          id?: string
-          is_npi?: boolean | null
-          lead_time_forecast?: number | null
-          lead_time_variance?: number | null
-          minimum_quantity?: number | null
-          npi_launch_date?: string | null
-          npi_status?: string | null
-          product_id?: string | null
-          product_name?: string
-          purchase_price?: number | null
-          sales_price?: number | null
-          service_level_goal?: number | null
-          shelf_life_days?: number | null
-          subcategory_id?: string | null
-          subcategory_name?: string | null
-          subclass_id?: string | null
-          subclass_name?: string | null
-          system_class?: string | null
-          units_per_case?: number | null
-          units_per_layer?: number | null
-          units_per_pallet?: number | null
-          updated_at?: string | null
-          vendor_id?: number | null
-          warehouse_id?: number | null
-          weight_per_unit?: number | null
+          dttm?: string | null
+          id?: number
+          obj_id?: number | null
+          user_id?: number | null
+          uuid?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "products_vendor_id_fkey"
-            columns: ["vendor_id"]
+            foreignKeyName: "favstar_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_warehouse_id_fkey"
-            columns: ["warehouse_id"]
-            isOneToOne: false
-            referencedRelation: "warehouses"
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
         ]
       }
-      profiles: {
+      key_value: {
         Row: {
-          created_at: string
-          email: string | null
-          first_name: string | null
-          id: string
-          last_name: string | null
-          role: string | null
-          updated_at: string
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          expires_on: string | null
+          id: number
+          resource: string
+          uuid: string | null
+          value: string
         }
         Insert: {
-          created_at?: string
-          email?: string | null
-          first_name?: string | null
-          id: string
-          last_name?: string | null
-          role?: string | null
-          updated_at?: string
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          expires_on?: string | null
+          id?: number
+          resource: string
+          uuid?: string | null
+          value: string
         }
         Update: {
-          created_at?: string
-          email?: string | null
-          first_name?: string | null
-          id?: string
-          last_name?: string | null
-          role?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      purchase_order_calculations: {
-        Row: {
-          calculation_step: string
-          created_at: string | null
-          id: string
-          purchase_order_suggestion_id: string
-          step_data: Json
-          step_order: number
-        }
-        Insert: {
-          calculation_step: string
-          created_at?: string | null
-          id?: string
-          purchase_order_suggestion_id: string
-          step_data?: Json
-          step_order: number
-        }
-        Update: {
-          calculation_step?: string
-          created_at?: string | null
-          id?: string
-          purchase_order_suggestion_id?: string
-          step_data?: Json
-          step_order?: number
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          expires_on?: string | null
+          id?: number
+          resource?: string
+          uuid?: string | null
+          value?: string
         }
         Relationships: [
           {
-            foreignKeyName: "fk_po_calculations_suggestion"
-            columns: ["purchase_order_suggestion_id"]
+            foreignKeyName: "key_value_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
             isOneToOne: false
-            referencedRelation: "purchase_order_suggestions"
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "key_value_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
         ]
       }
-      purchase_order_suggestions: {
+      keyvalue: {
         Row: {
-          available_stock: number | null
-          bracket_info: Json | null
-          created_at: string | null
-          created_by_system: string
-          current_stock: number | null
-          days_until_stockout: number | null
-          demand_forecast: number | null
-          expected_delivery_date: string | null
-          id: string
-          lead_time_days: number | null
-          order_date: string | null
-          product_id: string
-          projected_shortage: number | null
-          projected_stockout_month: string | null
-          reason: string | null
-          recommended_order_urgency: string | null
-          reorder_point: number | null
-          safety_stock: number | null
-          status: string | null
-          suggested_quantity: number
-          total_cost: number | null
-          unit_cost: number | null
-          updated_at: string | null
-          urgency_level: string
-          vendor_code: string
-          vendor_id: number
-          vendor_name: string
-          warehouse_id: number
+          id: number
+          value: string
         }
         Insert: {
-          available_stock?: number | null
-          bracket_info?: Json | null
-          created_at?: string | null
-          created_by_system?: string
-          current_stock?: number | null
-          days_until_stockout?: number | null
-          demand_forecast?: number | null
-          expected_delivery_date?: string | null
-          id?: string
-          lead_time_days?: number | null
-          order_date?: string | null
-          product_id: string
-          projected_shortage?: number | null
-          projected_stockout_month?: string | null
-          reason?: string | null
-          recommended_order_urgency?: string | null
-          reorder_point?: number | null
-          safety_stock?: number | null
-          status?: string | null
-          suggested_quantity: number
-          total_cost?: number | null
-          unit_cost?: number | null
-          updated_at?: string | null
-          urgency_level?: string
-          vendor_code: string
-          vendor_id: number
-          vendor_name: string
-          warehouse_id: number
+          id?: number
+          value: string
         }
         Update: {
-          available_stock?: number | null
-          bracket_info?: Json | null
-          created_at?: string | null
-          created_by_system?: string
-          current_stock?: number | null
-          days_until_stockout?: number | null
-          demand_forecast?: number | null
-          expected_delivery_date?: string | null
-          id?: string
-          lead_time_days?: number | null
-          order_date?: string | null
-          product_id?: string
-          projected_shortage?: number | null
-          projected_stockout_month?: string | null
-          reason?: string | null
-          recommended_order_urgency?: string | null
-          reorder_point?: number | null
-          safety_stock?: number | null
-          status?: string | null
-          suggested_quantity?: number
-          total_cost?: number | null
-          unit_cost?: number | null
-          updated_at?: string | null
-          urgency_level?: string
-          vendor_code?: string
-          vendor_id?: number
-          vendor_name?: string
-          warehouse_id?: number
+          id?: number
+          value?: string
+        }
+        Relationships: []
+      }
+      logs: {
+        Row: {
+          action: string | null
+          dashboard_id: number | null
+          dttm: string | null
+          duration_ms: number | null
+          id: number
+          json: string | null
+          referrer: string | null
+          slice_id: number | null
+          user_id: number | null
+        }
+        Insert: {
+          action?: string | null
+          dashboard_id?: number | null
+          dttm?: string | null
+          duration_ms?: number | null
+          id?: number
+          json?: string | null
+          referrer?: string | null
+          slice_id?: number | null
+          user_id?: number | null
+        }
+        Update: {
+          action?: string | null
+          dashboard_id?: number | null
+          dttm?: string | null
+          duration_ms?: number | null
+          id?: number
+          json?: string | null
+          referrer?: string | null
+          slice_id?: number | null
+          user_id?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_purchase_order_suggestions_product"
-            columns: ["product_id"]
+            foreignKeyName: "logs_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["product_id"]
-          },
-          {
-            foreignKeyName: "fk_purchase_order_suggestions_vendor"
-            columns: ["vendor_id"]
-            isOneToOne: false
-            referencedRelation: "vendors"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_purchase_order_suggestions_warehouse"
-            columns: ["warehouse_id"]
-            isOneToOne: false
-            referencedRelation: "warehouses"
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
         ]
       }
-      safety_stock_parameters: {
+      query: {
         Row: {
-          active: boolean | null
-          calculation_method: string | null
-          category_id: string | null
-          created_at: string | null
-          id: string
-          lead_time_variability_factor: number | null
-          location_id: string | null
-          maximum_safety_stock: number | null
-          minimum_safety_stock: number | null
-          product_id: string | null
-          seasonal_adjustment_factor: number | null
-          service_level_target: number | null
-          updated_at: string | null
-          z_score: number | null
-        }
-        Insert: {
-          active?: boolean | null
-          calculation_method?: string | null
-          category_id?: string | null
-          created_at?: string | null
-          id?: string
-          lead_time_variability_factor?: number | null
-          location_id?: string | null
-          maximum_safety_stock?: number | null
-          minimum_safety_stock?: number | null
-          product_id?: string | null
-          seasonal_adjustment_factor?: number | null
-          service_level_target?: number | null
-          updated_at?: string | null
-          z_score?: number | null
-        }
-        Update: {
-          active?: boolean | null
-          calculation_method?: string | null
-          category_id?: string | null
-          created_at?: string | null
-          id?: string
-          lead_time_variability_factor?: number | null
-          location_id?: string | null
-          maximum_safety_stock?: number | null
-          minimum_safety_stock?: number | null
-          product_id?: string | null
-          seasonal_adjustment_factor?: number | null
-          service_level_target?: number | null
-          updated_at?: string | null
-          z_score?: number | null
-        }
-        Relationships: []
-      }
-      scenario_definitions: {
-        Row: {
-          created_at: string | null
-          created_by: string
-          description: string | null
-          id: string
-          is_template: boolean | null
-          parameters: Json
-          scenario_name: string
-          scenario_type: string
-          scope: Json
-          template_name: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by: string
-          description?: string | null
-          id?: string
-          is_template?: boolean | null
-          parameters: Json
-          scenario_name: string
-          scenario_type: string
-          scope: Json
-          template_name?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string
-          description?: string | null
-          id?: string
-          is_template?: boolean | null
-          parameters?: Json
-          scenario_name?: string
-          scenario_type?: string
-          scope?: Json
-          template_name?: string | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      scenario_executions: {
-        Row: {
-          baseline_snapshot: Json | null
+          catalog: string | null
+          changed_on: string | null
+          client_id: string
+          ctas_method: string | null
+          database_id: number
+          end_result_backend_time: number | null
+          end_time: number | null
           error_message: string | null
-          execution_time_seconds: number | null
-          execution_timestamp: string | null
-          id: string
-          scenario_id: string | null
+          executed_sql: string | null
+          extra_json: string | null
+          id: number
+          limit: number | null
+          limiting_factor: string | null
+          progress: number | null
+          results_key: string | null
+          rows: number | null
+          schema: string | null
+          select_as_cta: boolean | null
+          select_as_cta_used: boolean | null
+          select_sql: string | null
+          sql: string | null
+          sql_editor_id: string | null
+          start_running_time: number | null
+          start_time: number | null
           status: string | null
+          tab_name: string | null
+          tmp_schema_name: string | null
+          tmp_table_name: string | null
+          tracking_url: string | null
+          user_id: number | null
         }
         Insert: {
-          baseline_snapshot?: Json | null
+          catalog?: string | null
+          changed_on?: string | null
+          client_id: string
+          ctas_method?: string | null
+          database_id: number
+          end_result_backend_time?: number | null
+          end_time?: number | null
           error_message?: string | null
-          execution_time_seconds?: number | null
-          execution_timestamp?: string | null
-          id?: string
-          scenario_id?: string | null
+          executed_sql?: string | null
+          extra_json?: string | null
+          id?: number
+          limit?: number | null
+          limiting_factor?: string | null
+          progress?: number | null
+          results_key?: string | null
+          rows?: number | null
+          schema?: string | null
+          select_as_cta?: boolean | null
+          select_as_cta_used?: boolean | null
+          select_sql?: string | null
+          sql?: string | null
+          sql_editor_id?: string | null
+          start_running_time?: number | null
+          start_time?: number | null
           status?: string | null
+          tab_name?: string | null
+          tmp_schema_name?: string | null
+          tmp_table_name?: string | null
+          tracking_url?: string | null
+          user_id?: number | null
         }
         Update: {
-          baseline_snapshot?: Json | null
+          catalog?: string | null
+          changed_on?: string | null
+          client_id?: string
+          ctas_method?: string | null
+          database_id?: number
+          end_result_backend_time?: number | null
+          end_time?: number | null
           error_message?: string | null
-          execution_time_seconds?: number | null
-          execution_timestamp?: string | null
-          id?: string
-          scenario_id?: string | null
+          executed_sql?: string | null
+          extra_json?: string | null
+          id?: number
+          limit?: number | null
+          limiting_factor?: string | null
+          progress?: number | null
+          results_key?: string | null
+          rows?: number | null
+          schema?: string | null
+          select_as_cta?: boolean | null
+          select_as_cta_used?: boolean | null
+          select_sql?: string | null
+          sql?: string | null
+          sql_editor_id?: string | null
+          start_running_time?: number | null
+          start_time?: number | null
           status?: string | null
+          tab_name?: string | null
+          tmp_schema_name?: string | null
+          tmp_table_name?: string | null
+          tracking_url?: string | null
+          user_id?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "scenario_executions_scenario_id_fkey"
-            columns: ["scenario_id"]
+            foreignKeyName: "query_database_id_fkey"
+            columns: ["database_id"]
             isOneToOne: false
-            referencedRelation: "scenario_definitions"
+            referencedRelation: "dbs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "query_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
         ]
       }
-      scenario_results: {
+      report_execution_log: {
         Row: {
-          created_at: string | null
-          detailed_changes: Json
-          id: string
-          impact_summary: Json
-          scenario_execution_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          detailed_changes: Json
-          id?: string
-          impact_summary: Json
-          scenario_execution_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          detailed_changes?: Json
-          id?: string
-          impact_summary?: Json
-          scenario_execution_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "scenario_results_scenario_execution_id_fkey"
-            columns: ["scenario_execution_id"]
-            isOneToOne: false
-            referencedRelation: "scenario_executions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      seasonal_profiles: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: number
-          name: string
-          profile_data: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: number
-          name: string
-          profile_data?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: number
-          name?: string
-          profile_data?: Json | null
-        }
-        Relationships: []
-      }
-      sell_in_data: {
-        Row: {
-          channel_partner_id: string | null
-          created_at: string | null
-          discount_percentage: number | null
-          id: string
-          lead_time_days: number | null
-          location_id: string
-          order_number: string | null
-          product_id: string
-          promotion_type: string | null
-          promotional_activity: boolean | null
-          quantity: number
-          shipment_method: string | null
-          total_value: number | null
-          transaction_date: string
-          unit_price: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          channel_partner_id?: string | null
-          created_at?: string | null
-          discount_percentage?: number | null
-          id?: string
-          lead_time_days?: number | null
-          location_id: string
-          order_number?: string | null
-          product_id: string
-          promotion_type?: string | null
-          promotional_activity?: boolean | null
-          quantity?: number
-          shipment_method?: string | null
-          total_value?: number | null
-          transaction_date: string
-          unit_price?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          channel_partner_id?: string | null
-          created_at?: string | null
-          discount_percentage?: number | null
-          id?: string
-          lead_time_days?: number | null
-          location_id?: string
-          order_number?: string | null
-          product_id?: string
-          promotion_type?: string | null
-          promotional_activity?: boolean | null
-          quantity?: number
-          shipment_method?: string | null
-          total_value?: number | null
-          transaction_date?: string
-          unit_price?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sell_in_data_channel_partner_id_fkey"
-            columns: ["channel_partner_id"]
-            isOneToOne: false
-            referencedRelation: "channel_partners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sell_out_data: {
-        Row: {
-          channel_partner_id: string | null
-          created_at: string | null
-          customer_segment: string | null
-          discount_percentage: number | null
-          id: string
-          inventory_on_hand: number | null
-          location_id: string
-          pos_system_id: string | null
-          product_id: string
-          promotion_type: string | null
-          promotional_activity: boolean | null
-          quantity: number
-          store_id: string | null
-          total_value: number | null
-          transaction_date: string
-          unit_price: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          channel_partner_id?: string | null
-          created_at?: string | null
-          customer_segment?: string | null
-          discount_percentage?: number | null
-          id?: string
-          inventory_on_hand?: number | null
-          location_id: string
-          pos_system_id?: string | null
-          product_id: string
-          promotion_type?: string | null
-          promotional_activity?: boolean | null
-          quantity?: number
-          store_id?: string | null
-          total_value?: number | null
-          transaction_date: string
-          unit_price?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          channel_partner_id?: string | null
-          created_at?: string | null
-          customer_segment?: string | null
-          discount_percentage?: number | null
-          id?: string
-          inventory_on_hand?: number | null
-          location_id?: string
-          pos_system_id?: string | null
-          product_id?: string
-          promotion_type?: string | null
-          promotional_activity?: boolean | null
-          quantity?: number
-          store_id?: string | null
-          total_value?: number | null
-          transaction_date?: string
-          unit_price?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sell_out_data_channel_partner_id_fkey"
-            columns: ["channel_partner_id"]
-            isOneToOne: false
-            referencedRelation: "channel_partners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      sell_through_rates: {
-        Row: {
-          calculation_period: string
-          channel_partner_id: string | null
-          created_at: string | null
-          days_of_inventory: number | null
-          id: string
-          inventory_turn_rate: number | null
-          location_id: string
-          performance_category: string | null
-          period_type: string
-          product_id: string
-          sell_in_quantity: number
-          sell_out_quantity: number
-          sell_through_rate: number
-          updated_at: string | null
-          velocity_trend: string | null
-        }
-        Insert: {
-          calculation_period: string
-          channel_partner_id?: string | null
-          created_at?: string | null
-          days_of_inventory?: number | null
-          id?: string
-          inventory_turn_rate?: number | null
-          location_id: string
-          performance_category?: string | null
-          period_type?: string
-          product_id: string
-          sell_in_quantity?: number
-          sell_out_quantity?: number
-          sell_through_rate?: number
-          updated_at?: string | null
-          velocity_trend?: string | null
-        }
-        Update: {
-          calculation_period?: string
-          channel_partner_id?: string | null
-          created_at?: string | null
-          days_of_inventory?: number | null
-          id?: string
-          inventory_turn_rate?: number | null
-          location_id?: string
-          performance_category?: string | null
-          period_type?: string
-          product_id?: string
-          sell_in_quantity?: number
-          sell_out_quantity?: number
-          sell_through_rate?: number
-          updated_at?: string | null
-          velocity_trend?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "sell_through_rates_channel_partner_id_fkey"
-            columns: ["channel_partner_id"]
-            isOneToOne: false
-            referencedRelation: "channel_partners"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      stock_status: {
-        Row: {
-          back_order: number | null
-          held_until: string | null
-          id: number
-          item_order_point: number | null
-          last_updated: string | null
-          on_hand: number | null
-          on_order: number | null
-          order_up_to_level: number | null
-          product_id: string | null
-          quantity_held: number | null
-          reserved: number | null
-          safety_stock: number | null
-          vendor_order_point: number | null
-        }
-        Insert: {
-          back_order?: number | null
-          held_until?: string | null
-          id?: number
-          item_order_point?: number | null
-          last_updated?: string | null
-          on_hand?: number | null
-          on_order?: number | null
-          order_up_to_level?: number | null
-          product_id?: string | null
-          quantity_held?: number | null
-          reserved?: number | null
-          safety_stock?: number | null
-          vendor_order_point?: number | null
-        }
-        Update: {
-          back_order?: number | null
-          held_until?: string | null
-          id?: number
-          item_order_point?: number | null
-          last_updated?: string | null
-          on_hand?: number | null
-          on_order?: number | null
-          order_up_to_level?: number | null
-          product_id?: string | null
-          quantity_held?: number | null
-          reserved?: number | null
-          safety_stock?: number | null
-          vendor_order_point?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "stock_status_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: true
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      supply_network_analysis_cache: {
-        Row: {
-          analysis_parameters: Json
-          analysis_result: Json
-          analysis_type: string
-          computed_at: string | null
-          expires_at: string | null
-          id: string
-          is_valid: boolean | null
-        }
-        Insert: {
-          analysis_parameters: Json
-          analysis_result: Json
-          analysis_type: string
-          computed_at?: string | null
-          expires_at?: string | null
-          id?: string
-          is_valid?: boolean | null
-        }
-        Update: {
-          analysis_parameters?: Json
-          analysis_result?: Json
-          analysis_type?: string
-          computed_at?: string | null
-          expires_at?: string | null
-          id?: string
-          is_valid?: boolean | null
-        }
-        Relationships: []
-      }
-      supply_network_configurations: {
-        Row: {
-          config_category: string | null
-          config_key: string
-          config_value: Json
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          id: string
-          is_system_config: boolean | null
-          updated_at: string | null
-        }
-        Insert: {
-          config_category?: string | null
-          config_key: string
-          config_value: Json
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_system_config?: boolean | null
-          updated_at?: string | null
-        }
-        Update: {
-          config_category?: string | null
-          config_key?: string
-          config_value?: Json
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          id?: string
-          is_system_config?: boolean | null
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      supply_network_node_properties: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          effective_from: string | null
-          effective_to: string | null
-          id: string
-          is_required: boolean | null
-          is_system_property: boolean | null
-          node_id: string
-          property_key: string
-          property_type: string | null
-          property_value: Json
-          validation_rules: Json | null
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          id?: string
-          is_required?: boolean | null
-          is_system_property?: boolean | null
-          node_id: string
-          property_key: string
-          property_type?: string | null
-          property_value: Json
-          validation_rules?: Json | null
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          id?: string
-          is_required?: boolean | null
-          is_system_property?: boolean | null
-          node_id?: string
-          property_key?: string
-          property_type?: string | null
-          property_value?: Json
-          validation_rules?: Json | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "supply_network_node_properties_node_id_fkey"
-            columns: ["node_id"]
-            isOneToOne: false
-            referencedRelation: "supply_network_nodes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      supply_network_node_types: {
-        Row: {
-          color_code: string | null
-          created_at: string | null
-          default_properties: Json | null
-          description: string | null
-          icon_name: string | null
-          id: string
-          is_active: boolean | null
-          type_code: string
-          type_name: string
-          updated_at: string | null
-        }
-        Insert: {
-          color_code?: string | null
-          created_at?: string | null
-          default_properties?: Json | null
-          description?: string | null
-          icon_name?: string | null
-          id?: string
-          is_active?: boolean | null
-          type_code: string
-          type_name: string
-          updated_at?: string | null
-        }
-        Update: {
-          color_code?: string | null
-          created_at?: string | null
-          default_properties?: Json | null
-          description?: string | null
-          icon_name?: string | null
-          id?: string
-          is_active?: boolean | null
-          type_code?: string
-          type_name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      supply_network_nodes: {
-        Row: {
-          address: string | null
-          capacity_metrics: Json | null
-          city: string | null
-          contact_information: Json | null
-          country: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          hierarchy_level: number | null
-          hierarchy_path: string | null
-          id: string
-          latitude: number | null
-          longitude: number | null
-          node_code: string
-          node_name: string
-          node_type_id: string
-          operational_hours: Json | null
-          parent_node_id: string | null
-          postal_code: string | null
-          state_province: string | null
-          status: string | null
-          updated_at: string | null
-          version: number | null
-        }
-        Insert: {
-          address?: string | null
-          capacity_metrics?: Json | null
-          city?: string | null
-          contact_information?: Json | null
-          country?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          hierarchy_level?: number | null
-          hierarchy_path?: string | null
-          id?: string
-          latitude?: number | null
-          longitude?: number | null
-          node_code: string
-          node_name: string
-          node_type_id: string
-          operational_hours?: Json | null
-          parent_node_id?: string | null
-          postal_code?: string | null
-          state_province?: string | null
-          status?: string | null
-          updated_at?: string | null
-          version?: number | null
-        }
-        Update: {
-          address?: string | null
-          capacity_metrics?: Json | null
-          city?: string | null
-          contact_information?: Json | null
-          country?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          hierarchy_level?: number | null
-          hierarchy_path?: string | null
-          id?: string
-          latitude?: number | null
-          longitude?: number | null
-          node_code?: string
-          node_name?: string
-          node_type_id?: string
-          operational_hours?: Json | null
-          parent_node_id?: string | null
-          postal_code?: string | null
-          state_province?: string | null
-          status?: string | null
-          updated_at?: string | null
-          version?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "supply_network_nodes_node_type_id_fkey"
-            columns: ["node_type_id"]
-            isOneToOne: false
-            referencedRelation: "supply_network_node_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supply_network_nodes_parent_node_id_fkey"
-            columns: ["parent_node_id"]
-            isOneToOne: false
-            referencedRelation: "supply_network_nodes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      supply_network_relationship_properties: {
-        Row: {
-          created_at: string | null
-          created_by: string | null
-          effective_from: string | null
-          effective_to: string | null
-          id: string
-          is_system_property: boolean | null
-          property_key: string
-          property_type: string | null
-          property_value: Json
-          relationship_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          created_by?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          id?: string
-          is_system_property?: boolean | null
-          property_key: string
-          property_type?: string | null
-          property_value: Json
-          relationship_id: string
-        }
-        Update: {
-          created_at?: string | null
-          created_by?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          id?: string
-          is_system_property?: boolean | null
-          property_key?: string
-          property_type?: string | null
-          property_value?: Json
-          relationship_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "supply_network_relationship_properties_relationship_id_fkey"
-            columns: ["relationship_id"]
-            isOneToOne: false
-            referencedRelation: "supply_network_relationships"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      supply_network_relationship_types: {
-        Row: {
-          allows_multiple: boolean | null
-          created_at: string | null
-          default_properties: Json | null
-          description: string | null
-          id: string
-          is_active: boolean | null
-          is_directed: boolean | null
-          type_code: string
-          type_name: string
-          updated_at: string | null
-        }
-        Insert: {
-          allows_multiple?: boolean | null
-          created_at?: string | null
-          default_properties?: Json | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_directed?: boolean | null
-          type_code: string
-          type_name: string
-          updated_at?: string | null
-        }
-        Update: {
-          allows_multiple?: boolean | null
-          created_at?: string | null
-          default_properties?: Json | null
-          description?: string | null
-          id?: string
-          is_active?: boolean | null
-          is_directed?: boolean | null
-          type_code?: string
-          type_name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      supply_network_relationships: {
-        Row: {
-          alternate_lead_time_days: number | null
-          alternate_sources: Json | null
-          alternate_transport_cost: number | null
-          alternate_transport_method: string | null
-          capacity: number | null
-          capacity_constraint: number | null
-          cost: number | null
-          cost_unit: string
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          effective_from: string | null
-          effective_to: string | null
-          id: string
-          is_bidirectional: boolean
-          lead_time_days: number | null
-          primary_transport_cost: number
-          primary_transport_method: string
-          priority_rank: number
-          relationship_code: string | null
-          relationship_type_id: string
-          source_node_id: string
-          status: string | null
-          strength: number | null
-          target_node_id: string
-          updated_at: string | null
-          version: number | null
-        }
-        Insert: {
-          alternate_lead_time_days?: number | null
-          alternate_sources?: Json | null
-          alternate_transport_cost?: number | null
-          alternate_transport_method?: string | null
-          capacity?: number | null
-          capacity_constraint?: number | null
-          cost?: number | null
-          cost_unit?: string
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          id?: string
-          is_bidirectional?: boolean
-          lead_time_days?: number | null
-          primary_transport_cost?: number
-          primary_transport_method?: string
-          priority_rank?: number
-          relationship_code?: string | null
-          relationship_type_id: string
-          source_node_id: string
-          status?: string | null
-          strength?: number | null
-          target_node_id: string
-          updated_at?: string | null
-          version?: number | null
-        }
-        Update: {
-          alternate_lead_time_days?: number | null
-          alternate_sources?: Json | null
-          alternate_transport_cost?: number | null
-          alternate_transport_method?: string | null
-          capacity?: number | null
-          capacity_constraint?: number | null
-          cost?: number | null
-          cost_unit?: string
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          effective_from?: string | null
-          effective_to?: string | null
-          id?: string
-          is_bidirectional?: boolean
-          lead_time_days?: number | null
-          primary_transport_cost?: number
-          primary_transport_method?: string
-          priority_rank?: number
-          relationship_code?: string | null
-          relationship_type_id?: string
-          source_node_id?: string
-          status?: string | null
-          strength?: number | null
-          target_node_id?: string
-          updated_at?: string | null
-          version?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "supply_network_relationships_relationship_type_id_fkey"
-            columns: ["relationship_type_id"]
-            isOneToOne: false
-            referencedRelation: "supply_network_relationship_types"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supply_network_relationships_source_node_id_fkey"
-            columns: ["source_node_id"]
-            isOneToOne: false
-            referencedRelation: "supply_network_nodes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supply_network_relationships_target_node_id_fkey"
-            columns: ["target_node_id"]
-            isOneToOne: false
-            referencedRelation: "supply_network_nodes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      system_config: {
-        Row: {
-          client_levels: number | null
-          id: number
-          location_levels: number | null
-          product_levels: number | null
-          system_date: string
-          vendor_levels: number | null
-        }
-        Insert: {
-          client_levels?: number | null
-          id?: number
-          location_levels?: number | null
-          product_levels?: number | null
-          system_date?: string
-          vendor_levels?: number | null
-        }
-        Update: {
-          client_levels?: number | null
-          id?: number
-          location_levels?: number | null
-          product_levels?: number | null
-          system_date?: string
-          vendor_levels?: number | null
-        }
-        Relationships: []
-      }
-      system_execution_log: {
-        Row: {
-          component: string
-          configuration_used: Json | null
-          cpu_usage_percent: number | null
-          created_at: string | null
-          duration_seconds: number | null
-          end_time: string | null
+          end_dttm: string | null
           error_message: string | null
-          execution_id: string
-          id: string
-          memory_usage_mb: number | null
-          records_generated: number | null
-          records_processed: number | null
-          start_time: string
-          status: string
-          summary_stats: Json | null
+          id: number
+          report_schedule_id: number
+          scheduled_dttm: string
+          start_dttm: string | null
+          state: string
+          uuid: string | null
+          value: number | null
+          value_row_json: string | null
         }
         Insert: {
-          component: string
-          configuration_used?: Json | null
-          cpu_usage_percent?: number | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          end_time?: string | null
+          end_dttm?: string | null
           error_message?: string | null
-          execution_id: string
-          id?: string
-          memory_usage_mb?: number | null
-          records_generated?: number | null
-          records_processed?: number | null
-          start_time: string
-          status: string
-          summary_stats?: Json | null
+          id?: number
+          report_schedule_id: number
+          scheduled_dttm: string
+          start_dttm?: string | null
+          state: string
+          uuid?: string | null
+          value?: number | null
+          value_row_json?: string | null
         }
         Update: {
-          component?: string
-          configuration_used?: Json | null
-          cpu_usage_percent?: number | null
-          created_at?: string | null
-          duration_seconds?: number | null
-          end_time?: string | null
+          end_dttm?: string | null
           error_message?: string | null
-          execution_id?: string
-          id?: string
-          memory_usage_mb?: number | null
-          records_generated?: number | null
-          records_processed?: number | null
-          start_time?: string
-          status?: string
-          summary_stats?: Json | null
-        }
-        Relationships: []
-      }
-      user_product_assignments: {
-        Row: {
-          assignment_type: string | null
-          created_at: string | null
-          customer_id: string
-          end_date: string | null
-          id: string
-          product_id: string
-          start_date: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          assignment_type?: string | null
-          created_at?: string | null
-          customer_id: string
-          end_date?: string | null
-          id?: string
-          product_id: string
-          start_date?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          assignment_type?: string | null
-          created_at?: string | null
-          customer_id?: string
-          end_date?: string | null
-          id?: string
-          product_id?: string
-          start_date?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_profiles: {
-        Row: {
-          active: boolean | null
-          company_id: number | null
-          created_at: string | null
-          email: string
-          full_name: string | null
-          id: string
-          updated_at: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          company_id?: number | null
-          created_at?: string | null
-          email: string
-          full_name?: string | null
-          id: string
-          updated_at?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          company_id?: number | null
-          created_at?: string | null
-          email?: string
-          full_name?: string | null
-          id?: string
-          updated_at?: string | null
+          id?: number
+          report_schedule_id?: number
+          scheduled_dttm?: string
+          start_dttm?: string | null
+          state?: string
+          uuid?: string | null
+          value?: number | null
+          value_row_json?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "user_profiles_company_id_fkey"
-            columns: ["company_id"]
+            foreignKeyName: "report_execution_log_report_schedule_id_fkey"
+            columns: ["report_schedule_id"]
             isOneToOne: false
-            referencedRelation: "companies"
+            referencedRelation: "report_schedule"
             referencedColumns: ["id"]
           },
         ]
       }
-      user_roles: {
+      report_recipient: {
         Row: {
-          assigned_by: string | null
-          created_at: string | null
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          assigned_by?: string | null
-          created_at?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          assigned_by?: string | null
-          created_at?: string | null
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      vendor_brackets: {
-        Row: {
-          active: boolean | null
-          bracket_number: number
-          created_at: string | null
-          discount_percentage: number | null
-          freight_cost: number | null
-          freight_per_order: number | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
           id: number
-          maximum_value: number | null
-          minimum_value: number | null
-          savings_per_order: number | null
-          savings_per_unit: number | null
-          unit_type: number | null
-          up_to_max_option: number | null
-          vendor_id: number | null
-          warehouse_id: number | null
+          recipient_config_json: string | null
+          report_schedule_id: number
+          type: string
         }
         Insert: {
-          active?: boolean | null
-          bracket_number: number
-          created_at?: string | null
-          discount_percentage?: number | null
-          freight_cost?: number | null
-          freight_per_order?: number | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
           id?: number
-          maximum_value?: number | null
-          minimum_value?: number | null
-          savings_per_order?: number | null
-          savings_per_unit?: number | null
-          unit_type?: number | null
-          up_to_max_option?: number | null
-          vendor_id?: number | null
-          warehouse_id?: number | null
+          recipient_config_json?: string | null
+          report_schedule_id: number
+          type: string
         }
         Update: {
-          active?: boolean | null
-          bracket_number?: number
-          created_at?: string | null
-          discount_percentage?: number | null
-          freight_cost?: number | null
-          freight_per_order?: number | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
           id?: number
-          maximum_value?: number | null
-          minimum_value?: number | null
-          savings_per_order?: number | null
-          savings_per_unit?: number | null
-          unit_type?: number | null
-          up_to_max_option?: number | null
-          vendor_id?: number | null
-          warehouse_id?: number | null
+          recipient_config_json?: string | null
+          report_schedule_id?: number
+          type?: string
         }
         Relationships: [
           {
-            foreignKeyName: "vendor_brackets_vendor_id_fkey"
-            columns: ["vendor_id"]
+            foreignKeyName: "report_recipient_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
             isOneToOne: false
-            referencedRelation: "vendors"
+            referencedRelation: "ab_user"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "vendor_brackets_warehouse_id_fkey"
-            columns: ["warehouse_id"]
+            foreignKeyName: "report_recipient_created_by_fk_fkey"
+            columns: ["created_by_fk"]
             isOneToOne: false
-            referencedRelation: "warehouses"
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_recipient_report_schedule_id_fkey"
+            columns: ["report_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "report_schedule"
             referencedColumns: ["id"]
           },
         ]
       }
-      vendors: {
+      report_schedule: {
         Row: {
           active: boolean | null
-          automatic_rebuild: number | null
-          buyer_id: number | null
-          code: string
-          created_at: string | null
-          current_bracket: number | null
-          id: number
-          lead_time_forecast: number | null
-          lead_time_quoted: number | null
-          lead_time_variance: number | null
-          name: string
-          order_cycle: number | null
-          service_level_goal: number | null
-          updated_at: string | null
-        }
-        Insert: {
-          active?: boolean | null
-          automatic_rebuild?: number | null
-          buyer_id?: number | null
-          code: string
-          created_at?: string | null
-          current_bracket?: number | null
-          id?: number
-          lead_time_forecast?: number | null
-          lead_time_quoted?: number | null
-          lead_time_variance?: number | null
-          name: string
-          order_cycle?: number | null
-          service_level_goal?: number | null
-          updated_at?: string | null
-        }
-        Update: {
-          active?: boolean | null
-          automatic_rebuild?: number | null
-          buyer_id?: number | null
-          code?: string
-          created_at?: string | null
-          current_bracket?: number | null
-          id?: number
-          lead_time_forecast?: number | null
-          lead_time_quoted?: number | null
-          lead_time_variance?: number | null
-          name?: string
-          order_cycle?: number | null
-          service_level_goal?: number | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendors_buyer_id_fkey"
-            columns: ["buyer_id"]
-            isOneToOne: false
-            referencedRelation: "buyers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      warehouses: {
-        Row: {
-          active: boolean | null
-          address: string | null
-          code: string
-          company_id: number | null
-          created_at: string | null
-          id: number
-          name: string
-        }
-        Insert: {
-          active?: boolean | null
-          address?: string | null
-          code: string
-          company_id?: number | null
-          created_at?: string | null
-          id?: number
-          name: string
-        }
-        Update: {
-          active?: boolean | null
-          address?: string | null
-          code?: string
-          company_id?: number | null
-          created_at?: string | null
-          id?: number
-          name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "warehouses_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      what_if_scenarios: {
-        Row: {
-          applied_at: string | null
-          applied_by: string | null
-          baseline_values: Json | null
-          created_at: string | null
-          created_by: string | null
-          customer_id: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          chart_id: number | null
+          context_markdown: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          creation_method: string | null
+          crontab: string
+          custom_height: number | null
+          custom_width: number | null
+          dashboard_id: number | null
+          database_id: number | null
           description: string | null
-          id: string
-          location_id: string
-          parameters: Json
-          product_id: string
-          results: Json | null
-          scenario_name: string
-          scenario_type: string
-          status: string | null
-          tags: string[] | null
-          updated_at: string | null
+          email_subject: string | null
+          extra_json: string
+          force_screenshot: boolean | null
+          grace_period: number | null
+          id: number
+          last_eval_dttm: string | null
+          last_state: string | null
+          last_value: number | null
+          last_value_row_json: string | null
+          log_retention: number | null
+          name: string
+          report_format: string | null
+          sql: string | null
+          timezone: string
+          type: string
+          validator_config_json: string | null
+          validator_type: string | null
+          working_timeout: number | null
         }
         Insert: {
-          applied_at?: string | null
-          applied_by?: string | null
-          baseline_values?: Json | null
-          created_at?: string | null
-          created_by?: string | null
-          customer_id?: string | null
+          active?: boolean | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          chart_id?: number | null
+          context_markdown?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          creation_method?: string | null
+          crontab: string
+          custom_height?: number | null
+          custom_width?: number | null
+          dashboard_id?: number | null
+          database_id?: number | null
           description?: string | null
-          id?: string
-          location_id: string
-          parameters?: Json
-          product_id: string
-          results?: Json | null
-          scenario_name: string
-          scenario_type?: string
-          status?: string | null
-          tags?: string[] | null
-          updated_at?: string | null
+          email_subject?: string | null
+          extra_json: string
+          force_screenshot?: boolean | null
+          grace_period?: number | null
+          id?: number
+          last_eval_dttm?: string | null
+          last_state?: string | null
+          last_value?: number | null
+          last_value_row_json?: string | null
+          log_retention?: number | null
+          name: string
+          report_format?: string | null
+          sql?: string | null
+          timezone?: string
+          type: string
+          validator_config_json?: string | null
+          validator_type?: string | null
+          working_timeout?: number | null
         }
         Update: {
-          applied_at?: string | null
-          applied_by?: string | null
-          baseline_values?: Json | null
-          created_at?: string | null
-          created_by?: string | null
-          customer_id?: string | null
+          active?: boolean | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          chart_id?: number | null
+          context_markdown?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          creation_method?: string | null
+          crontab?: string
+          custom_height?: number | null
+          custom_width?: number | null
+          dashboard_id?: number | null
+          database_id?: number | null
           description?: string | null
-          id?: string
-          location_id?: string
-          parameters?: Json
-          product_id?: string
-          results?: Json | null
-          scenario_name?: string
-          scenario_type?: string
-          status?: string | null
-          tags?: string[] | null
-          updated_at?: string | null
+          email_subject?: string | null
+          extra_json?: string
+          force_screenshot?: boolean | null
+          grace_period?: number | null
+          id?: number
+          last_eval_dttm?: string | null
+          last_state?: string | null
+          last_value?: number | null
+          last_value_row_json?: string | null
+          log_retention?: number | null
+          name?: string
+          report_format?: string | null
+          sql?: string | null
+          timezone?: string
+          type?: string
+          validator_config_json?: string | null
+          validator_type?: string | null
+          working_timeout?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "report_schedule_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_schedule_chart_id_fkey"
+            columns: ["chart_id"]
+            isOneToOne: false
+            referencedRelation: "slices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_schedule_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_schedule_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "report_schedule_database_id_fkey"
+            columns: ["database_id"]
+            isOneToOne: false
+            referencedRelation: "dbs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      report_schedule_user: {
+        Row: {
+          id: number
+          report_schedule_id: number
+          user_id: number
+        }
+        Insert: {
+          id?: number
+          report_schedule_id: number
+          user_id: number
+        }
+        Update: {
+          id?: number
+          report_schedule_id?: number
+          user_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_report_schedule_user_report_schedule_id_report_schedule"
+            columns: ["report_schedule_id"]
+            isOneToOne: false
+            referencedRelation: "report_schedule"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_report_schedule_user_user_id_ab_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rls_filter_roles: {
+        Row: {
+          id: number
+          rls_filter_id: number | null
+          role_id: number
+        }
+        Insert: {
+          id?: number
+          rls_filter_id?: number | null
+          role_id: number
+        }
+        Update: {
+          id?: number
+          rls_filter_id?: number | null
+          role_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rls_filter_roles_rls_filter_id_fkey"
+            columns: ["rls_filter_id"]
+            isOneToOne: false
+            referencedRelation: "row_level_security_filters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rls_filter_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "ab_role"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rls_filter_tables: {
+        Row: {
+          id: number
+          rls_filter_id: number | null
+          table_id: number | null
+        }
+        Insert: {
+          id?: number
+          rls_filter_id?: number | null
+          table_id?: number | null
+        }
+        Update: {
+          id?: number
+          rls_filter_id?: number | null
+          table_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rls_filter_tables_rls_filter_id_fkey"
+            columns: ["rls_filter_id"]
+            isOneToOne: false
+            referencedRelation: "row_level_security_filters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rls_filter_tables_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      row_level_security_filters: {
+        Row: {
+          changed_by_fk: number | null
+          changed_on: string | null
+          clause: string
+          created_by_fk: number | null
+          created_on: string | null
+          description: string | null
+          filter_type: string | null
+          group_key: string | null
+          id: number
+          name: string
+        }
+        Insert: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          clause: string
+          created_by_fk?: number | null
+          created_on?: string | null
+          description?: string | null
+          filter_type?: string | null
+          group_key?: string | null
+          id?: number
+          name: string
+        }
+        Update: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          clause?: string
+          created_by_fk?: number | null
+          created_on?: string | null
+          description?: string | null
+          filter_type?: string | null
+          group_key?: string | null
+          id?: number
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "row_level_security_filters_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "row_level_security_filters_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_query: {
+        Row: {
+          catalog: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          db_id: number | null
+          description: string | null
+          extra_json: string | null
+          id: number
+          label: string | null
+          last_run: string | null
+          rows: number | null
+          schema: string | null
+          sql: string | null
+          template_parameters: string | null
+          user_id: number | null
+          uuid: string | null
+        }
+        Insert: {
+          catalog?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          db_id?: number | null
+          description?: string | null
+          extra_json?: string | null
+          id?: number
+          label?: string | null
+          last_run?: string | null
+          rows?: number | null
+          schema?: string | null
+          sql?: string | null
+          template_parameters?: string | null
+          user_id?: number | null
+          uuid?: string | null
+        }
+        Update: {
+          catalog?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          db_id?: number | null
+          description?: string | null
+          extra_json?: string | null
+          id?: number
+          label?: string | null
+          last_run?: string | null
+          rows?: number | null
+          schema?: string | null
+          sql?: string | null
+          template_parameters?: string | null
+          user_id?: number | null
+          uuid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_query_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_query_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_query_db_id_fkey"
+            columns: ["db_id"]
+            isOneToOne: false
+            referencedRelation: "dbs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_query_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      slice_user: {
+        Row: {
+          id: number
+          slice_id: number | null
+          user_id: number | null
+        }
+        Insert: {
+          id?: number
+          slice_id?: number | null
+          user_id?: number | null
+        }
+        Update: {
+          id?: number
+          slice_id?: number | null
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_slice_user_slice_id_slices"
+            columns: ["slice_id"]
+            isOneToOne: false
+            referencedRelation: "slices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_slice_user_user_id_ab_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      slices: {
+        Row: {
+          cache_timeout: number | null
+          catalog_perm: string | null
+          certification_details: string | null
+          certified_by: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          datasource_id: number | null
+          datasource_name: string | null
+          datasource_type: string | null
+          description: string | null
+          external_url: string | null
+          id: number
+          is_managed_externally: boolean
+          last_saved_at: string | null
+          last_saved_by_fk: number | null
+          params: string | null
+          perm: string | null
+          query_context: string | null
+          schema_perm: string | null
+          slice_name: string | null
+          uuid: string | null
+          viz_type: string | null
+        }
+        Insert: {
+          cache_timeout?: number | null
+          catalog_perm?: string | null
+          certification_details?: string | null
+          certified_by?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          datasource_id?: number | null
+          datasource_name?: string | null
+          datasource_type?: string | null
+          description?: string | null
+          external_url?: string | null
+          id?: number
+          is_managed_externally?: boolean
+          last_saved_at?: string | null
+          last_saved_by_fk?: number | null
+          params?: string | null
+          perm?: string | null
+          query_context?: string | null
+          schema_perm?: string | null
+          slice_name?: string | null
+          uuid?: string | null
+          viz_type?: string | null
+        }
+        Update: {
+          cache_timeout?: number | null
+          catalog_perm?: string | null
+          certification_details?: string | null
+          certified_by?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          datasource_id?: number | null
+          datasource_name?: string | null
+          datasource_type?: string | null
+          description?: string | null
+          external_url?: string | null
+          id?: number
+          is_managed_externally?: boolean
+          last_saved_at?: string | null
+          last_saved_by_fk?: number | null
+          params?: string | null
+          perm?: string | null
+          query_context?: string | null
+          schema_perm?: string | null
+          slice_name?: string | null
+          uuid?: string | null
+          viz_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "slices_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slices_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "slices_last_saved_by_fk"
+            columns: ["last_saved_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sql_metrics: {
+        Row: {
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          currency: string | null
+          d3format: string | null
+          description: string | null
+          expression: string
+          extra: string | null
+          id: number
+          metric_name: string
+          metric_type: string | null
+          table_id: number | null
+          uuid: string | null
+          verbose_name: string | null
+          warning_text: string | null
+        }
+        Insert: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          currency?: string | null
+          d3format?: string | null
+          description?: string | null
+          expression: string
+          extra?: string | null
+          id?: number
+          metric_name: string
+          metric_type?: string | null
+          table_id?: number | null
+          uuid?: string | null
+          verbose_name?: string | null
+          warning_text?: string | null
+        }
+        Update: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          currency?: string | null
+          d3format?: string | null
+          description?: string | null
+          expression?: string
+          extra?: string | null
+          id?: number
+          metric_name?: string
+          metric_type?: string | null
+          table_id?: number | null
+          uuid?: string | null
+          verbose_name?: string | null
+          warning_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sql_metrics_table_id_tables"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sql_metrics_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sql_metrics_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sqlatable_user: {
+        Row: {
+          id: number
+          table_id: number | null
+          user_id: number | null
+        }
+        Insert: {
+          id?: number
+          table_id?: number | null
+          user_id?: number | null
+        }
+        Update: {
+          id?: number
+          table_id?: number | null
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sqlatable_user_table_id_tables"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_sqlatable_user_user_id_ab_user"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ssh_tunnels: {
+        Row: {
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          database_id: number | null
+          extra_json: string | null
+          id: number
+          password: string | null
+          private_key: string | null
+          private_key_password: string | null
+          server_address: string | null
+          server_port: number | null
+          username: string | null
+          uuid: string | null
+        }
+        Insert: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id?: number | null
+          extra_json?: string | null
+          id?: number
+          password?: string | null
+          private_key?: string | null
+          private_key_password?: string | null
+          server_address?: string | null
+          server_port?: number | null
+          username?: string | null
+          uuid?: string | null
+        }
+        Update: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id?: number | null
+          extra_json?: string | null
+          id?: number
+          password?: string | null
+          private_key?: string | null
+          private_key_password?: string | null
+          server_address?: string | null
+          server_port?: number | null
+          username?: string | null
+          uuid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ssh_tunnels_database_id_fkey"
+            columns: ["database_id"]
+            isOneToOne: false
+            referencedRelation: "dbs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tab_state: {
+        Row: {
+          active: boolean | null
+          autorun: boolean
+          catalog: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          database_id: number | null
+          extra_json: string | null
+          hide_left_bar: boolean
+          id: number
+          label: string | null
+          latest_query_id: string | null
+          query_limit: number | null
+          saved_query_id: number | null
+          schema: string | null
+          sql: string | null
+          template_params: string | null
+          user_id: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          autorun: boolean
+          catalog?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id?: number | null
+          extra_json?: string | null
+          hide_left_bar?: boolean
+          id?: number
+          label?: string | null
+          latest_query_id?: string | null
+          query_limit?: number | null
+          saved_query_id?: number | null
+          schema?: string | null
+          sql?: string | null
+          template_params?: string | null
+          user_id?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          autorun?: boolean
+          catalog?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id?: number | null
+          extra_json?: string | null
+          hide_left_bar?: boolean
+          id?: number
+          label?: string | null
+          latest_query_id?: string | null
+          query_limit?: number | null
+          saved_query_id?: number | null
+          schema?: string | null
+          sql?: string | null
+          template_params?: string | null
+          user_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_query_id"
+            columns: ["saved_query_id"]
+            isOneToOne: false
+            referencedRelation: "saved_query"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tab_state_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tab_state_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tab_state_database_id_fkey"
+            columns: ["database_id"]
+            isOneToOne: false
+            referencedRelation: "dbs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tab_state_latest_query_id_fkey"
+            columns: ["latest_query_id"]
+            isOneToOne: false
+            referencedRelation: "query"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "tab_state_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      table_columns: {
+        Row: {
+          advanced_data_type: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          column_name: string
+          created_by_fk: number | null
+          created_on: string | null
+          description: string | null
+          expression: string | null
+          extra: string | null
+          filterable: boolean | null
+          groupby: boolean | null
+          id: number
+          is_active: boolean | null
+          is_dttm: boolean | null
+          python_date_format: string | null
+          table_id: number | null
+          type: string | null
+          uuid: string | null
+          verbose_name: string | null
+        }
+        Insert: {
+          advanced_data_type?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          column_name: string
+          created_by_fk?: number | null
+          created_on?: string | null
+          description?: string | null
+          expression?: string | null
+          extra?: string | null
+          filterable?: boolean | null
+          groupby?: boolean | null
+          id?: number
+          is_active?: boolean | null
+          is_dttm?: boolean | null
+          python_date_format?: string | null
+          table_id?: number | null
+          type?: string | null
+          uuid?: string | null
+          verbose_name?: string | null
+        }
+        Update: {
+          advanced_data_type?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          column_name?: string
+          created_by_fk?: number | null
+          created_on?: string | null
+          description?: string | null
+          expression?: string | null
+          extra?: string | null
+          filterable?: boolean | null
+          groupby?: boolean | null
+          id?: number
+          is_active?: boolean | null
+          is_dttm?: boolean | null
+          python_date_format?: string | null
+          table_id?: number | null
+          type?: string | null
+          uuid?: string | null
+          verbose_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_table_columns_table_id_tables"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_columns_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_columns_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      table_schema: {
+        Row: {
+          catalog: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          database_id: number
+          description: string | null
+          expanded: boolean | null
+          extra_json: string | null
+          id: number
+          schema: string | null
+          tab_state_id: number | null
+          table: string | null
+        }
+        Insert: {
+          catalog?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id: number
+          description?: string | null
+          expanded?: boolean | null
+          extra_json?: string | null
+          id?: number
+          schema?: string | null
+          tab_state_id?: number | null
+          table?: string | null
+        }
+        Update: {
+          catalog?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id?: number
+          description?: string | null
+          expanded?: boolean | null
+          extra_json?: string | null
+          id?: number
+          schema?: string | null
+          tab_state_id?: number | null
+          table?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_schema_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_schema_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_schema_database_id_fkey"
+            columns: ["database_id"]
+            isOneToOne: false
+            referencedRelation: "dbs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_schema_tab_state_id_fkey"
+            columns: ["tab_state_id"]
+            isOneToOne: false
+            referencedRelation: "tab_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tables: {
+        Row: {
+          always_filter_main_dttm: boolean | null
+          cache_timeout: number | null
+          catalog: string | null
+          catalog_perm: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          database_id: number
+          default_endpoint: string | null
+          description: string | null
+          external_url: string | null
+          extra: string | null
+          fetch_values_predicate: string | null
+          filter_select_enabled: boolean | null
+          id: number
+          is_featured: boolean | null
+          is_managed_externally: boolean
+          is_sqllab_view: boolean | null
+          main_dttm_col: string | null
+          normalize_columns: boolean | null
+          offset: number | null
+          params: string | null
+          perm: string | null
+          schema: string | null
+          schema_perm: string | null
+          sql: string | null
+          table_name: string
+          template_params: string | null
+          uuid: string | null
+        }
+        Insert: {
+          always_filter_main_dttm?: boolean | null
+          cache_timeout?: number | null
+          catalog?: string | null
+          catalog_perm?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id: number
+          default_endpoint?: string | null
+          description?: string | null
+          external_url?: string | null
+          extra?: string | null
+          fetch_values_predicate?: string | null
+          filter_select_enabled?: boolean | null
+          id?: number
+          is_featured?: boolean | null
+          is_managed_externally?: boolean
+          is_sqllab_view?: boolean | null
+          main_dttm_col?: string | null
+          normalize_columns?: boolean | null
+          offset?: number | null
+          params?: string | null
+          perm?: string | null
+          schema?: string | null
+          schema_perm?: string | null
+          sql?: string | null
+          table_name: string
+          template_params?: string | null
+          uuid?: string | null
+        }
+        Update: {
+          always_filter_main_dttm?: boolean | null
+          cache_timeout?: number | null
+          catalog?: string | null
+          catalog_perm?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          database_id?: number
+          default_endpoint?: string | null
+          description?: string | null
+          external_url?: string | null
+          extra?: string | null
+          fetch_values_predicate?: string | null
+          filter_select_enabled?: boolean | null
+          id?: number
+          is_featured?: boolean | null
+          is_managed_externally?: boolean
+          is_sqllab_view?: boolean | null
+          main_dttm_col?: string | null
+          normalize_columns?: boolean | null
+          offset?: number | null
+          params?: string | null
+          perm?: string | null
+          schema?: string | null
+          schema_perm?: string | null
+          sql?: string | null
+          table_name?: string
+          template_params?: string | null
+          uuid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tables_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tables_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tables_database_id_fkey"
+            columns: ["database_id"]
+            isOneToOne: false
+            referencedRelation: "dbs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tag: {
+        Row: {
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          description: string | null
+          id: number
+          name: string | null
+          type: string | null
+        }
+        Insert: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          description?: string | null
+          id?: number
+          name?: string | null
+          type?: string | null
+        }
+        Update: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          description?: string | null
+          id?: number
+          name?: string | null
+          type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tag_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tag_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tagged_object: {
+        Row: {
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          id: number
+          object_id: number | null
+          object_type: string | null
+          tag_id: number | null
+        }
+        Insert: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          id?: number
+          object_id?: number | null
+          object_type?: string | null
+          tag_id?: number | null
+        }
+        Update: {
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          id?: number
+          object_id?: number | null
+          object_type?: string | null
+          tag_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tagged_object_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tagged_object_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tagged_object_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tag"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_attribute: {
+        Row: {
+          avatar_url: string | null
+          changed_by_fk: number | null
+          changed_on: string | null
+          created_by_fk: number | null
+          created_on: string | null
+          id: number
+          user_id: number | null
+          welcome_dashboard_id: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          id?: number
+          user_id?: number | null
+          welcome_dashboard_id?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          changed_by_fk?: number | null
+          changed_on?: string | null
+          created_by_fk?: number | null
+          created_on?: string | null
+          id?: number
+          user_id?: number | null
+          welcome_dashboard_id?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_attribute_changed_by_fk_fkey"
+            columns: ["changed_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_attribute_created_by_fk_fkey"
+            columns: ["created_by_fk"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_attribute_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_attribute_welcome_dashboard_id_fkey"
+            columns: ["welcome_dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_favorite_tag: {
+        Row: {
+          tag_id: number
+          user_id: number
+        }
+        Insert: {
+          tag_id: number
+          user_id: number
+        }
+        Update: {
+          tag_id?: number
+          user_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorite_tag_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "tag"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorite_tag_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "ab_user"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
-      forecast_results_with_outlier_impact: {
+      v_categorias: {
         Row: {
-          actual: number | null
-          bucket: string | null
-          created_at: string | null
-          customer_id: string | null
-          explanation: string | null
-          forecast: number | null
-          forecast_bucket: string | null
-          forecast_periods: string | null
-          forecast_timestamp: string | null
-          id: number | null
-          location_id: string | null
-          lower_bound: number | null
-          model: string | null
-          normalized_actual: number | null
-          outlier_impact: number | null
-          outlier_impact_percentage: number | null
-          p10: number | null
-          p25: number | null
-          p50: number | null
-          p75: number | null
-          p90: number | null
-          p95: number | null
-          product_id: string | null
-          segment: string | null
-          time_bucket: string | null
-          top_features: Json | null
-          upper_bound: number | null
-        }
-        Insert: {
-          actual?: number | null
-          bucket?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          explanation?: string | null
-          forecast?: number | null
-          forecast_bucket?: string | null
-          forecast_periods?: string | null
-          forecast_timestamp?: string | null
-          id?: number | null
-          location_id?: string | null
-          lower_bound?: number | null
-          model?: string | null
-          normalized_actual?: number | null
-          outlier_impact?: never
-          outlier_impact_percentage?: never
-          p10?: number | null
-          p25?: number | null
-          p50?: number | null
-          p75?: number | null
-          p90?: number | null
-          p95?: number | null
-          product_id?: string | null
-          segment?: string | null
-          time_bucket?: string | null
-          top_features?: Json | null
-          upper_bound?: number | null
-        }
-        Update: {
-          actual?: number | null
-          bucket?: string | null
-          created_at?: string | null
-          customer_id?: string | null
-          explanation?: string | null
-          forecast?: number | null
-          forecast_bucket?: string | null
-          forecast_periods?: string | null
-          forecast_timestamp?: string | null
-          id?: number | null
-          location_id?: string | null
-          lower_bound?: number | null
-          model?: string | null
-          normalized_actual?: number | null
-          outlier_impact?: never
-          outlier_impact_percentage?: never
-          p10?: number | null
-          p25?: number | null
-          p50?: number | null
-          p75?: number | null
-          p90?: number | null
-          p95?: number | null
-          product_id?: string | null
-          segment?: string | null
-          time_bucket?: string | null
-          top_features?: Json | null
-          upper_bound?: number | null
+          category_id: string | null
+          category_name: string | null
         }
         Relationships: []
       }
-      forecast_with_fitted_history: {
+      v_subcategorias: {
         Row: {
-          actual: number | null
-          commercial_input: number | null
-          customer_id: string | null
-          demand_planner: number | null
-          fitted_history: number | null
-          forecast: number | null
-          forecast_ly: number | null
-          location_id: string | null
-          lower_bound: number | null
-          postdate: string | null
-          product_id: string | null
-          sales_plan: number | null
-          upper_bound: number | null
+          count: number | null
+          subcategory_id: string | null
+          subcategory_name: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "forecast_data_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["product_id"]
-          },
-        ]
+        Relationships: []
       }
     }
     Functions: {
-      calculate_build_up_waterfall: {
+      get_aggregated_forecast_data: {
         Args: {
-          p_product_id: string
-          p_location_id: string
           p_customer_id?: string
-          p_analysis_date?: string
+          p_location_id?: string
+          p_product_id?: string
         }
         Returns: {
-          component_name: string
-          component_value: number
-          component_order: number
-          is_positive: boolean
-        }[]
-      }
-      calculate_days_of_supply: {
-        Args: { current_stock: number; daily_demand: number }
-        Returns: number
-      }
-      calculate_eoq: {
-        Args: {
-          annual_demand: number
-          ordering_cost: number
-          holding_cost_per_unit: number
-        }
-        Returns: number
-      }
-      calculate_period_comparison_waterfall: {
-        Args: {
-          p_product_id: string
-          p_location_id: string
-          p_customer_id?: string
-          p_current_date?: string
-          p_previous_date?: string
-        }
-        Returns: {
-          component_name: string
-          component_value: number
-          component_order: number
-          is_positive: boolean
-          baseline_value: number
-          final_value: number
-        }[]
-      }
-      calculate_sell_through_rate: {
-        Args: {
-          p_product_id: string
-          p_location_id: string
-          p_channel_partner_id: string
-          p_period_start: string
-          p_period_end: string
-        }
-        Returns: number
-      }
-      crosstab: {
-        Args: { "": string }
-        Returns: Record<string, unknown>[]
-      }
-      crosstab2: {
-        Args: { "": string }
-        Returns: Database["public"]["CompositeTypes"]["tablefunc_crosstab_2"][]
-      }
-      crosstab3: {
-        Args: { "": string }
-        Returns: Database["public"]["CompositeTypes"]["tablefunc_crosstab_3"][]
-      }
-      crosstab4: {
-        Args: { "": string }
-        Returns: Database["public"]["CompositeTypes"]["tablefunc_crosstab_4"][]
-      }
-      get_company_config: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: number
-          company_name: string
-          company_logo: string
-        }[]
-      }
-      get_forecast_pivot_table: {
-        Args: { p_location_id: string; p_product_id: string }
-        Returns: {
-          series: string
-          pivot_columns: Json
-        }[]
-      }
-      get_order_calculation_summary: {
-        Args: { order_id_param: string }
-        Returns: {
-          calculation_summary: string
-          key_metrics: Json
-          cost_breakdown: Json
-        }[]
-      }
-      get_product_velocity: {
-        Args: {
-          p_product_id: string
-          p_location_id: string
-          p_days_back?: number
-        }
-        Returns: number
-      }
-      get_products_below_order_point: {
-        Args: { warehouse_filter?: number }
-        Returns: {
+          actual: number
+          category_id: string
+          category_name: string
+          collaboration_status: string
+          commercial_input: number
+          commercial_notes: string
+          customer_id: string
+          demand_planner: number
+          forecast: number
+          location_id: string
+          postdate: string
           product_id: string
-          product_code: string
-          current_balance: number
-          order_point: number
+          sales_plan: number
+          subcategory_id: string
+          subcategory_name: string
         }[]
-      }
-      get_supply_network_graph: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          nodes: Json
-          relationships: Json
-        }[]
-      }
-      get_supply_network_node_types: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          type_code: string
-          type_name: string
-          description: string
-          icon_name: string
-          color_code: string
-          default_properties: Json
-        }[]
-      }
-      get_supply_network_relationship_types: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          type_code: string
-          type_name: string
-          description: string
-          is_directed: boolean
-          allows_multiple: boolean
-          default_properties: Json
-        }[]
-      }
-      has_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["app_role"]
-        }
-        Returns: boolean
-      }
-      reconcile_forecasts: {
-        Args: {
-          p_product_id: string
-          p_location_id: string
-          p_forecast_period: string
-        }
-        Returns: string
-      }
-      refresh_sell_through_rates: {
-        Args: { p_period_start?: string; p_period_end?: string }
-        Returns: boolean
-      }
-      refresh_waterfall_components: {
-        Args: {
-          p_product_id: string
-          p_location_id: string
-          p_customer_id?: string
-          p_waterfall_type?: string
-        }
-        Returns: boolean
-      }
-      validate_alternate_sources: {
-        Args: { alternate_sources: Json }
-        Returns: boolean
       }
     }
     Enums: {
       app_role:
-        | "admin"
+        | "administrator"
         | "demand_planner"
         | "supply_planner"
         | "user"
-        | "administrator"
-      cost_unit_type:
-        | "per_unit"
-        | "per_shipment"
-        | "per_kg"
-        | "per_pallet"
-        | "per_container"
+        | "admin"
       emaildeliverytype: "attachment" | "inline"
-      loc_type: "Cedis" | "Planta" | "Tienda" | "Cross Dock"
       objecttype: "query" | "chart" | "dashboard" | "dataset"
       sliceemailreportformat: "visualization" | "data"
       tagtype: "custom" | "type" | "owner" | "favorited_by"
-      transportation_method:
-        | "truck"
-        | "rail"
-        | "air"
-        | "sea"
-        | "pipeline"
-        | "courier"
-        | "intermodal"
     }
     CompositeTypes: {
-      tablefunc_crosstab_2: {
-        row_name: string | null
-        category_1: string | null
-        category_2: string | null
-      }
-      tablefunc_crosstab_3: {
-        row_name: string | null
-        category_1: string | null
-        category_2: string | null
-        category_3: string | null
-      }
-      tablefunc_crosstab_4: {
-        row_name: string | null
-        category_1: string | null
-        category_2: string | null
-        category_3: string | null
-        category_4: string | null
-      }
+      [_ in never]: never
     }
   }
 }
@@ -4353,33 +2791,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: [
-        "admin",
+        "administrator",
         "demand_planner",
         "supply_planner",
         "user",
-        "administrator",
-      ],
-      cost_unit_type: [
-        "per_unit",
-        "per_shipment",
-        "per_kg",
-        "per_pallet",
-        "per_container",
+        "admin",
       ],
       emaildeliverytype: ["attachment", "inline"],
-      loc_type: ["Cedis", "Planta", "Tienda", "Cross Dock"],
       objecttype: ["query", "chart", "dashboard", "dataset"],
       sliceemailreportformat: ["visualization", "data"],
       tagtype: ["custom", "type", "owner", "favorited_by"],
-      transportation_method: [
-        "truck",
-        "rail",
-        "air",
-        "sea",
-        "pipeline",
-        "courier",
-        "intermodal",
-      ],
     },
   },
 } as const

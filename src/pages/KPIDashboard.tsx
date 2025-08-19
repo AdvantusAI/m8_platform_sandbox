@@ -101,7 +101,7 @@ export default function KPIDashboard() {
 
   const loadLowAccuracyProducts = async () => {
     try {
-      console.log('Loading low accuracy products with threshold:', accuracyThreshold);
+      //console.log('Loading low accuracy products with threshold:', accuracyThreshold);
       
       // First, get all forecast data
       const { data: forecastData, error: forecastError } = await supabase
@@ -114,11 +114,11 @@ export default function KPIDashboard() {
 
       if (forecastError) throw forecastError;
       
-      console.log('Forecast data received:', forecastData?.length || 0, 'records');
+      //console.log('Forecast data received:', forecastData?.length || 0, 'records');
 
       // Get product details separately
       const uniqueProductIds = [...new Set(forecastData?.map(d => d.product_id))];
-      console.log('Unique product IDs:', uniqueProductIds.length);
+      //console.log('Unique product IDs:', uniqueProductIds.length);
       
       const { data: productData, error: productError } = await supabase
         .from('products')
@@ -129,7 +129,7 @@ export default function KPIDashboard() {
         console.warn('Product data fetch error:', productError);
       }
       
-      console.log('Product data received:', productData?.length || 0, 'records');
+      //console.log('Product data received:', productData?.length || 0, 'records');
 
       // Create product lookup map
       const productLookup = new Map();
@@ -187,8 +187,8 @@ export default function KPIDashboard() {
         .filter(product => product.accuracy_score < accuracyThreshold)
         .sort((a, b) => a.accuracy_score - b.accuracy_score);
 
-      console.log('All products:', allProductsData.length);
-      console.log('Low accuracy products after filtering:', lowAccuracyProducts.length);
+      //console.log('All products:', allProductsData.length);
+      //console.log('Low accuracy products after filtering:', lowAccuracyProducts.length);
       
       setAllProducts(allProductsData);
       setLowAccuracyProducts(lowAccuracyProducts);
@@ -199,7 +199,7 @@ export default function KPIDashboard() {
 
   const loadLowAccuracyCustomers = async () => {
     try {
-      console.log('Loading low accuracy customers with threshold:', accuracyThreshold);
+      //console.log('Loading low accuracy customers with threshold:', accuracyThreshold);
       
       // First, get all forecast data for customers
       const { data: forecastData, error: forecastError } = await supabase
@@ -212,11 +212,11 @@ export default function KPIDashboard() {
 
       if (forecastError) throw forecastError;
       
-      console.log('Customer forecast data received:', forecastData?.length || 0, 'records');
+      //console.log('Customer forecast data received:', forecastData?.length || 0, 'records');
 
       // Get customer details separately
       const uniqueCustomerIds = [...new Set(forecastData?.map(d => d.customer_id))];
-      console.log('Unique customer IDs:', uniqueCustomerIds.length);
+      //console.log('Unique customer IDs:', uniqueCustomerIds.length);
       
       const { data: customerData, error: customerError } = await supabase
         .from('customers')
@@ -227,7 +227,7 @@ export default function KPIDashboard() {
         console.warn('Customer data fetch error:', customerError);
       }
       
-      console.log('Customer data received:', customerData?.length || 0, 'records');
+      //console.log('Customer data received:', customerData?.length || 0, 'records');
 
       // Create customer lookup map
       const customerLookup = new Map();
@@ -282,8 +282,8 @@ export default function KPIDashboard() {
         .filter(customer => customer.accuracy_score < accuracyThreshold)
         .sort((a, b) => a.accuracy_score - b.accuracy_score);
 
-      console.log('All customers:', allCustomersData.length);
-      console.log('Low accuracy customers after filtering:', lowAccuracyCustomers.length);
+      //console.log('All customers:', allCustomersData.length);
+      //console.log('Low accuracy customers after filtering:', lowAccuracyCustomers.length);
       
       setAllCustomers(allCustomersData);
       setLowAccuracyCustomers(lowAccuracyCustomers);
@@ -294,7 +294,7 @@ export default function KPIDashboard() {
 
   const loadCustomerProductCombinations = async () => {
     try {
-      console.log('Loading customer-product combinations with threshold:', accuracyThreshold);
+      //console.log('Loading customer-product combinations with threshold:', accuracyThreshold);
       
       // Get forecast data with both customer and product IDs
       const { data: forecastData, error: forecastError } = await supabase

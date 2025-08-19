@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { AgGridReact } from 'ag-grid-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,11 +8,35 @@ import { Button } from '@/components/ui/button';
 import { Save, X } from 'lucide-react';
 import { useForecastCollaboration } from '@/hooks/useForecastCollaboration';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ColDef, GridReadyEvent } from 'ag-grid-community';
+import { pivotTableConfig, agGridContainerStyles } from '../lib/ag-grid-config';
+
+interface ForecastData {
+  id?: string;
+  postdate: string;
+  forecast?: number;
+  sales_plan?: number;
+  commercial_input?: number;
+  collaboration_status?: string;
+  commercial_confidence?: string;
+  commercial_notes?: string;
+  commercial_reviewed_by?: string;
+  commercial_reviewed_at?: string;
+  market_intelligence?: string;
+  promotional_activity?: string;
+  competitive_impact?: string;
+}
 
 interface ForecastPivotTableProps {
-  data: any[];
-  comments: any[];
+  data: ForecastData[];
+  comments: unknown[];
 }
+
+interface PivotRowData {
+  metric: string;
+  [key: string]: string | number; // Dynamic date columns
+}
+
 export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
   data,
   comments
@@ -20,9 +44,6 @@ export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
   const {
     updateForecastCollaboration
   } = useForecastCollaboration();
-  const [editingCells, setEditingCells] = useState<{
-    [key: string]: string;
-  }>({});
   const [pendingUpdates, setPendingUpdates] = useState<{
     [key: string]: number;
   }>({});
@@ -38,6 +59,140 @@ export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
     promotional_activity?: string;
     competitive_impact?: string;
   } | null>(null);
+
+  // Filter dates for last 2 months and until December 31st of current year
+  const getFilteredDates = () => {
+    const today = new Date();
+    const twoMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    const endOfYear = new Date(today.getFullYear(), 11, 31); // December 31st of current year
+    return data.filter(item => {
+      const itemDate = new Date(item.postdate);
+      return itemDate >= twoMonthsAgo && itemDate <= endOfYear;
+    }).map(item => item.postdate);
+  };
+
+  // Get unique dates and sort them (filtered)
+  const uniqueDates = [...new Set(getFilteredDates())].sort();
+
+  // Helper function to get data for a specific date
+  const getDataForDate = (date: string): ForecastData => {
+    return data.find(item => item.postdate === date) || {} as ForecastData;
+  };
+
+  // Helper function to format date for display
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Transform data for AG Grid pivot format
+  const pivotData = useMemo(() => {
+    const rows: PivotRowData[] = [
+      { metric: 'Forecast (M8.predict)' },
+      { metric: 'Plan Comercial' },
+      { metric: 'Mi Input' }
+    ];
+    
+    ////console.log(data);
+    // Add date columns to each row
+    uniqueDates.forEach(date => {
+      const dayData = getDataForDate(date);
+      const formattedDate = formatDate(date);
+      
+      // Pronóstico IA
+      rows[0][formattedDate] = dayData.forecast !== null && dayData.forecast !== undefined ? 
+        (typeof dayData.forecast === 'number' ? dayData.forecast : parseFloat(dayData.forecast) || '-') : 
+        '-';
+      
+      // Plan Comercial
+      rows[1][formattedDate] = dayData.sales_plan !== null && dayData.sales_plan !== undefined ? 
+        (typeof dayData.sales_plan === 'number' ? dayData.sales_plan : parseFloat(dayData.sales_plan) || '') : 
+        '';
+      
+      // Mi Input
+      const currentValue = pendingUpdates[`input-${date}`] !== undefined 
+        ? pendingUpdates[`input-${date}`] 
+        : dayData.commercial_input;
+      rows[2][formattedDate] = currentValue !== null && currentValue !== undefined ? 
+        (typeof currentValue === 'number' ? currentValue : parseFloat(currentValue) || '-') : 
+        '-';
+    });
+
+    return rows;
+  }, [data, uniqueDates, pendingUpdates]);
+
+  // Create column definitions for AG Grid
+  const columnDefs = useMemo(() => {
+    const cols: ColDef[] = [
+      {
+        field: 'metric',
+        headerName: 'Métrica',
+        width: 200,
+        pinned: 'left',
+        cellStyle: { 
+          fontWeight: 'bold',
+          backgroundColor: '#f1f5f9'
+        }
+      }
+    ];
+
+    // Add date columns
+    uniqueDates.forEach(date => {
+      const formattedDate = formatDate(date);
+      cols.push({
+        field: formattedDate,
+        headerName: formattedDate,
+        width: 120,
+        valueFormatter: (params) => {
+          // Handle empty values for Plan Comercial
+          if (params.data?.metric === 'Plan Comercial' && (params.value === null || params.value === undefined || params.value === '')) {
+            return '';
+          }
+          // Handle empty values for other rows
+          if (params.value === null || params.value === undefined || params.value === '') {
+            return '-';
+          }
+          // Format Forecast (M8.predict) with mileage separator
+          if (params.data?.metric === 'Forecast (M8.predict)' && typeof params.value === 'number') {
+            return params.value.toLocaleString('en-US', {
+              minimumFractionDigits: 0,
+              maximumFractionDigits: 0
+            });
+          }
+          return params.value;
+        },
+        cellStyle: (params) => {
+          if (params.data?.metric === 'Mi Input') {
+            return { 
+              backgroundColor: '#fef3c7',
+              cursor: 'pointer'
+            };
+          }
+          // Right align Forecast (M8.predict) row
+          if (params.data?.metric === 'Forecast (M8.predict)') {
+            return { 
+              textAlign: 'right'
+            };
+          }
+          return {};
+        },
+        onCellClicked: (params) => {
+          if (params.data?.metric === 'Mi Input') {
+            const dayData = getDataForDate(date);
+            const currentValue = pendingUpdates[`input-${date}`] !== undefined 
+              ? pendingUpdates[`input-${date}`] 
+              : dayData.commercial_input;
+            handleInputDialogOpen(date, currentValue?.toString() || '');
+          }
+        }
+      });
+    });
+
+    return cols;
+  }, [uniqueDates, pendingUpdates]);
 
   const handleInputDialogOpen = (date: string, value: string) => {
     const dayData = getDataForDate(date);
@@ -83,114 +238,6 @@ export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
     setDialogData(null);
   };
 
-  // Filter dates for last 2 months and next 5 months
-  const getFilteredDates = () => {
-    const today = new Date();
-    const twoMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 2, 1);
-    const fiveMonthsFromNow = new Date(today.getFullYear(), today.getMonth() + 5, 31);
-    return data.filter(item => {
-      const itemDate = new Date(item.postdate);
-      return itemDate >= twoMonthsAgo && itemDate <= fiveMonthsFromNow;
-    }).map(item => item.postdate);
-  };
-
-  // Get unique dates and sort them (filtered)
-  const uniqueDates = [...new Set(getFilteredDates())].sort();
-
-  // Helper function to get data for a specific date
-  const getDataForDate = (date: string) => {
-    return data.find(item => item.postdate === date) || {};
-  };
-
-  // Helper function to format date for display
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('es-ES', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  };
-
-  // Handle cell edit
-  const handleCellEdit = (date: string, value: string) => {
-    const cellKey = `input-${date}`;
-    setEditingCells(prev => ({
-      ...prev,
-      [cellKey]: value
-    }));
-  };
-
-  // Handle cell save
-  const handleCellSave = async (date: string) => {
-    const cellKey = `input-${date}`;
-    const value = editingCells[cellKey];
-    const dayData = getDataForDate(date);
-    if (dayData.id && value !== undefined) {
-      const success = await updateForecastCollaboration(dayData.id, {
-        commercial_input: parseFloat(value) || 0,
-        collaboration_status: 'reviewed'
-      });
-      if (success) {
-        setPendingUpdates(prev => ({
-          ...prev,
-          [cellKey]: parseFloat(value) || 0
-        }));
-        setEditingCells(prev => {
-          const newState = {
-            ...prev
-          };
-          delete newState[cellKey];
-          return newState;
-        });
-      }
-    }
-  };
-
-  // Handle cell cancel
-  const handleCellCancel = (date: string) => {
-    const cellKey = `input-${date}`;
-    setEditingCells(prev => {
-      const newState = {
-        ...prev
-      };
-      delete newState[cellKey];
-      return newState;
-    });
-  };
-
-  // Helper function to get status badge
-  const getStatusBadge = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'approved':
-      case 'aprobado':
-        return 'default';
-      case 'pending':
-      case 'pendiente':
-        return 'secondary';
-      case 'rejected':
-      case 'rechazado':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
-
-  // Helper function to get confidence badge
-  const getConfidenceBadge = (confidence: string) => {
-    switch (confidence?.toLowerCase()) {
-      case 'high':
-      case 'alta':
-        return 'default';
-      case 'medium':
-      case 'media':
-        return 'secondary';
-      case 'low':
-      case 'baja':
-        return 'destructive';
-      default:
-        return 'outline';
-    }
-  };
   if (!data || data.length === 0) {
     return <Card>
         <CardContent className="p-6">
@@ -200,70 +247,30 @@ export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
         </CardContent>
       </Card>;
   }
-  return <Card>
+
+  return (
+    <Card>
       <CardHeader>
-        <CardTitle>Tabla Pivote - Colaboración de Pronósticos</CardTitle>
+        
       </CardHeader>
       <CardContent>
-        <div className="relative overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-48 font-semibold sticky left-0 bg-slate-100 dark:bg-slate-800 z-10 border-r">
-                  Métrica
-                </TableHead>
-                {uniqueDates.map(date => (
-                  <TableHead key={date} className="text-center min-w-32">
-                    {formatDate(date)}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {/* Pronóstico IA Row */}
-              <TableRow>
-                <TableCell className="font-medium bg-slate-100 dark:bg-slate-800 sticky left-0 z-10 border-r">
-                  Pronóstico IA
-                </TableCell>
-                {uniqueDates.map(date => {
-                const dayData = getDataForDate(date);
-                return <TableCell key={date} className="text-center">
-                      {dayData.forecast || '-'}
-                    </TableCell>;
-              })}
-              </TableRow>
-
-              {/* Plan Comercial Row */}
-              <TableRow>
-                <TableCell className="font-medium bg-slate-100 dark:bg-slate-800 sticky left-0 z-10 border-r">
-                  Plan Comercial
-                </TableCell>
-                {uniqueDates.map(date => {
-                const dayData = getDataForDate(date);
-                return <TableCell key={date} className="text-center">
-                      {dayData.sales_plan || '-'}
-                    </TableCell>;
-              })}
-              </TableRow>
-
-              {/* Mi Input Row - Editable */}
-              <TableRow>
-                <TableCell className="font-medium bg-slate-100 dark:bg-slate-800 sticky left-0 z-10 border-r">
-                  Mi Input
-                </TableCell>
-                {uniqueDates.map(date => {
-                const dayData = getDataForDate(date);
-                const currentValue = pendingUpdates[`input-${date}`] !== undefined ? pendingUpdates[`input-${date}`] : dayData.commercial_input;
-                return <TableCell key={date} className="text-center p-1 bg-orange-100">
-                      <div className="cursor-pointer hover:bg-muted/50 p-1 rounded" onClick={() => handleInputDialogOpen(date, currentValue?.toString() || '')}>
-                          {currentValue || '-'}
-                        </div>
-                    </TableCell>;
-              })}
-              </TableRow>
-
-            </TableBody>
-          </Table>
+        <div className={agGridContainerStyles}>
+          <AgGridReact
+            rowData={pivotData}
+            columnDefs={columnDefs}
+            defaultColDef={pivotTableConfig.defaultColDef}
+            animateRows={pivotTableConfig.animateRows}
+            headerHeight={pivotTableConfig.headerHeight}
+            rowHeight={pivotTableConfig.rowHeight}
+            theme={pivotTableConfig.theme}
+            pagination={pivotTableConfig.pagination}
+            statusBar={pivotTableConfig.statusBar}
+            noRowsOverlayComponent={() => (
+              <div className="flex flex-col items-center justify-center h-full">
+                <p className="text-muted-foreground">No hay datos disponibles</p>
+              </div>
+            )}
+          />
         </div>
       </CardContent>
       {showInputDialog && dialogData && (
@@ -338,5 +345,6 @@ export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
           </DialogContent>
         </Dialog>
       )}
-    </Card>;
+    </Card>
+  );
 };

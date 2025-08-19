@@ -1,7 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Header } from "@/components/Header";
-import { FloatingChatbot } from "@/components/FloatingChatbot";
 
 interface MasterLayoutProps {
   children: React.ReactNode;
@@ -20,7 +19,6 @@ export function MasterLayout({
             </div>
           </main>
         </div>
-         <FloatingChatbot />
       </div>
     </SidebarProvider>;
 }

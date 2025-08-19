@@ -7,6 +7,7 @@ import { MasterLayout } from "@/components/MasterLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import CommercialCollaboration from "./pages/CommercialCollaboration";
+import ForecastCollaboration from "./pages/ForecastCollaboration";
 import { AdminRoute } from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -45,6 +46,8 @@ import SellThroughAnalytics from "./pages/SellThroughAnalytics";
 import ForecastReconciliation from "./pages/ForecastReconciliation";
 import HistoryDataView from "./pages/HistoryDataView";
 import KPIDashboard from "./pages/KPIDashboard";
+import { DataGrids } from "./components/DataGrid";
+
 
 const queryClient = new QueryClient();
 
@@ -92,6 +95,7 @@ const App = () => {
               <Route path="/supply-network" element={<SupplyNetworkVisualization />} />
               <Route path="/what-if-analysis" element={<WhatIfAnalysis />} />
               <Route path="/commercial-collaboration" element={<CommercialCollaboration />} />
+              <Route path="/forecast-collaboration" element={<ForecastCollaboration />} />
               <Route path="/dashboard-gallery" element={<DashboardGallery />} />
               <Route path="/advanced-reports" element={<AdvancedReports />} />
               <Route path="/advanced-reports/:dashboardId" element={<AdvancedReports />} />
@@ -118,7 +122,7 @@ const App = () => {
               <Route path="/npi-analytics" element={<NPIAnalytics />} />
               <Route path="/sell-through-analytics" element={<SellThroughAnalytics />} />
               <Route path="/forecast-reconciliation" element={<ForecastReconciliation />} />
-              
+              <Route path="/ag-data-grids" element={<DataGrids />} />
               {/* Protected Routes */}
             </Routes>
           </MasterLayout>

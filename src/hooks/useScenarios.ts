@@ -13,7 +13,7 @@ export const useScenarios = () => {
   const { data: scenarios, isLoading } = useQuery({
     queryKey: ['scenarios'],
     queryFn: async () => {
-      console.log('🔍 Fetching scenarios from database...');
+      //console.log('🔍 Fetching scenarios from database...');
       const { data, error } = await supabase
         .schema('m8_schema')
         .from('what_if_scenarios')
@@ -25,7 +25,7 @@ export const useScenarios = () => {
         throw error;
       }
       
-      console.log('📊 Raw scenarios data:', data);
+      //console.log('📊 Raw scenarios data:', data);
       
       const mappedScenarios = data?.map(scenario => {
         // Ensure scenarios have proper results structure
@@ -65,7 +65,7 @@ export const useScenarios = () => {
         };
       }) as ScenarioDefinition[];
       
-      console.log('🔄 Mapped scenarios:', mappedScenarios);
+      //console.log('🔄 Mapped scenarios:', mappedScenarios);
       return mappedScenarios;
     }
   });

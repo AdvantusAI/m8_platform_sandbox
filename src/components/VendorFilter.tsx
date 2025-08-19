@@ -55,7 +55,7 @@ export function VendorFilter({
         .single();
       
       if (error || !data) {
-        console.log('No system config found, using default vendor_levels = 1');
+        //console.log('No system config found, using default vendor_levels = 1');
         setVendorLevels(1);
         return;
       }
@@ -63,7 +63,7 @@ export function VendorFilter({
       // Handle case where vendor_levels column might not exist
       const levels = (data as any)?.vendor_levels || 1;
       setVendorLevels(levels);
-      console.log('Vendor levels:', levels);
+      //console.log('Vendor levels:', levels);
     } catch (error) {
       console.error('Error fetching system config:', error);
       setVendorLevels(1);
@@ -79,7 +79,7 @@ export function VendorFilter({
 
     setLoading(true);
     try {
-      console.log('Fetching vendors for product:', selectedProductId);
+      //console.log('Fetching vendors for product:', selectedProductId);
       
       // Create mock vendor data since vendor tables don't exist yet
       const mockVendors = [
@@ -88,7 +88,7 @@ export function VendorFilter({
         { code: 'V003', name: 'Proveedor Especial', level_1: 'L2', level_1_name: 'Nivel 2' }
       ];
 
-      console.log('Using mock vendor data:', mockVendors);
+      //console.log('Using mock vendor data:', mockVendors);
 
       if (vendorLevels === 1) {
         // Flat structure: just vendor_code - vendor_name

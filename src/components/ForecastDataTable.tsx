@@ -134,7 +134,7 @@ export function ForecastDataTable({
         new Date(a.postdate).getTime() - new Date(b.postdate).getTime()
       );
 
-      console.log('Aggregated forecast data:', result);
+      //console.log('Aggregated forecast data:', result);
       setForecastData(result);
       
     } catch (error) {

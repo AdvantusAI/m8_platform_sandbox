@@ -1,56 +1,136 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, TrendingUp, MessageSquare, AlertTriangle, Plus, Target, BarChart3, X, Package, MapPin, Building } from 'lucide-react';
+import { Users, X, Package, MapPin, Filter, Truck, TrendingUp, TrendingDown, DollarSign, Target, BarChart3, PieChart } from 'lucide-react';
 import { useCommercialCollaboration } from '@/hooks/useCommercialCollaboration';
 import { useForecastCollaboration } from '@/hooks/useForecastCollaboration';
-import { CommercialProfileForm } from '@/components/CommercialProfileForm';
-import { MarketIntelligenceForm } from '@/components/MarketIntelligenceForm';
 import { ForecastCollaborationTable } from '@/components/ForecastCollaborationTable';
-import { ProductSelectionModal } from '@/components/ProductSelectionModal';
+import { AggregatedProductSelectionModal } from '@/components/AggregatedProductSelectionModal';
 import { LocationSelectionModal } from '@/components/LocationSelectionModal';
 import { CustomerSelectionModal } from '@/components/CustomerSelectionModal';
+import { useSearchParams } from 'react-router-dom';
+import { useProducts } from '@/hooks/useProducts';
+import { useLocations } from '@/hooks/useLocations';
+import { useCustomers } from '@/hooks/useCustomers';
+
 export function CommercialDashboard() {
-  const [showProfileForm, setShowProfileForm] = useState(false);
-  const [showIntelligenceForm, setShowIntelligenceForm] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<string>('');
-  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [searchParams] = useSearchParams();
+  
+  // Helper functions for localStorage persistence
+  const getStoredFilters = () => {
+    try {
+      const stored = localStorage.getItem('commercialCollaborationFilters');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveFiltersToStorage = (filters: { productId: string; locationId: string; customerId: string }) => {
+    try {
+      localStorage.setItem('commercialCollaborationFilters', JSON.stringify(filters));
+    } catch (error) {
+      console.warn('Failed to save filters to localStorage:', error);
+    }
+  };
+
+  // Initialize state with localStorage values, fallback to URL params
+  const storedFilters = getStoredFilters();
+  const [selectedProductId, setSelectedProductId] = useState<string>(
+    searchParams.get('product_id') || storedFilters.productId || ''
+  );
+  const [selectedLocationId, setSelectedLocationId] = useState<string>(
+    searchParams.get('location_id') || storedFilters.locationId || ''
+  );
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
+    searchParams.get('customer_id') || storedFilters.customerId || ''
+  );
+  
+  // New state for aggregated selection
+  const [selectedAggregation, setSelectedAggregation] = useState<{
+    type: 'category' | 'subcategory' | 'product';
+    id: string;
+    name: string;
+    productCount?: number;
+  } | null>(null);
+  
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  
+  const { getProductName } = useProducts();
+  const { getLocationName } = useLocations();
+  const { getCustomerName } = useCustomers();
   const {
-    profile,
     assignments,
-    marketIntelligence,
     loading: commercialLoading
   } = useCommercialCollaboration();
   const {
     forecastData,
     comments,
     loading: forecastLoading
-  } = useForecastCollaboration(selectedProductId, selectedLocationId, selectedCustomerId);
+  } = useForecastCollaboration(selectedProductId, selectedLocationId, selectedCustomerId, selectedAggregation?.type);
 
-  // Calculate metrics
-  const pendingReviews = forecastData.filter(f => f.collaboration_status === 'pending_review').length;
-  const completedReviews = forecastData.filter(f => f.collaboration_status === 'reviewed').length;
-  const totalComments = comments.length;
-  const activeIntelligence = marketIntelligence.filter(mi => mi.status === 'submitted').length;
-  const handleProductSelect = (productId: string) => {
-    setSelectedProductId(productId);
+  // Update state when URL parameters change
+  useEffect(() => {
+    const productParam = searchParams.get('product_id');
+    const locationParam = searchParams.get('location_id');
+    const customerParam = searchParams.get('customer_id');
+    
+    if (productParam && productParam !== selectedProductId) {
+      setSelectedProductId(productParam);
+    }
+    if (locationParam && locationParam !== selectedLocationId) {
+      setSelectedLocationId(locationParam);
+    }
+    if (customerParam && customerParam !== selectedCustomerId) {
+      setSelectedCustomerId(customerParam);
+    }
+  }, [searchParams]);
+  
+  const handleProductSelect = (selection: { type: 'category' | 'subcategory' | 'product'; id: string; name: string; productCount?: number }) => {
+    setSelectedProductId(selection.id);
+    setSelectedAggregation(selection);
+    saveFiltersToStorage({
+      productId: selection.id,
+      locationId: selectedLocationId,
+      customerId: selectedCustomerId
+    });
+    //console.log('Selección realizada en Commercial Dashboard:', selection);
   };
+
   const handleLocationSelect = (locationId: string) => {
     setSelectedLocationId(locationId);
+    saveFiltersToStorage({
+      productId: selectedProductId,
+      locationId,
+      customerId: selectedCustomerId
+    });
+    //console.log('Ubicación seleccionada en Commercial Dashboard:', locationId);
   };
+
   const handleCustomerSelect = (customerId: string) => {
     setSelectedCustomerId(customerId);
+    saveFiltersToStorage({
+      productId: selectedProductId,
+      locationId: selectedLocationId,
+      customerId
+    });
+    //console.log('Cliente seleccionado en Commercial Dashboard:', customerId);
   };
+
   const handleClearFilters = () => {
     setSelectedProductId('');
     setSelectedLocationId('');
     setSelectedCustomerId('');
+    saveFiltersToStorage({
+      productId: '',
+      locationId: '',
+      customerId: ''
+    });
+    //console.log('Filtros limpiados en Commercial Dashboard');
   };
   if (commercialLoading || forecastLoading) {
     return <div className="flex items-center justify-center h-64">
@@ -66,63 +146,151 @@ export function CommercialDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Dashboard Comercial</h1>
           <p className="text-muted-foreground">
-            Colaboración en pronósticos e inteligencia de mercado
+            Colaboración en pronósticos
           </p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowProfileForm(true)} variant="outline">
-            <Users className="h-4 w-4 mr-2" />
-            Perfil
-          </Button>
-          <Button onClick={() => setShowIntelligenceForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Inteligencia de Mercado
-          </Button>
         </div>
       </div>
 
-      {/* Profile Alert */}
-      {!profile}
-
-      {/* Metrics Cards */}
-      
-
       {/* Main Content Tabs */}
       <Tabs defaultValue="forecasts" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="forecasts">Colaboración en Pronósticos</TabsTrigger>
           <TabsTrigger value="customers">Mis Clientes</TabsTrigger>
-          <TabsTrigger value="intelligence">Inteligencia de Mercado</TabsTrigger>
-          <TabsTrigger value="performance">Rendimiento</TabsTrigger>
         </TabsList>
 
         <TabsContent value="forecasts" className="space-y-4 mt-6">
-          {/* Filters */}
+          {/* Always visible filter info */}
           <Card>
-            <CardHeader>
-              <CardTitle>Filtros</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-4">
-                <Button variant="outline" onClick={() => setIsProductModalOpen(true)} className="flex items-center gap-2">
-                  <Package className="h-4 w-4" />
-                  {selectedProductId ? `Producto: ${selectedProductId}` : 'Seleccionar Producto'}
-                </Button>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-blue-500" />
+                    <span className="text-sm font-medium">Producto/Categoría:</span>
+                    {selectedProductId ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{selectedProductId}</Badge>
+                        <Badge variant="secondary">
+                          {selectedAggregation ? (
+                            <>
+                              {selectedAggregation.name}
+                              {selectedAggregation.productCount && selectedAggregation.type !== 'product' && (
+                                <span className="ml-1 text-xs">({selectedAggregation.productCount} productos)</span>
+                              )}
+                            </>
+                          ) : (
+                            getProductName(selectedProductId)
+                          )}
+                        </Badge>
+                        {selectedAggregation && (
+                          <Badge variant="outline" className="text-xs">
+                            {selectedAggregation.type === 'category' ? 'Categoría' : 
+                             selectedAggregation.type === 'subcategory' ? 'Subcategoría' : 'Producto'}
+                          </Badge>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No seleccionado (obligatorio)</span>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setIsProductModalOpen(true)}
+                      className="ml-2 h-8 w-8"
+                    >
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-green-500" />
+                    <span className="text-sm font-medium">Ubicación:</span>
+                    {selectedLocationId ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{selectedLocationId}</Badge>
+                        <Badge variant="secondary">{getLocationName(selectedLocationId)}</Badge>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No seleccionada (opcional)</span>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setIsLocationModalOpen(true)}
+                      className="ml-2 h-8 w-8"
+                    >
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                    {selectedLocationId && (
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => {
+                          setSelectedLocationId('');
+                          saveFiltersToStorage({
+                            productId: selectedProductId,
+                            locationId: '',
+                            customerId: selectedCustomerId
+                          });
+                        }}
+                        className="h-8 w-8"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-orange-500" />
+                    <span className="text-sm font-medium">Cliente:</span>           
+                    {selectedCustomerId ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{selectedCustomerId}</Badge>
+                        <Badge variant="secondary">{getCustomerName(selectedCustomerId)}</Badge>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No seleccionado (opcional)</span>
+                    )}
+                    <Button 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setIsCustomerModalOpen(true)}
+                      className="ml-2 h-8 w-8"
+                    >
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                    {selectedCustomerId && (
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => {
+                          setSelectedCustomerId('');
+                          saveFiltersToStorage({
+                            productId: selectedProductId,
+                            locationId: selectedLocationId,
+                            customerId: ''
+                          });
+                        }}
+                        className="h-8 w-8"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                </div>
                 
-                <Button variant="outline" onClick={() => setIsLocationModalOpen(true)} className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  {selectedLocationId ? `Ubicación: ${selectedLocationId}` : 'Seleccionar Ubicación'}
-                </Button>
-                
-                <Button variant="outline" onClick={() => setIsCustomerModalOpen(true)} className="flex items-center gap-2">
-                  <Building className="h-4 w-4" />
-                  {selectedCustomerId ? `Cliente: ${selectedCustomerId}` : 'Seleccionar Cliente'}
-                </Button>
-                
-                <Button variant="outline" onClick={handleClearFilters} className="flex items-center gap-2">
-                  <X className="h-4 w-4" />
-                  Limpiar Filtros
-                </Button>
+                {(selectedProductId || selectedLocationId || selectedCustomerId) && (
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    onClick={handleClearFilters}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -161,107 +329,11 @@ export function CommercialDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="intelligence" className="space-y-4 mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Inteligencia de Mercado</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Insights y análisis de mercado compartidos
-              </p>
-            </CardHeader>
-            <CardContent>
-              {marketIntelligence.length === 0 ? <div className="text-center py-8">
-                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Sin inteligencia de mercado</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Comparte insights para mejorar la precisión de los pronósticos.
-                  </p>
-                  <Button onClick={() => setShowIntelligenceForm(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Agregar Insight
-                  </Button>
-                </div> : <div className="space-y-3">
-                  {marketIntelligence.map(intelligence => <div key={intelligence.id} className="p-4 border rounded-lg">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">{intelligence.intelligence_type}</Badge>
-                          <Badge variant={intelligence.impact_assessment === 'positive' ? 'default' : intelligence.impact_assessment === 'negative' ? 'destructive' : 'secondary'}>
-                            {intelligence.impact_assessment}
-                          </Badge>
-                        </div>
-                        <Badge variant="outline">{intelligence.status}</Badge>
-                      </div>
-                      <h4 className="font-medium mb-1">Cliente: {intelligence.customer_id}</h4>
-                      <p className="text-sm text-muted-foreground mb-2">
-                        {intelligence.description}
-                      </p>
-                      <div className="text-xs text-muted-foreground">
-                        Horizonte: {intelligence.time_horizon} | Confianza: {intelligence.confidence_level}
-                      </div>
-                    </div>)}
-                </div>}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="performance" className="space-y-4 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Colaboración Este Mes</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Revisiones Completadas</span>
-                    <span className="font-semibold">{completedReviews}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Comentarios Agregados</span>
-                    <span className="font-semibold">{totalComments}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Inteligencia Compartida</span>
-                    <span className="font-semibold">{marketIntelligence.length}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Estado de Territorio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Territorio</span>
-                    <span className="font-semibold">{profile?.territory || 'No definido'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Región</span>
-                    <span className="font-semibold">{profile?.region || 'No definida'}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm">Especialización</span>
-                    <span className="font-semibold">{profile?.specialization || 'General'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
       </Tabs>
 
-      {/* Modals */}
-      {showProfileForm && <CommercialProfileForm profile={profile} onClose={() => setShowProfileForm(false)} />}
-
-      {showIntelligenceForm && <MarketIntelligenceForm assignments={assignments} onClose={() => setShowIntelligenceForm(false)} />}
-
       {/* Selection Modals */}
-      <ProductSelectionModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} onSelect={productId => {
-      handleProductSelect(productId);
+      <AggregatedProductSelectionModal isOpen={isProductModalOpen} onClose={() => setIsProductModalOpen(false)} onSelect={selection => {
+      handleProductSelect(selection);
       setIsProductModalOpen(false);
     }} />
 
