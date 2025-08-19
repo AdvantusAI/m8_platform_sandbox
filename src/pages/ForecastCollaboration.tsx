@@ -73,7 +73,7 @@ const ForecastCollaboration: React.FC = () => {
 
   // ===== HOOKS =====
   const { getProductName } = useProducts();
-  const { getLocationName } = useLocations();fixed scrollingf
+  const { getLocationName } = useLocations();
   const { getCustomerName } = useCustomers();
 
   // ===== FILTER STATE =====
