@@ -73,7 +73,7 @@ const ForecastCollaboration: React.FC = () => {
 
   // ===== HOOKS =====
   const { getProductName } = useProducts();
-  const { getLocationName } = useLocations();
+  const { getLocationName } = useLocations();fixed scrollingf
   const { getCustomerName } = useCustomers();
 
   // ===== FILTER STATE =====
@@ -938,7 +938,7 @@ const ForecastCollaboration: React.FC = () => {
             
             <tr className="border-b border-gray-200">
           
-              <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis" colSpan={2}>Gap Forecast vs ventas</td>
+              <td className="sticky left-[270px] bg-gray-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10" colSpan={2}>Gap Forecast vs ventas</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                   ? customers.filter(customer => customer.customer_id === selectedCustomerId)
@@ -975,8 +975,8 @@ const ForecastCollaboration: React.FC = () => {
 
             
             <tr className="border-b border-gray-200" style={{ backgroundColor: '#ffebd4' }}>
-              <td className="border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis">Forecast M8.predict</td>
-              <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis">Forecast</td>
+              <td className="sticky left-[270px] bg-[#ffebd4] border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Forecast M8.predict</td>
+              <td className="sticky left-[390px] bg-[#ffebd4] border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Forecast</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                   ? customers.filter(customer => customer.customer_id === selectedCustomerId)
@@ -997,8 +997,8 @@ const ForecastCollaboration: React.FC = () => {
             </tr>
             
             <tr className="border-b border-gray-200 bg-blue-100">
-              <td className="border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis">Key Account Manager</td>
-              <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis">Plan inicial de ventas</td>
+              <td className="sticky left-[270px] bg-blue-100 border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Key Account Manager</td>
+              <td className="sticky left-[390px] bg-blue-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Plan inicial de ventas</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                   ? customers.filter(customer => customer.customer_id === selectedCustomerId)
@@ -1020,8 +1020,8 @@ const ForecastCollaboration: React.FC = () => {
             </tr>
             
             <tr className="border-b border-gray-200 bg-purple-100">
-              <td rowSpan={2} className="border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis">Key Account Manager</td>
-              <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis">Kam Forecast</td>
+              <td rowSpan={2} className="sticky left-[270px] bg-purple-100 border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Key Account Manager</td>
+              <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Kam Forecast</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                   ? customers.filter(customer => customer.customer_id === selectedCustomerId)
@@ -1064,7 +1064,7 @@ const ForecastCollaboration: React.FC = () => {
             
             <tr className="border-b border-gray-200">
               
-              <td className="border-r border-gray-300 p-1 text-xs">Plan de ventas (SM) </td>
+              <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs z-10">Plan de ventas (SM) </td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                   ? customers.filter(customer => customer.customer_id === selectedCustomerId)
@@ -1086,8 +1086,8 @@ const ForecastCollaboration: React.FC = () => {
             </tr>
             
             <tr className="border-b border-gray-300 bg-green-100">
-              <td className="border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis">Effective Forecast</td>
-              <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis">Forecast</td>
+              <td className="sticky left-[270px] bg-green-100 border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Effective Forecast</td>
+              <td className="sticky left-[390px] bg-green-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Forecast</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                   ? customers.filter(customer => customer.customer_id === selectedCustomerId)
@@ -1109,8 +1109,8 @@ const ForecastCollaboration: React.FC = () => {
             </tr>
             
             <tr className="border-b border-gray-200 bg-purple-100">
-              <td className="border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis">KAM aprobado</td>
-              <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis">Aprobación</td>
+              <td className="sticky left-[270px] bg-purple-100 border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">KAM aprobado</td>
+              <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Aprobación</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                   ? customers.filter(customer => customer.customer_id === selectedCustomerId)
@@ -1168,7 +1168,7 @@ const ForecastCollaboration: React.FC = () => {
                 </tr>
                 
                 <tr className="border-b border-gray-200">
-                <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis" colSpan={2}>Gap Forecast vs ventas</td>                  {months.map(month => {
+                <td className="sticky left-[270px] bg-gray-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10" colSpan={2}>Gap Forecast vs ventas</td>                  {months.map(month => {
                     const monthData = customer.months[month];
                     const value = monthData ? monthData.forecast_sales_gap : 0;
                     
@@ -1189,8 +1189,8 @@ const ForecastCollaboration: React.FC = () => {
 
                 
                 <tr className="border-b border-gray-200" style={{ backgroundColor: '#ffebd4' }}>
-                  <td className="border-r border-gray-300 p-1 text-left text-xs">Forecast M8.predict</td>
-                  <td className="border-r border-gray-300 p-1 text-xs">Forecast </td>
+                  <td className="sticky left-[270px] bg-[#ffebd4] border-r border-gray-300 p-1 text-left text-xs z-10">Forecast M8.predict</td>
+                  <td className="sticky left-[390px] bg-[#ffebd4] border-r border-gray-300 p-1 text-xs z-10">Forecast </td>
                   {months.map(month => {
                     const monthData = customer.months[month];
                     const value = monthData ? monthData.calculated_forecast : 0;
@@ -1208,8 +1208,8 @@ const ForecastCollaboration: React.FC = () => {
                 </tr>
                 
                 <tr className="border-b border-gray-200 bg-blue-100">
-                  <td className="border-r border-gray-300 p-1 text-left text-xs">Key Account Manager</td>
-                  <td className="border-r border-gray-300 p-1 text-xs">Plan inicial de ventas </td>
+                  <td className="sticky left-[270px] bg-blue-100 border-r border-gray-300 p-1 text-left text-xs z-10">Key Account Manager</td>
+                  <td className="sticky left-[390px] bg-blue-100 border-r border-gray-300 p-1 text-xs z-10">Plan inicial de ventas </td>
                   {months.map(month => {
                     const monthData = customer.months[month];
                     const value = monthData ? monthData.xamview : 0;
@@ -1226,8 +1226,8 @@ const ForecastCollaboration: React.FC = () => {
                 </tr>
                 
                 <tr className="border-b border-gray-200 bg-purple-100">
-                  <td rowSpan={2} className="border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis">Key Account Manager</td>
-                  <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis">Kam Forecast</td>
+                  <td rowSpan={2} className="sticky left-[270px] bg-purple-100 border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Key Account Manager</td>
+                  <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Kam Forecast</td>
                   {months.map(month => {
                     const monthData = customer.months[month];
                     const value = monthData ? monthData.kam_forecast_correction : 0;
@@ -1263,7 +1263,7 @@ const ForecastCollaboration: React.FC = () => {
                 </tr>
                 
                 <tr className="border-b border-gray-200">
-                  <td className="border-r border-gray-300 p-1 text-xs">Plan de ventas (SM) </td>
+                  <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs z-10">Plan de ventas (SM) </td>
                   {months.map(month => {
                     const monthData = customer.months[month];
                     const value = monthData ? monthData.sales_manager_view : 0;
@@ -1280,8 +1280,8 @@ const ForecastCollaboration: React.FC = () => {
                 </tr>
                 
                 <tr className="border-b border-gray-300 bg-green-100">
-                  <td className="border-r border-gray-300 p-1 text-left text-xs">Effective Forecast</td>
-                  <td className="border-r border-gray-300 p-1 text-xs">Forecast </td>
+                  <td className="sticky left-[270px] bg-green-100 border-r border-gray-300 p-1 text-left text-xs z-10">Effective Forecast</td>
+                  <td className="sticky left-[390px] bg-green-100 border-r border-gray-300 p-1 text-xs z-10">Forecast </td>
                   {months.map(month => {
                     const monthData = customer.months[month];
                     const value = monthData ? monthData.effective_forecast : 0;
@@ -1298,8 +1298,8 @@ const ForecastCollaboration: React.FC = () => {
                 </tr>
                 
                 <tr className="border-b border-gray-200 bg-purple-100">
-                  <td className="border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis">KAM aprobado</td>
-                  <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis">Aprobación</td>
+                  <td className="sticky left-[270px] bg-purple-100 border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">KAM aprobado</td>
+                  <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Aprobación</td>
                   {months.map(month => {
                     const currentValue = kamApprovals[customer.customer_id]?.[month] || '';
                     
