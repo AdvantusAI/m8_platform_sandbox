@@ -137,8 +137,8 @@ export default function ProductsCatalog() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-      .schema('m8_schema') 
+      const { data, error } = await (supabase as any)
+        .schema('m8_schema')
         .from('products')
         .select('*')
         .order('product_id');
@@ -196,7 +196,8 @@ export default function ProductsCatalog() {
           npi_launch_date: formData.is_npi ? formData.npi_launch_date || null : null
         };
         
-        const { error } = await supabase
+        const { error } = await (supabase as any)
+          .schema('m8_schema')
           .from('products')
           .update(updateData)
           .eq('product_id', editingProduct.product_id);
@@ -223,7 +224,7 @@ export default function ProductsCatalog() {
           npi_launch_date: formData.is_npi ? formData.npi_launch_date || null : null
         };
         
-        const { error } = await supabase
+        const { error } = await (supabase as any)
         .schema('m8_schema') 
           .from('products')
           .insert(insertData);
@@ -266,7 +267,7 @@ export default function ProductsCatalog() {
     if (!confirm('¿Está seguro de que desea eliminar este producto?')) return;
 
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
       .schema('m8_schema') 
         .from('products')
         .delete()
@@ -303,7 +304,7 @@ export default function ProductsCatalog() {
     setGridApi(params.api);
   };
 
-  const NPIStatusBadgeRenderer = (props: any) => {
+  const NPIStatusBadgeRenderer = (props: { value: string | null }) => {
     const status = props.value;
     if (!status) return null;
     
@@ -314,7 +315,7 @@ export default function ProductsCatalog() {
     );
   };
 
-  const NPILaunchDateRenderer = (props: any) => {
+  const NPILaunchDateRenderer = (props: { value: string | null }) => {
     const date = props.value;
     if (!date) return '-';
     
@@ -326,7 +327,7 @@ export default function ProductsCatalog() {
     );
   };
 
-  const ActionCellRenderer = (props: any) => {
+  const ActionCellRenderer = (props: { data: Product }) => {
     const product = props.data;
     
     return (
@@ -433,7 +434,8 @@ export default function ProductsCatalog() {
         (product.subcategory_name && product.subcategory_name.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesNPIFilter = !showNPIOnly || product.is_npi;
-      
+      console.log('matchesNPIFilter', matchesNPIFilter);
+      console.log('matchesSearch', matchesSearch);
       return matchesSearch && matchesNPIFilter;
     });
   }, [products, searchTerm, showNPIOnly]);
@@ -631,6 +633,9 @@ export default function ProductsCatalog() {
               columnDefs={columnDefs}
               onGridReady={onGridReady}
               {...defaultGridOptions}
+              pagination={true}
+              paginationPageSize={50}
+              paginationPageSizeSelector={[10, 25, 50, 100, 200]}
               rowHeight={40}
               getRowId={(params) => params.data.product_id}
             />

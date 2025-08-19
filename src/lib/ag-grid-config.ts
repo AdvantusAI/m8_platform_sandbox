@@ -58,7 +58,7 @@ export const defaultGridOptions = {
   enableCellTextSelection: true,
   ensureDomOrder: true,
   animateRows: true,
-  rowSelection: 'single' as const,
+  rowSelection: { type: 'single' },
   suppressRowClickSelection: true,
   enableRangeSelection: true,
   suppressCopyRowsToClipboard: false,

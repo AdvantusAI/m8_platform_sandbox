@@ -1263,7 +1263,6 @@ const ForecastCollaboration: React.FC = () => {
                 </tr>
                 
                 <tr className="border-b border-gray-200">
-                  <td className="border-r border-gray-300 p-1 text-xs">Sales manager view</td>
                   <td className="border-r border-gray-300 p-1 text-xs">Plan de ventas (SM) </td>
                   {months.map(month => {
                     const monthData = customer.months[month];

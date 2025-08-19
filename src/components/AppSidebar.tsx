@@ -68,12 +68,6 @@ const items = [
   title: "Análisis What-If",
   url: "/what-if-analysis",
   icon: Brain
-},
-
-{
-  title: "Ag-Data-Grids",
-  url: "/ag-data-grids",
-  icon: BarChart3
 }
 
 /*, {
