@@ -32,6 +32,7 @@ const CompanyConfig = () => {
     try {
       setIsLoading(true);
       const { data, error } = await supabase
+      .schema('m8_schema')
         .from('company_config')
         .select('*')
         .order('id');
