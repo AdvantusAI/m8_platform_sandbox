@@ -882,16 +882,16 @@ const ForecastCollaboration: React.FC = () => {
             <table className="w-full border-collapse border border-gray-300 text-xs min-w-[1200px]">
               <thead>
                 <tr className="bg-gray-200">
-                  <th className="sticky left-0 bg-gray-200 border-r border-gray-300 p-2 text-left font-semibold min-w-[150px] max-w-[150px]">
+                  <th className="sticky left-0 bg-gray-200 border-r border-gray-300 p-2 text-left font-semibold min-w-[150px] max-w-[150px] z-10">
                     Cliente
                   </th>
-                  <th className="border-r border-gray-300 p-2 text-left font-semibold min-w-[120px] max-w-[120px]">
+                  <th className="sticky left-[150px] bg-gray-200 border-r border-gray-300 p-2 text-left font-semibold min-w-[120px] max-w-[120px] z-10">
                     Producto
                   </th>
-                  <th className="border-r border-gray-300 p-2 text-left font-semibold min-w-[120px] max-w-[120px]">
+                  <th className="sticky left-[270px] bg-gray-200 border-r border-gray-300 p-2 text-left font-semibold min-w-[120px] max-w-[120px] z-10">
                     Tipo
                   </th>
-                  <th className="border-r border-gray-300 p-2 text-center font-semibold min-w-[180px] max-w-[180px]">
+                  <th className="sticky left-[390px] bg-gray-200 border-r border-gray-300 p-2 text-center font-semibold min-w-[180px] max-w-[180px] z-10">
                     Detalle
                   </th>
                   {months.map(month => (
@@ -909,13 +909,13 @@ const ForecastCollaboration: React.FC = () => {
             {(!selectedCustomerId || selectedCustomerId === 'all') && (
               <React.Fragment>
             <tr className="bg-gray-100 border-b border-gray-300">
-              <td className="sticky left-0 bg-gray-100 border-r border-gray-300 p-2 font-bold text-sm whitespace-nowrap overflow-hidden text-ellipsis" rowSpan={dataTypes.length}>
+              <td className="sticky left-0 bg-gray-100 border-r border-gray-300 p-2 font-bold text-sm whitespace-nowrap overflow-hidden text-ellipsis z-10" rowSpan={dataTypes.length}>
                 Todos los clientes
               </td>
-              <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis" rowSpan={dataTypes.length}>
+              <td className="sticky left-[150px] bg-gray-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10" rowSpan={dataTypes.length}>
                 {filterProductId ? filterProductId : 'Todos los productos'}
               </td>
-              <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis" colSpan={2}>Año pasado (LY)</td>
+              <td className="sticky left-[270px] bg-gray-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10" colSpan={2}>Año pasado (LY)</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                   ? customers.filter(customer => customer.customer_id === selectedCustomerId)
@@ -1145,13 +1145,13 @@ const ForecastCollaboration: React.FC = () => {
               <React.Fragment key={`${customer.customer_id}-${customer.product_id}`}>
                 {/* Customer header row with rowspan */}
                 <tr className="bg-gray-100 border-b border-gray-300">
-                  <td className="sticky left-0 bg-gray-100 border-r border-gray-300 p-2 font-bold text-sm whitespace-nowrap overflow-hidden text-ellipsis" rowSpan={dataTypes.length}>
+                  <td className="sticky left-0 bg-gray-100 border-r border-gray-300 p-2 font-bold text-sm whitespace-nowrap overflow-hidden text-ellipsis z-10" rowSpan={dataTypes.length}>
                     {customer.customer_name}
                   </td>
-                  <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis" rowSpan={dataTypes.length}>
+                  <td className="sticky left-[150px] bg-gray-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10" rowSpan={dataTypes.length}>
                     {customer.product_id || 'No producto'}
                   </td>
-                   <td className="border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis" colSpan={2}>Año pasado (LY)</td>
+                   <td className="sticky left-[270px] bg-gray-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10" colSpan={2}>Año pasado (LY)</td>
                   {months.map(month => {
                     const monthData = customer.months[month];
                     const value = monthData ? monthData.last_year : 0;
