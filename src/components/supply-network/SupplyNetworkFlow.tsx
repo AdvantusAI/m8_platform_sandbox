@@ -76,7 +76,8 @@ export const SupplyNetworkFlow: React.FC = () => {
   useEffect(() => {
     const fetchNodeTypes = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_supply_network_node_types');
+        const { data, error } = await 
+          (supabase as any).schema('m8_schema').rpc('get_supply_network_node_types');
         if (error) throw error;
         setDbNodeTypes(data || []);
       } catch (error) {

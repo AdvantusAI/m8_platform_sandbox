@@ -2,11 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 
-type SupplyNetworkNode = Database['public']['Tables']['supply_network_nodes']['Row'];
-type SupplyNetworkRelationship = Database['public']['Tables']['supply_network_relationships']['Row'];
-type SupplyNetworkNodeInsert = Database['public']['Tables']['supply_network_nodes']['Insert'];
-type SupplyNetworkNodeUpdate = Database['public']['Tables']['supply_network_nodes']['Update'];
-type SupplyNetworkRelationshipInsert = Database['public']['Tables']['supply_network_relationships']['Insert'];
+type SupplyNetworkNode = Database['m8_schema']['Tables']['supply_network_nodes']['Row'];
+type SupplyNetworkRelationship = Database['m8_schema']['Tables']['supply_network_relationships']['Row'];
+type SupplyNetworkNodeInsert = Database['m8_schema']['Tables']['supply_network_nodes']['Insert'];
+type SupplyNetworkNodeUpdate = Database['m8_schema']['Tables']['supply_network_nodes']['Update'];
+type SupplyNetworkRelationshipInsert = Database['m8_schema']['Tables']['supply_network_relationships']['Insert'];
 
 export interface NetworkGraphData {
   nodes: SupplyNetworkNode[];
@@ -25,6 +25,7 @@ export const useSupplyNetwork = () => {
     queryKey: ['supply-network-nodes'],
     queryFn: async () => {
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('supply_network_nodes')
         .select('*')
         .order('created_at', { ascending: true });
@@ -43,6 +44,7 @@ export const useSupplyNetwork = () => {
     queryKey: ['supply-network-relationships'],
     queryFn: async () => {
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('supply_network_relationships')
         .select('*')
         .order('created_at', { ascending: true });
@@ -56,6 +58,7 @@ export const useSupplyNetwork = () => {
   const createNodeMutation = useMutation({
     mutationFn: async (nodeData: SupplyNetworkNodeInsert) => {
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('supply_network_nodes')
         .insert(nodeData)
         .select()
@@ -73,6 +76,7 @@ export const useSupplyNetwork = () => {
   const createRelationshipMutation = useMutation({
     mutationFn: async (relationshipData: SupplyNetworkRelationshipInsert) => {
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('supply_network_relationships')
         .insert(relationshipData)
         .select()
@@ -91,6 +95,7 @@ export const useSupplyNetwork = () => {
     mutationFn: async (nodeData: SupplyNetworkNodeUpdate & { id: string }) => {
       const { id, ...updateData } = nodeData;
       const { data, error } = await supabase
+        .schema('m8_schema')
         .from('supply_network_nodes')
         .update(updateData)
         .eq('id', id)
@@ -109,6 +114,7 @@ export const useSupplyNetwork = () => {
   const deleteNodeMutation = useMutation({
     mutationFn: async (nodeId: string) => {
       const { error } = await supabase
+        .schema('m8_schema')
         .from('supply_network_nodes')
         .delete()
         .eq('id', nodeId);
@@ -125,7 +131,8 @@ export const useSupplyNetwork = () => {
   const deleteRelationshipMutation = useMutation({
     mutationFn: async (relationshipId: string) => {
       const { error } = await supabase
-        .from('supply_network_relationships')
+        .schema('m8_schema')
+          .from('supply_network_relationships')
         .delete()
         .eq('id', relationshipId);
       
@@ -160,7 +167,7 @@ export const useSupplyNetworkGraph = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['supply-network-graph'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_supply_network_graph');
+      const { data, error } = await (supabase as any).schema('m8_schema').rpc('get_supply_network_graph');
       if (error) throw error;
       
       // Parse the result properly

@@ -91,7 +91,7 @@ export const RelationshipForm: React.FC<RelationshipFormProps> = ({ onSuccess, o
   useEffect(() => {
     const fetchRelationshipTypes = async () => {
       try {
-        const { data, error } = await supabase.rpc('get_supply_network_relationship_types');
+        const { data, error } = await (supabase as any).schema('m8_schema').rpc('get_supply_network_relationship_types');
         if (error) throw error;
         setRelationshipTypes(data || []);
       } catch (error) {
