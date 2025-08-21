@@ -169,6 +169,7 @@ export function useAIRecommendations(productId?: string, locationId?: string, cu
     try {
       // Fetch forecast data for analysis
       let query = supabase
+        .schema('m8_schema')
         .from('forecast_data')
         .select('*')
         .eq('product_id', productId)

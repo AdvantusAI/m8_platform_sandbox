@@ -19,7 +19,7 @@ const SupplyNetworkVisualization: React.FC = () => {
       
 
       <Card className="border-border">
-        <CardHeader className="pb-4">
+        <CardHeader className="pb-4">1
 
           <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
             <Info className="h-4 w-4 text-muted-foreground mt-0.5" />

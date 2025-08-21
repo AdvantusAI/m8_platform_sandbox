@@ -62,6 +62,7 @@ export function AIScenarioBuilder({
     try {
       // Build query conditions
       let query = supabase
+        .schema('m8_schema')
         .from('forecast_data')
         .select('forecast, sales_plan, demand_planner')
         .eq('product_id', selectedProductId)

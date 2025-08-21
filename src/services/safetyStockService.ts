@@ -88,6 +88,7 @@ export class SafetyStockService {
 
     // Get historical demand data for variability analysis
     const { data: demandHistory, error: demandError } = await supabase
+      .schema('m8_schema')
       .from('forecast_data')
       .select('*')
       .eq('product_id', product_id)
@@ -313,6 +314,7 @@ export class SafetyStockService {
   ): Promise<DistributionPlan[]> {
     // Get demand forecasts for each location
     const { data: forecastData } = await supabase
+      .schema('m8_schema')
       .from('forecast_data')
       .select('*')
       .eq('product_id', product_id)

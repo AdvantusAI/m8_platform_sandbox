@@ -179,6 +179,7 @@ export function ForecastDataTable({
     try {
       // Build the update query with filters
       let query = supabase
+        .schema('m8_schema')
         .from('forecast_data')
         .update({ demand_planner: newValue })
         .eq('postdate', date)

@@ -53,6 +53,7 @@ export class InventoryProjectionService {
       // Get forecast data for the same products/locations
       const productIds = inventoryData.map(inv => inv.product_id);
       let forecastQuery = supabase
+        .schema('m8_schema')
         .from('forecast_data')
         .select('*')
         .in('product_id', productIds)
