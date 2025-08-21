@@ -1,1 +1,0 @@
-export declare const findCSS = ".ag-find-cell{display:block;overflow:hidden;text-overflow:ellipsis}.ag-find-match{background-color:var(--ag-find-match-background-color);color:var(--ag-find-match-color)}.ag-find-active-match{background-color:var(--ag-find-active-match-background-color);color:var(--ag-find-active-match-color)}";

@@ -1,1 +1,0 @@
-export declare const groupCellStylesCSS = ".ag-group-checkbox-spacing{width:var(--ag-icon-size)}:where(.ag-ltr) .ag-group-checkbox-spacing{margin-right:var(--ag-cell-widget-spacing)}:where(.ag-rtl) .ag-group-checkbox-spacing{margin-left:var(--ag-cell-widget-spacing)}";
