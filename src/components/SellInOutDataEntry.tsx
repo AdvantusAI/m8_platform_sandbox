@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -15,12 +15,29 @@ import { useSellInOutData } from '@/hooks/useSellInOutData';
 import { useChannelPartners } from '@/hooks/useChannelPartners';
 import { useProducts } from '@/hooks/useProducts';
 
-export function SellInOutDataEntry() {
+interface SellInOutDataEntryProps {
+  selectedProductId?: string;
+  selectedLocationId?: string;
+  selectedCustomerId?: string;
+  selectedAggregation?: {
+    type: 'category' | 'subcategory' | 'product';
+    id: string;
+    name: string;
+    productCount?: number;
+  } | null;
+}
+
+export function SellInOutDataEntry({ 
+  selectedProductId = '', 
+  selectedLocationId = '', 
+  selectedCustomerId = '',
+  selectedAggregation = null 
+}: SellInOutDataEntryProps) {
   const [activeTab, setActiveTab] = useState('sell-in');
   const [sellInForm, setSellInForm] = useState({
-    product_id: '',
-    location_id: '',
-    channel_partner_id: '',
+    product_id: selectedProductId,
+    location_id: selectedLocationId,
+    channel_partner_id: selectedCustomerId,
     transaction_date: '',
     quantity: '',
     unit_price: '',
@@ -30,9 +47,9 @@ export function SellInOutDataEntry() {
   });
   
   const [sellOutForm, setSellOutForm] = useState({
-    product_id: '',
-    location_id: '',
-    channel_partner_id: '',
+    product_id: selectedProductId,
+    location_id: selectedLocationId,
+    channel_partner_id: selectedCustomerId,
     transaction_date: '',
     quantity: '',
     unit_price: '',
@@ -46,6 +63,22 @@ export function SellInOutDataEntry() {
   const { loading, createSellInRecord, createSellOutRecord } = useSellInOutData();
   const { partners } = useChannelPartners();
   const { products } = useProducts();
+
+  // Update forms when filter props change
+  useEffect(() => {
+    setSellInForm(prev => ({
+      ...prev,
+      product_id: selectedProductId || '',
+      location_id: selectedLocationId || '',
+      channel_partner_id: selectedCustomerId || ''
+    }));
+    setSellOutForm(prev => ({
+      ...prev,
+      product_id: selectedProductId || '',
+      location_id: selectedLocationId || '',
+      channel_partner_id: selectedCustomerId || ''
+    }));
+  }, [selectedProductId, selectedLocationId, selectedCustomerId]);
 
   const handleSellInSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,49 +141,49 @@ export function SellInOutDataEntry() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Sell-In/Sell-Out Data Entry</h1>
+          <h1 className="text-3xl font-bold">Entrada de Datos de Ventas Entrada/Salida</h1>
           <p className="text-muted-foreground">
-            Record channel partner transactions for sell-through analysis
+            Registrar transacciones de socios comerciales para análisis de ventas
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
             <Upload className="mr-2 h-4 w-4" />
-            Import Data
+            Importar Datos
           </Button>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Export Template
+            Exportar Plantilla
           </Button>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="sell-in">Sell-In Data</TabsTrigger>
-          <TabsTrigger value="sell-out">Sell-Out Data</TabsTrigger>
+          <TabsTrigger value="sell-in">Datos de Entrada</TabsTrigger>
+          <TabsTrigger value="sell-out">Datos de Salida</TabsTrigger>
         </TabsList>
 
         <TabsContent value="sell-in" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Record Sell-In Transaction</CardTitle>
+              <CardTitle>Registrar Transacción de Entrada</CardTitle>
               <CardDescription>
-                Track sales from your company to channel partners
+                Rastrear ventas de su empresa a socios comerciales
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSellInSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="sell-in-product">Product *</Label>
+                    <Label htmlFor="sell-in-product">Producto *</Label>
                     <Select
                       value={sellInForm.product_id}
                       onValueChange={(value) => setSellInForm(prev => ({ ...prev, product_id: value }))}
                       required
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select product" />
+                        <SelectValue placeholder="Seleccionar producto" />
                       </SelectTrigger>
                       <SelectContent>
                         {products.map(product => (
@@ -163,14 +196,14 @@ export function SellInOutDataEntry() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sell-in-partner">Channel Partner *</Label>
+                    <Label htmlFor="sell-in-partner">Socio Comercial *</Label>
                     <Select
                       value={sellInForm.channel_partner_id}
                       onValueChange={(value) => setSellInForm(prev => ({ ...prev, channel_partner_id: value }))}
                       required
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select partner" />
+                        <SelectValue placeholder="Seleccionar socio" />
                       </SelectTrigger>
                       <SelectContent>
                         {partners.map(partner => (
@@ -183,7 +216,7 @@ export function SellInOutDataEntry() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Transaction Date *</Label>
+                    <Label>Fecha de Transacción *</Label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
@@ -194,7 +227,7 @@ export function SellInOutDataEntry() {
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {sellInDate ? format(sellInDate, "PPP") : "Pick a date"}
+                          {sellInDate ? format(sellInDate, "PPP") : "Seleccionar fecha"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0">
@@ -209,78 +242,78 @@ export function SellInOutDataEntry() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sell-in-location">Location ID</Label>
+                    <Label htmlFor="sell-in-location">ID de Ubicación</Label>
                     <Input
                       id="sell-in-location"
                       value={sellInForm.location_id}
                       onChange={(e) => setSellInForm(prev => ({ ...prev, location_id: e.target.value }))}
-                      placeholder="Location/warehouse identifier"
+                      placeholder="Identificador de ubicación/almacén"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sell-in-quantity">Quantity *</Label>
+                    <Label htmlFor="sell-in-quantity">Cantidad *</Label>
                     <Input
                       id="sell-in-quantity"
                       type="number"
                       step="0.01"
                       value={sellInForm.quantity}
                       onChange={(e) => setSellInForm(prev => ({ ...prev, quantity: e.target.value }))}
-                      placeholder="Units sold"
+                      placeholder="Unidades vendidas"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sell-in-price">Unit Price *</Label>
+                    <Label htmlFor="sell-in-price">Precio Unitario *</Label>
                     <Input
                       id="sell-in-price"
                       type="number"
                       step="0.01"
                       value={sellInForm.unit_price}
                       onChange={(e) => setSellInForm(prev => ({ ...prev, unit_price: e.target.value }))}
-                      placeholder="Price per unit"
+                      placeholder="Precio por unidad"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sell-in-invoice">Invoice Number</Label>
+                    <Label htmlFor="sell-in-invoice">Número de Factura</Label>
                     <Input
                       id="sell-in-invoice"
                       value={sellInForm.invoice_number}
                       onChange={(e) => setSellInForm(prev => ({ ...prev, invoice_number: e.target.value }))}
-                      placeholder="Invoice reference"
+                      placeholder="Referencia de factura"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="sell-in-discount">Discount %</Label>
+                    <Label htmlFor="sell-in-discount">Descuento %</Label>
                     <Input
                       id="sell-in-discount"
                       type="number"
                       step="0.01"
                       value={sellInForm.discount_percentage}
                       onChange={(e) => setSellInForm(prev => ({ ...prev, discount_percentage: e.target.value }))}
-                      placeholder="Discount percentage"
+                      placeholder="Porcentaje de descuento"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="sell-in-terms">Payment Terms</Label>
+                  <Label htmlFor="sell-in-terms">Términos de Pago</Label>
                   <Textarea
                     id="sell-in-terms"
                     value={sellInForm.payment_terms}
                     onChange={(e) => setSellInForm(prev => ({ ...prev, payment_terms: e.target.value }))}
-                    placeholder="Payment terms and conditions"
+                                          placeholder="Términos y condiciones de pago"
                     rows={3}
                   />
                 </div>
 
                 <div className="pt-4">
                   <Button type="submit" disabled={loading} className="w-full md:w-auto">
-                    {loading ? 'Recording...' : 'Record Sell-In Transaction'}
+                    {loading ? 'Registrando...' : 'Registrar Transacción de Entrada'}
                   </Button>
                 </div>
               </form>
@@ -291,9 +324,9 @@ export function SellInOutDataEntry() {
         <TabsContent value="sell-out" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Record Sell-Out Transaction</CardTitle>
+              <CardTitle>Registrar Transacción de Salida</CardTitle>
               <CardDescription>
-                Track sales from channel partners to end customers
+                Rastrear ventas de socios comerciales a clientes finales
               </CardDescription>
             </CardHeader>
             <CardContent>

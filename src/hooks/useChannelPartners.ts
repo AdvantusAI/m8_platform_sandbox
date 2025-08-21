@@ -2,46 +2,46 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-export interface ChannelPartner {
+export interface Customer {
   id: string;
-  partner_code: string;
-  partner_name: string;
-  partner_type: string;
-  region?: string;
-  country?: string;
-  contact_information?: any;
-  performance_metrics?: any;
-  status: string;
+  customer_id: string;
+  customer_name: string;
+  customer_logo: string | null;
+  level_1: string | null;
+  level_1_name: string | null;
+  level_2: string | null;
+  level_2_name: string | null;
   created_at: string;
   updated_at: string;
 }
 
 export const useChannelPartners = () => {
   const [loading, setLoading] = useState(false);
-  const [partners, setPartners] = useState<ChannelPartner[]>([]);
+  const [partners, setPartners] = useState<Customer[]>([]);
 
   const fetchPartners = useCallback(async (filters: {
-    partner_type?: string;
-    region?: string;
-    status?: string;
+    level_1?: string;
+    level_2?: string;
   } = {}) => {
     setLoading(true);
     try {
-      let query = supabase.from('channel_partners').select('*');
+      let query = (supabase as any)
+        .schema('m8_schema')
+        .from('customers')
+        .select('*');
       
-      if (filters.partner_type) query = query.eq('partner_type', filters.partner_type);
-      if (filters.region) query = query.eq('region', filters.region);
-      if (filters.status) query = query.eq('status', filters.status);
+      if (filters.level_1) query = query.eq('level_1', filters.level_1);
+      if (filters.level_2) query = query.eq('level_2', filters.level_2);
 
-      const { data, error } = await query.order('partner_name');
+      const { data, error } = await query.order('customer_name');
       
       if (error) throw error;
       setPartners(data || []);
     } catch (error) {
-      console.error('Error fetching channel partners:', error);
+      console.error('Error fetching customers:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch channel partners",
+        description: "Failed to fetch customers",
         variant: "destructive",
       });
     } finally {

@@ -54,10 +54,6 @@ const items = [
   title: "Análisis Sell-Through",
   url: "/sell-through-analytics",
   icon: TrendingDown
-}, {
-  title: "Reconciliación de Pronósticos",
-  url: "/forecast-reconciliation",
-  icon: ArrowLeftRight
 }
 , {
   title: "Dashboard de KPIs",
