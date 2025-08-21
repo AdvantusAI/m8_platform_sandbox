@@ -95,4 +95,3 @@ BEGIN
         ) as relationships;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-

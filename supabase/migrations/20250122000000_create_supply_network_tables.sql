@@ -86,4 +86,3 @@ CREATE POLICY "Allow all operations on node types" ON m8_schema.supply_network_n
 CREATE POLICY "Allow all operations on relationship types" ON m8_schema.supply_network_relationship_types FOR ALL USING (true);
 CREATE POLICY "Allow all operations on nodes" ON m8_schema.supply_network_nodes FOR ALL USING (true);
 CREATE POLICY "Allow all operations on relationships" ON m8_schema.supply_network_relationships FOR ALL USING (true);
-
