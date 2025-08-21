@@ -120,6 +120,7 @@ export default function KPIDashboard() {
       //console.log('Unique product IDs:', uniqueProductIds.length);
       
       const { data: productData, error: productError } = await supabase
+      .schema('m8_schema')
         .from('products')
         .select('product_id, product_name, category_name')
         .in('product_id', uniqueProductIds);
@@ -202,6 +203,7 @@ export default function KPIDashboard() {
       
       // First, get all forecast data for customers
       const { data: forecastData, error: forecastError } = await supabase
+        .schema('m8_schema')
         .from('forecast_interpretability')
         .select('customer_id, interpretability_score, confidence_level, created_at')
         .not('customer_id', 'is', null)
@@ -217,6 +219,7 @@ export default function KPIDashboard() {
       //console.log('Unique customer IDs:', uniqueCustomerIds.length);
       
       const { data: customerData, error: customerError } = await supabase
+        .schema('m8_schema')
         .from('customers')
         .select('customer_id, customer_name')
         .in('customer_id', uniqueCustomerIds);
@@ -295,7 +298,8 @@ export default function KPIDashboard() {
       //console.log('Loading customer-product combinations with threshold:', accuracyThreshold);
       
       // Get forecast data with both customer and product IDs
-      const { data: forecastData, error: forecastError } = await supabase
+      const { data: forecastData, error: forecastError } = await supabase 
+        .schema('m8_schema')
         .from('forecast_interpretability')
         .select('customer_id, product_id, interpretability_score, confidence_level, created_at')
         .not('customer_id', 'is', null)
@@ -312,10 +316,12 @@ export default function KPIDashboard() {
       // Get customer and product details
       const [customerResult, productResult] = await Promise.all([
         supabase
+          .schema('m8_schema')
           .from('customers')
           .select('customer_id, customer_name')
           .in('customer_id', uniqueCustomerIds),
         supabase
+        .schema('m8_schema')
           .from('products')
           .select('product_id, product_name, category_name')
           .in('product_id', uniqueProductIds)

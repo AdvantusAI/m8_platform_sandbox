@@ -67,6 +67,7 @@ const ForecastCollaboration: React.FC = () => {
     trendDirection: 'neutral' as 'up' | 'down' | 'neutral'
   });
   const [kamApprovals, setKamApprovals] = useState<{[key: string]: {[key: string]: string}}>({});
+  const [saving, setSaving] = useState(false);
 
   const months = ['oct-24', 'nov-24', 'dic-24', 'ene-25', 'feb-25', 'mar-25', 'abr-25', 'may-25', 'jun-25', 'jul-25', 'ago-25', 'sep-25', 'oct-25', 'nov-25', 'dic-25'];
   const dataTypes = ['Año pasado (LY)', 'Gap Forecast vs ventas', 'Forecast M8.predict', 'Key Account Manager', 'Kam Forecast', 'Sales manager view', 'Effective Forecast', 'KAM aprobado'];
@@ -343,8 +344,54 @@ const ForecastCollaboration: React.FC = () => {
     setEditingValue(currentValue.toString());
   }, []);
 
+  // Helper function to convert month string to date
+  const monthToDate = (monthStr: string): string => {
+    const monthMap: { [key: string]: string } = {
+      'oct': '10', 'nov': '11', 'dic': '12',
+      'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 'may': '05', 'jun': '06',
+      'jul': '07', 'ago': '08', 'sep': '09'
+    };
+    
+    const [month, year] = monthStr.split('-');
+    const monthNum = monthMap[month.toLowerCase()];
+    const fullYear = year.length === 2 ? `20${year}` : year;
+    
+    return `${fullYear}-${monthNum}-01`;
+  };
+
+  // Function to save KAM Forecast to database
+  const saveKamForecastToDatabase = async (customerId: string, month: string, value: number) => {
+    try {
+      setSaving(true);
+      const postdate = monthToDate(month);
+      
+      const { error } = await (supabase as any).schema('m8_schema')
+        .from('commercial_collaboration')
+        .upsert({
+          product_id: filterProductId,
+          customer_id: customerId,
+          location_id: filterLocationId || null,
+          postdate: postdate,
+          commercial_input: value
+        });
+
+      if (error) {
+        console.error('Error saving KAM Forecast to database:', error);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error saving KAM Forecast to database:', error);
+      // You might want to show a toast notification here
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSaveEdit = useCallback(async (customerId: string, month: string) => {
     const newValue = parseFloat(editingValue) || 0;
+    
+    // Save to database
+    await saveKamForecastToDatabase(customerId, month, newValue);
     
     setCustomers(prevCustomers => 
       prevCustomers.map(customer => {
@@ -366,7 +413,7 @@ const ForecastCollaboration: React.FC = () => {
     
     setEditingCell(null);
     setEditingValue('');
-  }, [editingValue]);
+  }, [editingValue, filterProductId, filterLocationId]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingCell(null);
@@ -402,66 +449,88 @@ const ForecastCollaboration: React.FC = () => {
     });
   }, [inlineEditingCell]);
 
-  const handleInlineEditSave = useCallback((customerId: string, month: string) => {
+  const handleInlineEditSave = useCallback(async (customerId: string, month: string) => {
     const newValue = parseFloat(inlineEditingValue) || 0;
     
     // Use setTimeout to defer the heavy computation and prevent blocking the UI
-    setTimeout(() => {
-      setCustomers(prevCustomers => {
-        // If editing the "all" level, apply fair share formula to individual customers
-        if (customerId === 'all') {
-          // Calculate total effective forecast for all customers in this month
-          const totalEffectiveForecast = prevCustomers.reduce((total, customer) => {
-            const monthData = customer.months[month];
-            return total + (monthData ? monthData.effective_forecast : 0);
-          }, 0);
-          
-          // Apply fair share formula to each customer
-          return prevCustomers.map(customer => {
-            const monthData = customer.months[month];
-            const customerEffectiveForecast = monthData ? monthData.effective_forecast : 0;
+    setTimeout(async () => {
+      const updatedCustomers = await new Promise<CustomerData[]>((resolve) => {
+        setCustomers(prevCustomers => {
+          // If editing the "all" level, apply fair share formula to individual customers
+          if (customerId === 'all') {
+            // Calculate total effective forecast for all customers in this month
+            const totalEffectiveForecast = prevCustomers.reduce((total, customer) => {
+              const monthData = customer.months[month];
+              return total + (monthData ? monthData.effective_forecast : 0);
+            }, 0);
             
-            // Calculate fair share: (customer's effective forecast / total effective forecast) * new total value
-            let fairShareValue = 0;
-            if (totalEffectiveForecast > 0) {
-              fairShareValue = (customerEffectiveForecast / totalEffectiveForecast) * newValue;
-            }
-            
-            return {
-              ...customer,
-              months: {
-                ...customer.months,
-                [month]: {
-                  ...monthData,
-                  kam_forecast_correction: Math.ceil(fairShareValue) // Round up to ensure integer numbers
-                }
+            // Apply fair share formula to each customer
+            const updatedCustomers = prevCustomers.map(customer => {
+              const monthData = customer.months[month];
+              const customerEffectiveForecast = monthData ? monthData.effective_forecast : 0;
+              
+              // Calculate fair share: (customer's effective forecast / total effective forecast) * new total value
+              let fairShareValue = 0;
+              if (totalEffectiveForecast > 0) {
+                fairShareValue = (customerEffectiveForecast / totalEffectiveForecast) * newValue;
               }
-            };
-          });
-        } else {
-          // Individual customer edit - update only that customer
-          return prevCustomers.map(customer => {
-            if (customer.customer_id === customerId) {
+              
               return {
                 ...customer,
                 months: {
                   ...customer.months,
                   [month]: {
-                    ...customer.months[month],
-                    kam_forecast_correction: newValue
+                    ...monthData,
+                    kam_forecast_correction: Math.ceil(fairShareValue) // Round up to ensure integer numbers
                   }
                 }
               };
-            }
-            return customer;
-          });
-        }
+            });
+            
+            resolve(updatedCustomers);
+            return updatedCustomers;
+          } else {
+            // Individual customer edit - update only that customer
+            const updatedCustomers = prevCustomers.map(customer => {
+              if (customer.customer_id === customerId) {
+                return {
+                  ...customer,
+                  months: {
+                    ...customer.months,
+                    [month]: {
+                      ...customer.months[month],
+                      kam_forecast_correction: newValue
+                    }
+                  }
+                };
+              }
+              return customer;
+            });
+            
+            resolve(updatedCustomers);
+            return updatedCustomers;
+          }
+        });
       });
+      
+      // Save all updated values to database
+      if (customerId === 'all') {
+        // Save all customer values to database
+        for (const customer of updatedCustomers) {
+          const monthData = customer.months[month];
+          if (monthData) {
+            await saveKamForecastToDatabase(customer.customer_id, month, monthData.kam_forecast_correction);
+          }
+        }
+      } else {
+        // Save individual customer value to database
+        await saveKamForecastToDatabase(customerId, month, newValue);
+      }
     }, 0);
     
     setInlineEditingCell(null);
     setInlineEditingValue('');
-  }, [inlineEditingValue]);
+  }, [inlineEditingValue, filterProductId, filterLocationId]);
 
   const handleInlineEditCancel = useCallback(() => {
     setInlineEditingCell(null);
@@ -840,29 +909,37 @@ const ForecastCollaboration: React.FC = () => {
       
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>
-            Forecast Collaboration Data
-            {(filterProductId || filterLocationId || filterCustomerId) ? (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
-                - Filtrado por: 
-                {filterProductId && (
-                  <span className="ml-1">Producto: {filterProductId}</span>
-                )}
-                {filterLocationId && (
-                  <span className="ml-1">
-                    {filterProductId ? ', ' : ''}
-                    Ubicación: {filterLocationId}
-                  </span>
-                )}
-                {filterCustomerId && (
-                  <span className="ml-1">
-                    {(filterProductId || filterLocationId) ? ', ' : ''}
-                    Cliente: {customerNames[filterCustomerId]}
-                  </span>
-                )}
-              </span>
-            ) : null}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>
+              Forecast Collaboration Data
+              {(filterProductId || filterLocationId || filterCustomerId) ? (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  - Filtrado por: 
+                  {filterProductId && (
+                    <span className="ml-1">Producto: {filterProductId}</span>
+                  )}
+                  {filterLocationId && (
+                    <span className="ml-1">
+                      {filterProductId ? ', ' : ''}
+                      Ubicación: {filterLocationId}
+                    </span>
+                  )}
+                  {filterCustomerId && (
+                    <span className="ml-1">
+                      {(filterProductId || filterLocationId) ? ', ' : ''}
+                      Cliente: {customerNames[filterCustomerId]}
+                    </span>
+                  )}
+                </span>
+              ) : null}
+            </CardTitle>
+            {saving && (
+              <div className="flex items-center space-x-2 text-sm text-blue-600">
+                <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+                <span>Guardando...</span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-auto max-h-[80vh] max-w-full relative">

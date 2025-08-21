@@ -334,6 +334,16 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
                 <div className="h-full bg-gradient-to-r from-custom-slate-500 to-custom-slate-700 transition-all" 
                      style={{ width: `${metricsData.seasonality_strength * 100}%` }} />
               </Progress>
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Clima</span>
+                <span className="font-semibold">{(.25 * 100).toFixed(2)}%</span>
+              </div>
+              <Progress value={.25 * 100} className="h-2 bg-custom-slate-100">
+                <div className="h-full bg-gradient-to-r from-custom-slate-500 to-custom-slate-700 transition-all" 
+                     style={{ width: `${.25 * 100}%` }} />
+              </Progress>
+
             </div>
           </CardContent>
         </Card>

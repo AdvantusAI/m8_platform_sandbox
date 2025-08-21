@@ -34,6 +34,7 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
     try {
       // Fetch products
       const { data: productsData, error: productsError } = await supabase
+      .schema('m8_schema')
         .from('products')
         .select('product_id, product_name')
         .limit(100);

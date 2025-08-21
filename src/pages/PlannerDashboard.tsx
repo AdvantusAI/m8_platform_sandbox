@@ -197,6 +197,7 @@ export default function PlannerDashboard() {
     try {
       // Fetch total products
       const { count: totalProducts } = await supabase
+      .schema('m8_schema')
         .from('products')
         .select('*', { count: 'exact', head: true });
       

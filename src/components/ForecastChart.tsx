@@ -16,6 +16,7 @@ interface ForecastData {
   upper_bound: number | null;
   lower_bound: number | null;
   fitted_history: number | null;
+  commercial_input: number | null;
 }
 
 interface ForecastChartProps {
@@ -29,7 +30,8 @@ const defaultColors = {
   'Objetivo de ventas': '#10B981',
   'Demand Planner': '#F59E0B',
   'Historia Ajustada': '#8B5CF6',
-  'Tendencia': '#DC2626'
+  'Tendencia': '#DC2626',
+  'Plan Comercial': '#FF6B6B'
 };
 
 export function ForecastChart({ data }: ForecastChartProps) {
@@ -131,6 +133,10 @@ export function ForecastChart({ data }: ForecastChartProps) {
       data: filterValidValues(sortedData.map(item => item.fitted_history), categories),
     },
     {
+      name: 'Plan Comercial',
+      data: filterValidValues(sortedData.map(item => item.commercial_input), categories),
+    },
+    {
       name: 'Tendencia',
       data: calculateTrendLine(),
     }
@@ -174,15 +180,15 @@ export function ForecastChart({ data }: ForecastChartProps) {
     },
     colors: seriesColors,
     stroke: {
-      width: [3, 3, 2, 2, 2, 2],
+      width: [3, 3, 2, 2, 2, 2, 2],
       curve: 'smooth',
-      dashArray: [0, 0, 0, 0, 5, 8],
+      dashArray: [0, 0, 0, 0, 5, 0, 8],
     },
     fill: {
-      opacity: [1, 1, 1, 1, 1, 0.8],
+      opacity: [1, 1, 1, 1, 1, 1, 0.8],
     },
     markers: {
-      size: [4, 4, 3, 3, 3, 0],
+      size: [4, 4, 3, 3, 3, 3, 0],
       strokeWidth: 2,
       strokeOpacity: 0.9,
       fillOpacity: 1,

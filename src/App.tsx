@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MasterLayout } from "@/components/MasterLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
+import { configureAGGridLicense } from "@/lib/ag-grid-config";
 import CommercialCollaboration from "./pages/CommercialCollaboration";
 import ForecastCollaboration from "./pages/ForecastCollaboration";
 import { AdminRoute } from "@/components/AdminRoute";
@@ -50,6 +51,9 @@ import { DataGrids } from "./components/DataGrid";
 
 
 const queryClient = new QueryClient();
+
+// Initialize AG Grid globally
+configureAGGridLicense();
 
 const App = () => {
   const { user, loading } = useAuth();

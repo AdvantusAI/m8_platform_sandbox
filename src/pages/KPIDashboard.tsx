@@ -219,6 +219,7 @@ export default function KPIDashboard() {
       //console.log('Unique customer IDs:', uniqueCustomerIds.length);
       
       const { data: customerData, error: customerError } = await supabase
+        .schema('m8_schema')
         .from('customers')
         .select('customer_id, customer_name')
         .in('customer_id', uniqueCustomerIds);
@@ -315,10 +316,12 @@ export default function KPIDashboard() {
       // Get customer and product details
       const [customerResult, productResult] = await Promise.all([
         supabase
+          .schema('m8_schema')
           .from('customers')
           .select('customer_id, customer_name')
           .in('customer_id', uniqueCustomerIds),
         supabase
+          .schema('m8_schema')
           .from('products')
           .select('product_id, product_name, category_name')
           .in('product_id', uniqueProductIds)

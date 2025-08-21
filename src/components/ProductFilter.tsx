@@ -65,7 +65,8 @@ export function ProductFilter({
     setLoading(true);
     try {
       //console.log('Fetching products with levels:', productLevels);
-      let query = supabase.from('products').select('*');
+      let query = supabase
+      .schema('m8_schema').from('products').select('*');
       if (searchTerm) {
         query = query.or(`product_name.ilike.%${searchTerm}%,category_name.ilike.%${searchTerm}%,subcategory_name.ilike.%${searchTerm}%,class_name.ilike.%${searchTerm}%,subclass_name.ilike.%${searchTerm}%`);
       }

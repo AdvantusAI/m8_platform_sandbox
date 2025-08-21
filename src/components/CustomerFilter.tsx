@@ -60,7 +60,10 @@ export function CustomerFilter({
     setLoading(true);
     try {
       ////console.log('Fetching customers with client levels:', clientLevels);
-      let query = supabase.from('customers').select('*');
+      let query = supabase
+        .schema('m8_schema')
+        .from('customers')
+        .select('*');
 
       if (searchTerm) {
         query = query.or(`customer_name.ilike.%${searchTerm}%,customer_id.ilike.%${searchTerm}%,level_1_name.ilike.%${searchTerm}%`);
