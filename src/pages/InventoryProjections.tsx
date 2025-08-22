@@ -238,6 +238,7 @@ export default function InventoryProjections() {
     setLoadingMonthlyData(true);
     try {
       let query = supabase
+        .schema('m8_schema')
         .from('inventory_projections')
         .select('*')
         .gte('projection_month', new Date().toISOString().slice(0, 7))

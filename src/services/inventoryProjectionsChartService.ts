@@ -1,7 +1,4 @@
 import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
-
-export type InventoryProjectionRow = Database['public']['Tables']['inventory_projections']['Row'];
 
 export interface ChartDataPoint {
   projection_month: string;
@@ -17,20 +14,22 @@ export interface ChartFilters {
 
 export class InventoryProjectionsChartService {
   /**
-   * Fetch inventory projections data for chart
+   * Fetch inventory projections data for chart from forecast_with_fitted_history table
    */
   static async getChartData(filters: ChartFilters = {}): Promise<ChartDataPoint[]> {
     try {
-      let query = supabase
-        .from('inventory_projections')
+      let query = (supabase as any)
+        .schema('m8_schema')
+        .from('forecast_with_fitted_history')
         .select(`
-          projection_month,
-          forecasted_demand,
-          projected_ending_inventory,
+          postdate,
+          forecast,
+          fitted_history,
           product_id,
-          location_id
+          location_id,
+          customer_id
         `)
-        .order('projection_month', { ascending: true });
+        .order('postdate', { ascending: true });
 
       // Apply filters
       if (filters.product_id) {
@@ -39,8 +38,9 @@ export class InventoryProjectionsChartService {
       if (filters.location_id) {
         query = query.eq('location_id', filters.location_id);
       }
-      // Note: customer_id is not available in inventory_projections table
-      // Would need to join with other tables to filter by customer
+      if (filters.customer_id) {
+        query = query.eq('customer_id', filters.customer_id);
+      }
 
       const { data, error } = await query;
 
@@ -49,9 +49,9 @@ export class InventoryProjectionsChartService {
       }
 
       return data?.map(row => ({
-        projection_month: row.projection_month,
-        forecasted_demand: row.forecasted_demand || 0,
-        projected_ending_inventory: row.projected_ending_inventory || 0,
+        projection_month: row.postdate || '',
+        forecasted_demand: row.forecast || 0,
+        projected_ending_inventory: row.fitted_history || 0,
       })) || [];
     } catch (error) {
       console.error('Error fetching chart data:', error);

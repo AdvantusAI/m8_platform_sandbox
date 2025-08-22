@@ -140,9 +140,9 @@ export const RelationshipForm: React.FC<RelationshipFormProps> = ({ onSuccess, o
 
   const onSubmit = async (data: RelationshipFormData) => {
     try {
-      const relationshipData = {
+      // Create a relationship data object with all fields including the new ones
+      const relationshipData: any = {
         relationship_code: data.relationship_code,
-        description: data.description,
         source_node_id: data.source_node_id,
         target_node_id: data.target_node_id,
         relationship_type_id: data.relationship_type_id,
@@ -150,25 +150,41 @@ export const RelationshipForm: React.FC<RelationshipFormProps> = ({ onSuccess, o
         primary_transport_method: data.primary_transport_method,
         primary_transport_cost: data.primary_transport_cost,
         cost_unit: data.cost_unit,
-        alternate_transport_method: data.alternate_transport_method,
-        alternate_lead_time_days: data.alternate_lead_time_days,
-        alternate_transport_cost: data.alternate_transport_cost,
-        capacity_constraint: data.capacity_constraint,
-        is_bidirectional: data.is_bidirectional,
         priority_rank: data.priority_rank,
+        status: 'active',
+        effective_from: new Date().toISOString(),
         alternate_sources: alternateSources,
-        status: 'active' as const,
-        effective_from: new Date().toISOString().split('T')[0],
       };
 
+      // Add optional fields only if they have values
+      if (data.description) {
+        relationshipData.description = data.description;
+      }
+      if (data.alternate_transport_method) {
+        relationshipData.alternate_transport_method = data.alternate_transport_method;
+      }
+      if (data.alternate_lead_time_days !== null && data.alternate_lead_time_days !== undefined && !isNaN(data.alternate_lead_time_days)) {
+        relationshipData.alternate_lead_time_days = data.alternate_lead_time_days;
+      }
+      if (data.alternate_transport_cost !== null && data.alternate_transport_cost !== undefined && !isNaN(data.alternate_transport_cost)) {
+        relationshipData.alternate_transport_cost = data.alternate_transport_cost;
+      }
+      if (data.capacity_constraint !== null && data.capacity_constraint !== undefined && !isNaN(data.capacity_constraint)) {
+        relationshipData.capacity_constraint = data.capacity_constraint;
+      }
+      if (data.is_bidirectional !== undefined) {
+        relationshipData.is_bidirectional = data.is_bidirectional;
+      }
+
+      console.log('Inserting relationship data:', relationshipData);
       await createRelationship.mutateAsync(relationshipData);
       toast.success('Relación creada exitosamente');
       reset();
       setAlternateSources([]);
       onSuccess?.();
     } catch (error) {
-      toast.error('Error al crear la relación');
       console.error('Error creating relationship:', error);
+      toast.error('Error al crear la relación');
     }
   };
 

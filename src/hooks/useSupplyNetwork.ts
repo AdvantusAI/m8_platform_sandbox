@@ -75,6 +75,21 @@ export const useSupplyNetwork = () => {
   // Create relationship mutation
   const createRelationshipMutation = useMutation({
     mutationFn: async (relationshipData: SupplyNetworkRelationshipInsert) => {
+      console.log('Attempting to create relationship with data:', relationshipData);
+      
+      // First, try to log the operation
+      try {
+        await supabase
+          .schema('m8_schema')
+          .rpc('log_sql_operation', {
+            operation: 'INSERT',
+            table_name: 'supply_network_relationships',
+            data: relationshipData as any
+          });
+      } catch (logError) {
+        console.warn('Failed to log operation:', logError);
+      }
+      
       const { data, error } = await supabase
         .schema('m8_schema')
         .from('supply_network_relationships')
@@ -82,7 +97,12 @@ export const useSupplyNetwork = () => {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error details:', error);
+        throw error;
+      }
+      
+      console.log('Relationship created successfully:', data);
       return data;
     },
     onSuccess: () => {
