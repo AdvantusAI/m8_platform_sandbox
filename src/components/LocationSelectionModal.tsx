@@ -10,24 +10,12 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Location{
-  location_id: string,
-  location_name: string,
-  level_1?:string,
-  level_2?:string,
-  level_3?:string,
-  level_4?:string,
-  type?:string
+  location_code: string,
+  description?: string,
+  type_code?: string
 }
 
-interface LocationNode {
-  id: string;
-  name: string;
-  level: 'level_1' | 'level_2' | 'level_3' | 'level_4' | 'location';
-  children?: LocationNode[];
-  isExpanded?: boolean;
-  location_id?: string;
-  type?:string;
-}
+
 
 interface LocationSelectionModalProps {
   isOpen: boolean;
@@ -42,10 +30,8 @@ interface LocationFilterProps {
 
 export function LocationSelectionModal({isOpen,onClose, onSelect}: LocationSelectionModalProps) {  
   const [locations, setLocations] = useState<Location[]>([]);
-  const [ciudad, setCiudadTree] = useState<LocationNode[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   
   useEffect(() => {
@@ -57,17 +43,16 @@ export function LocationSelectionModal({isOpen,onClose, onSelect}: LocationSelec
 const fetchLocations = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .schema('m8_schema')
-        .from('locations')
-        .select('location_id, location_name, level_1, level_2, level_3, level_4, type')
-        .order('location_name');
+        .from('v_warehouse_node')
+        .select('*')
+        .order('description');
 
       if (error) throw error;
       
       const locationsData = data || [];
       setLocations(locationsData);
-      buildLevel1Tree(locationsData);
     } catch (error) {
       console.error('Error fetching locations:', error);
     } finally {
@@ -76,139 +61,22 @@ const fetchLocations = async () => {
   };
 
   
-  const buildLevel1Tree = (locationsData: Location[]) => {
-    const tree: LocationNode[] = [];
-    const level1Map = new Map<string, LocationNode>();
-
-    locationsData.forEach(location => {
-      // Create or get level_1
-      const level1Key = location.level_1 || 'Sin Localidad';
-      let level1Node = level1Map.get(level1Key);
-      if (!level1Node) {
-        level1Node = {
-          id: level1Key,
-          name: location.level_1 || 'Sin Localidad',
-          level: 'level_1',
-          type: 'category',
-          children: []
-        };
-        level1Map.set(level1Key, level1Node);
-        tree.push(level1Node);
-      }
-
-      // Add location to level_1
-      const locationNode: LocationNode = {
-        id: location.location_id,
-        name: location.location_name || location.location_id,
-        level: 'location',
-        type: 'location',
-        location_id: location.location_id
-      };
-      level1Node.children!.push(locationNode);
-    });
-
-    setCiudadTree(tree);
-  };
-
-  const toggleExpanded = (nodeId: string) => {
-    const newExpanded = new Set(expandedNodes);
-    if (newExpanded.has(nodeId)) {
-      newExpanded.delete(nodeId);
-    } else {
-      newExpanded.add(nodeId);
-    }
-    setExpandedNodes(newExpanded);
-  };
-
-  const handleSelect = (productId: string) => {
-    onSelect(productId);
+  const handleSelect = (locationId: string) => {
+    onSelect(locationId);
     onClose();
     setSearchTerm('');
   };
 
-  const filterTree = (nodes: LocationNode[], searchTerm: string): LocationNode[] => {
-    if (!searchTerm) return nodes;
+  const filterLocations = (locations: Location[], searchTerm: string): Location[] => {
+    if (!searchTerm) return locations;
     
-    return nodes.reduce((filtered: LocationNode[], node) => {
-      if (node.type === 'location') {
-        if (node.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            node.location_id?.toLowerCase().includes(searchTerm.toLowerCase())) {
-          return [...filtered, node];
-        }
-      } else if (node.children) {
-        const filteredChildren = filterTree(node.children, searchTerm);
-        if (filteredChildren.length > 0) {
-          return [...filtered, { ...node, children: filteredChildren }];
-        }
-        if (node.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-          return [...filtered, node];
-        }
-      }
-      return filtered;
-    }, []);
-  };
-
-  const renderTreeNode = (node: LocationNode, level: number = 0) => {
-    const isExpanded = expandedNodes.has(node.id);
-    const hasChildren = node.children && node.children.length > 0;
-    const paddingLeft = level * 20;
-
-    return (
-      <div key={node.id}>
-        <div 
-          className={`flex items-center p-2 hover:bg-gray-50 cursor-pointer ${
-            node.type === 'location' ? 'text-sm' : 'font-medium'
-          }`}
-          style={{ paddingLeft: `${paddingLeft + 8}px` }}
-          onClick={() => {
-            if (node.type === 'location' && node.location_id) {
-              handleSelect(node.location_id);
-            } else if (hasChildren) {
-              toggleExpanded(node.id);
-            }
-          }}
-        >
-          {hasChildren && (
-            <div className="mr-2">
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </div>
-          )}
-          
-          {node.type === 'location' && <Package className="h-4 w-4 mr-2 text-blue-500" />}
-          
-          <span className="flex-1">{node.name}</span>
-          
-          {node.type === 'category' && (
-            <Badge variant="outline" className="ml-2 text-xs">
-              Compañía
-            </Badge>
-          )}
-          {node.type === 'subcategory' && (
-            <Badge variant="outline" className="ml-2 text-xs">
-              Subcategoría
-            </Badge>
-          )}
-          {node.type === 'location' && (
-            <Badge variant="outline" className="ml-2 text-xs">
-              {node.location_id}
-            </Badge>
-          )}
-        </div>
-        
-        {hasChildren && isExpanded && (
-          <div>
-            {node.children!.map(child => renderTreeNode(child, level + 1))}
-          </div>
-        )}
-      </div>
+    return locations.filter(location => 
+      location.location_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      location.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   };
 
-  const filteredTree = filterTree(ciudad, searchTerm);
+  const filteredLocations = filterLocations(locations, searchTerm);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -225,7 +93,7 @@ const fetchLocations = async () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               type="text"
-              placeholder="Buscar por nombre, ID o categoría..."
+              placeholder="Buscar por nombre, ID, código, descripción o categoría..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -237,7 +105,7 @@ const fetchLocations = async () => {
               <div className="flex items-center justify-center p-8">
                 <div className="text-sm text-muted-foreground">Cargando ubicaciones...</div>
               </div>
-            ) : filteredTree.length === 0 ? (
+            ) : filteredLocations.length === 0 ? (
               <div className="flex items-center justify-center p-8">
                 <div className="text-sm text-muted-foreground">
                   {searchTerm ? 'No se encontraron ubicaciones' : 'No hay ubicaciones disponibles'}
@@ -245,7 +113,23 @@ const fetchLocations = async () => {
               </div>
             ) : (
               <div className="p-2">
-                {filteredTree.map(node => renderTreeNode(node))}
+                {filteredLocations.map(location => (
+                  <div 
+                    key={location.location_code}
+                    className="flex items-center p-2 hover:bg-gray-50 cursor-pointer text-sm"
+                    onClick={() => handleSelect(location.location_code)}
+                  >
+                    <Package className="h-4 w-4 mr-2 text-blue-500" />
+                    <span className="flex-1">{location.description || location.location_code}</span>
+                    <div className="ml-2 flex gap-1">
+                      {location.location_code && (
+                        <Badge variant="outline" className="text-xs">
+                          {location.location_code}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </ScrollArea>

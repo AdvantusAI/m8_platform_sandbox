@@ -31,7 +31,7 @@ interface ForecastData {
   upper_bound: number | null;
   lower_bound: number | null;
   commercial_input: number | null;
-  fitted_history?: number | null;
+  fitted_history: number | null;
 }
 
 // Type definition for filter storage
@@ -108,7 +108,7 @@ export default function DemandForecast() {
   // Data hooks for interpretability and name resolution
   const { data: interpretabilityData } = useInterpretabilityData(selectedProductId, selectedLocationId, selectedCustomerId);
   const { getProductName } = useProducts();
-  const { getLocationName } = useLocations();
+  const { getLocationName, loading: locationsLoading } = useLocations();
   const { getCustomerName } = useCustomers();
 
   // ===== URL PARAMETER SYNC =====
@@ -158,7 +158,6 @@ export default function DemandForecast() {
       locationId,
       customerId: selectedCustomerId
     });
-    //console.log('Ubicación seleccionada en Demand Forecast:', locationId);
   };
 
   /**
@@ -265,7 +264,9 @@ export default function DemandForecast() {
                 {selectedLocationId ? (
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{selectedLocationId}</Badge>
-                    <Badge variant="secondary">{getLocationName(selectedLocationId)}</Badge>
+                    <Badge variant="secondary">
+                      {locationsLoading ? 'Cargando...' : getLocationName(selectedLocationId)}
+                    </Badge>
                   </div>
                 ) : (
                   <span className="text-sm text-muted-foreground">No seleccionada (opcional)</span>

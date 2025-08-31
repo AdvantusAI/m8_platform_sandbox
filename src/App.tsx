@@ -48,6 +48,8 @@ import ForecastReconciliation from "./pages/ForecastReconciliation";
 import HistoryDataView from "./pages/HistoryDataView";
 import KPIDashboard from "./pages/KPIDashboard";
 import { DataGrids } from "./components/DataGrid";
+import FulfillmentDashboard from "./pages/FulfillmentDashboard";
+import ReplenishmentDashboard from "./pages/ReplenishmentDashboard";
 
 
 const queryClient = new QueryClient();
@@ -127,6 +129,11 @@ const App = () => {
               <Route path="/sell-through-analytics" element={<SellThroughAnalytics />} />
               <Route path="/forecast-reconciliation" element={<ForecastReconciliation />} />
               <Route path="/ag-data-grids" element={<DataGrids />} />
+              {/* Fulfillment Routes */}
+              <Route path="/fulfillment-dashboard" element={<FulfillmentDashboard />} />
+              <Route path="/mrp-planning" element={<FulfillmentDashboard />} />
+              <Route path="/purchase-orders" element={<FulfillmentDashboard />} />
+              <Route path="/replenishment-dashboard" element={<ReplenishmentDashboard />} />
               {/* Protected Routes */}
             </Routes>
           </MasterLayout>

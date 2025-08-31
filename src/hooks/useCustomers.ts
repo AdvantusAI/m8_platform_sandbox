@@ -3,13 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
-  customer_id: string;
-  customer_name: string;
-  customer_logo: string | null;
-  level_1: string | null;
-  level_1_name: string | null;
-  level_2: string | null;
-  level_2_name: string | null;
+  node_name: string;
+  description: string | null;
+  node_code: string;
+  status: string;
   created_at: string;
   updated_at: string;
 }
@@ -28,9 +25,21 @@ export function useCustomers() {
       setLoading(true);
       const { data, error } = await supabase
         .schema('m8_schema')
-        .from('customers')
-        .select('*')
-        .order('customer_name');
+        .from('supply_network_nodes')
+        .select(`
+          id,
+          node_name,
+          description,
+          node_code,
+          status,
+          created_at,
+          updated_at,
+          node_type_id,
+          supply_network_node_types!inner(type_code)
+        `)
+        .eq('supply_network_node_types.type_code', 'CUSTOMERS')
+        .eq('status', 'active')
+        .order('node_name');
 
       if (error) throw error;
       setCustomers(data || []);
@@ -43,8 +52,8 @@ export function useCustomers() {
   };
 
   const getCustomerName = (customerId: string): string => {
-    const customer = customers.find(c => c.customer_id === customerId);
-    return customer?.customer_name || `Cliente ${customerId}`;
+    const customer = customers.find(c => c.id === customerId);
+    return customer?.node_name || `Cliente ${customerId}`;
   };
 
   return {

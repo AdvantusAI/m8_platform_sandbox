@@ -11,12 +11,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 
 interface CustomerNode {
   id: string;
-  customer_id: string;
-  customer_name: string;
-  level_1?: string;
-  level_1_name?: string;
-  level_2?: string;
-  level_2_name?: string;
+  node_name: string;
+  description?: string;
 }
 
 interface CustomerSelectionModalProps {
@@ -54,26 +50,23 @@ export function CustomerSelectionModal({
         return;
       }
 
-       let query;
-       if (isAdministrator) {
-       // Admin users can see all customers from customers table
-       query = supabase
-       .schema('m8_schema')
-       .from('customers')
-       .select('*')
-       .order('customer_name');
-       } else {
-       // Regular users use the simplified v_customers view with user email
-       query = supabase
-       .schema('m8_schema')
-       .from('v_customers')
-       .select('*')
-       .eq('email', user.email)
-       .order('customer_name');
-       }
+      // Fetch customer nodes from supply_network_nodes where node_type_id corresponds to CUSTOMERS type
+      let query = supabase
+        .schema('m8_schema')
+        .from('supply_network_nodes')
+        .select(`
+          id,
+          node_name,
+          description,
+          node_type_id,
+          supply_network_node_types!inner(type_code)
+        `)
+        .eq('supply_network_node_types.type_code', 'CUSTOMERS')
+        .eq('status', 'active')
+        .order('node_name');
 
       if (searchTerm) {
-        query = query.or(`customer_name.ilike.%${searchTerm}%,customer_id.ilike.%${searchTerm}%`);
+        query = query.or(`node_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
       const { data, error } = await query;
@@ -82,13 +75,9 @@ export function CustomerSelectionModal({
       ////console.log('Customers data:', data);
       
       const customerNodes: CustomerNode[] = (data || []).map(customer => ({
-        id: customer.customer_id || customer.id?.toString(),
-        customer_id: customer.customer_id,
-        customer_name: customer.customer_name || 'Sin nombre',
-        level_1: customer.level_1,
-        level_1_name: customer.level_1_name,
-        level_2: customer.level_2,
-        level_2_name: customer.level_2_name
+        id: customer.id,
+        node_name: customer.node_name || 'Sin nombre',
+        description: customer.description
       }));
 
       setCustomers(customerNodes);
@@ -128,9 +117,13 @@ export function CustomerSelectionModal({
               "text-sm font-medium truncate",
               isSelected && "font-semibold"
             )}>
-              {customer.customer_id} - {customer.customer_name}
+              {customer.node_name}
             </div>
-            
+            {customer.description && (
+              <div className="text-xs text-gray-500 truncate">
+                {customer.description}
+              </div>
+            )}
           </div>
         </div>
       </div>

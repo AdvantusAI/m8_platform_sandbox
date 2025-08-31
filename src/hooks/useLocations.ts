@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Location {
-  location_id: string;
-  location_name: string;
-  [key: string]: any; // Allow any additional fields from the database
+  location_code: string;
+  description?: string;
+  type_code?: string;
 }
 
 export function useLocations() {
@@ -19,11 +19,11 @@ export function useLocations() {
   const fetchLocations = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .schema('m8_schema')
-        .from('locations')
+        .from('v_warehouse_node')
         .select('*')
-        .order('location_name');
+        .order('description');
 
       if (error) throw error;
       setLocations(data || []);
@@ -36,8 +36,8 @@ export function useLocations() {
   };
 
   const getLocationName = (locationId: string): string => {
-    const location = locations.find(l => l.location_id === locationId);
-    return location?.location_name || `Ubicación ${locationId}`;
+    const location = locations.find(l => l.location_code === locationId);
+    return location?.description || `Ubicación ${locationId}`;
   };
 
   return {

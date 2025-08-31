@@ -16,7 +16,7 @@ import { useLocations } from '@/hooks/useLocations';
 import { useCustomers } from '@/hooks/useCustomers';
 
 interface ForecastData {
-  customer_id: string;
+  customer_node_id: string;
   postdate: string;
   product_id: string;
   subcategory_id: string;
@@ -30,7 +30,7 @@ interface ForecastData {
 }
 
 interface CustomerData {
-  customer_id: string;
+  customer_node_id: string;
   customer_name: string;
   product_id?: string;
   months: { [key: string]: {
@@ -234,18 +234,25 @@ const ForecastCollaboration: React.FC = () => {
         setFilterLoading(true);
       }
       
-      // First, fetch customer names
+      // First, fetch customer names from supply_network_nodes
       const { data: customersData, error: customersError } = await supabase
         .schema('m8_schema')
-        .from('customers')
-        .select('customer_id,customer_name');
+        .from('supply_network_nodes')
+        .select(`
+          id,
+          node_name,
+          node_type_id,
+          supply_network_node_types!inner(type_code)
+        `)
+        .eq('supply_network_node_types.type_code', 'CUSTOMERS')
+        .eq('status', 'active');
 
       if (customersError) throw customersError;
 
       const customerNamesMap: {[key: string]: string} = {};
       
       customersData?.forEach(customer => {
-        customerNamesMap[customer.customer_id] = customer.customer_name;
+        customerNamesMap[customer.id] = customer.node_name;
       });
       
       setCustomerNames(customerNamesMap);
@@ -254,8 +261,8 @@ const ForecastCollaboration: React.FC = () => {
       let query = supabase
         .schema('m8_schema')
         .from('commercial_collaboration_view')
-        .select('customer_id,postdate,forecast_ly,forecast,approved_sm_kam,sm_kam_override,forecast_sales_manager,commercial_input,forecast_sales_gap,product_id,subcategory_id')
-        .order('customer_id', { ascending: true })
+        .select('customer_node_id,postdate,forecast_ly,forecast,approved_sm_kam,sm_kam_override,forecast_sales_manager,commercial_input,forecast_sales_gap,product_id,subcategory_id')
+        .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true });
 
       // Apply filters
@@ -393,23 +400,23 @@ const ForecastCollaboration: React.FC = () => {
     // Save to database
     await saveKamForecastToDatabase(customerId, month, newValue);
     
-    setCustomers(prevCustomers => 
-      prevCustomers.map(customer => {
-        if (customer.customer_id === customerId) {
-          return {
-            ...customer,
-            months: {
-              ...customer.months,
-              [month]: {
-                ...customer.months[month],
-                kam_forecast_correction: newValue
+          setCustomers(prevCustomers => 
+        prevCustomers.map(customer => {
+          if (customer.customer_id === customerId) {
+            return {
+              ...customer,
+              months: {
+                ...customer.months,
+                [month]: {
+                  ...customer.months[month],
+                  kam_forecast_correction: newValue
+                }
               }
-            }
-          };
-        }
-        return customer;
-      })
-    );
+            };
+          }
+          return customer;
+        })
+      );
     
     setEditingCell(null);
     setEditingValue('');
@@ -995,7 +1002,7 @@ const ForecastCollaboration: React.FC = () => {
               <td className="sticky left-[270px] bg-gray-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10" colSpan={2}>Año pasado (LY)</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                  ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+                  ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                   : customers;
                 const totalValue = customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
@@ -1018,7 +1025,7 @@ const ForecastCollaboration: React.FC = () => {
               <td className="sticky left-[270px] bg-gray-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10" colSpan={2}>Gap Forecast vs ventas</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                  ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+                  ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                   : customers;
                 
                 // Calculate Gap Forecast vs ventas at total level
@@ -1056,7 +1063,7 @@ const ForecastCollaboration: React.FC = () => {
               <td className="sticky left-[390px] bg-[#ffebd4] border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Forecast</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                  ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+                  ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                   : customers;
                 const totalValue = customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
@@ -1078,7 +1085,7 @@ const ForecastCollaboration: React.FC = () => {
               <td className="sticky left-[390px] bg-blue-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Plan inicial de ventas</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                  ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+                  ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                   : customers;
                 const totalValue = customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
@@ -1101,7 +1108,7 @@ const ForecastCollaboration: React.FC = () => {
               <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Kam Forecast</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                  ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+                  ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                   : customers;
                 const totalValue = customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
@@ -1144,7 +1151,7 @@ const ForecastCollaboration: React.FC = () => {
               <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs z-10">Plan de ventas (SM) </td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                  ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+                  ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                   : customers;
                 const totalValue = customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
@@ -1167,7 +1174,7 @@ const ForecastCollaboration: React.FC = () => {
               <td className="sticky left-[390px] bg-green-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Forecast</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                  ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+                  ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                   : customers;
                 const totalValue = customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
@@ -1190,7 +1197,7 @@ const ForecastCollaboration: React.FC = () => {
               <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Aprobación</td>
               {months.map(month => {
                 const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                  ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+                  ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                   : customers;
                 
                 return (
@@ -1202,7 +1209,7 @@ const ForecastCollaboration: React.FC = () => {
                       onChange={(e) => {
                         // Handle approval for all customers
                         customersToUse.forEach(customer => {
-                          handleKamApprovalChange(customer.customer_id, month, e.target.value);
+                          handleKamApprovalChange(customer.customer_node_id, month, e.target.value);
                         });
                       }}
                     >
@@ -1219,7 +1226,7 @@ const ForecastCollaboration: React.FC = () => {
 
             {/* Individual customer sections */}
             {filteredCustomers().map(customer => (
-              <React.Fragment key={`${customer.customer_id}-${customer.product_id}`}>
+              <React.Fragment key={`${customer.customer_node_id}-${customer.product_id}`}>
                 {/* Customer header row with rowspan */}
                 <tr className="bg-gray-100 border-b border-gray-300">
                   <td className="sticky left-0 bg-gray-100 border-r border-gray-300 p-2 font-bold text-sm whitespace-nowrap overflow-hidden text-ellipsis z-10" rowSpan={dataTypes.length}>
@@ -1234,7 +1241,7 @@ const ForecastCollaboration: React.FC = () => {
                     const value = monthData ? monthData.last_year : 0;
                     
                     return (
-                      <td key={`${customer.customer_id}-${customer.product_id}-${month}-last-year`} 
+                      <td key={`${customer.customer_node_id}-${customer.product_id}-${month}-last-year`} 
                           className={`border-r border-gray-200 p-1 text-right text-xs ${
                             month.includes('24') ? 'bg-yellow-50' : 'bg-blue-50'
                           }`}>
@@ -1250,7 +1257,7 @@ const ForecastCollaboration: React.FC = () => {
                     const value = monthData ? monthData.forecast_sales_gap : 0;
                     
                     return (
-                      <td key={`${customer.customer_id}-${customer.product_id}-${month}-gap`} 
+                      <td key={`${customer.customer_node_id}-${customer.product_id}-${month}-gap`} 
                           className={`border-r border-gray-200 p-1 text-right text-xs ${
                             month.includes('24') ? 'bg-yellow-50' : 'bg-blue-50'
                           }`}
@@ -1273,7 +1280,7 @@ const ForecastCollaboration: React.FC = () => {
                     const value = monthData ? monthData.calculated_forecast : 0;
                     
                     return (
-                      <td key={`${customer.customer_id}-${customer.product_id}-${month}-calculated`} 
+                      <td key={`${customer.customer_node_id}-${customer.product_id}-${month}-calculated`} 
                           className={`border-r border-gray-200 p-1 text-right text-xs ${
                             month.includes('24') ? 'bg-yellow-50' : 'bg-blue-50'
                           }`}
@@ -1292,7 +1299,7 @@ const ForecastCollaboration: React.FC = () => {
                     const value = monthData ? monthData.xamview : 0;
                     
                     return (
-                      <td key={`${customer.customer_id}-${customer.product_id}-${month}-xamview`} 
+                      <td key={`${customer.customer_node_id}-${customer.product_id}-${month}-xamview`} 
                           className={`border-r border-gray-200 p-1 text-right text-xs ${
                             month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
                           }`}>
@@ -1308,16 +1315,16 @@ const ForecastCollaboration: React.FC = () => {
                   {months.map(month => {
                     const monthData = customer.months[month];
                     const value = monthData ? monthData.kam_forecast_correction : 0;
-                    const isEditing = inlineEditingCell?.customerId === customer.customer_id && inlineEditingCell?.month === month;
+                    const isEditing = inlineEditingCell?.customerId === customer.customer_node_id && inlineEditingCell?.month === month;
                     
                     return (
-                      <td key={`${customer.customer_id}-${customer.product_id}-${month}-kam-forecast`} 
+                      <td key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-forecast`} 
                           className="border-r border-gray-200 p-1 text-right text-xs relative"
                           style={{ 
                             backgroundColor: value > 0 ? '#7df6ff' : (month.includes('24') ? '#fef3c7' : '#dbeafe'),
                             cursor: 'pointer'
                           }}
-                          onDoubleClick={() => handleInlineEditStart(customer.customer_id, month, value)}>
+                          onDoubleClick={() => handleInlineEditStart(customer.customer_node_id, month, value)}>
                         {value > 0 && (
                           <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full transform translate-x-1 -translate-y-1 z-10"></div>
                         )}
@@ -1326,8 +1333,8 @@ const ForecastCollaboration: React.FC = () => {
                             type="number"
                             value={inlineEditingValue}
                             onChange={(e) => setInlineEditingValue(e.target.value)}
-                            onKeyDown={(e) => handleInlineKeyPress(e, customer.customer_id, month)}
-                            onBlur={() => handleInlineEditSave(customer.customer_id, month)}
+                            onKeyDown={(e) => handleInlineKeyPress(e, customer.customer_node_id, month)}
+                            onBlur={() => handleInlineEditSave(customer.customer_node_id, month)}
                             className="w-full text-xs border-0 bg-transparent focus:outline-none focus:ring-0 text-right"
                             autoFocus
                           />
@@ -1346,7 +1353,7 @@ const ForecastCollaboration: React.FC = () => {
                     const value = monthData ? monthData.sales_manager_view : 0;
                     
                     return (
-                      <td key={`${customer.customer_id}-${customer.product_id}-${month}-sales-manager`} 
+                      <td key={`${customer.customer_node_id}-${customer.product_id}-${month}-sales-manager`} 
                           className={`border-r border-gray-200 p-1 text-right text-xs ${
                             month.includes('24') ? 'bg-white-50' : 'bg-white-50'
                           }`}>
@@ -1364,7 +1371,7 @@ const ForecastCollaboration: React.FC = () => {
                     const value = monthData ? monthData.effective_forecast : 0;
                     
                     return (
-                      <td key={`${customer.customer_id}-${customer.product_id}-${month}-effective`} 
+                      <td key={`${customer.customer_node_id}-${customer.product_id}-${month}-effective`} 
                           className={`border-r border-gray-200 p-1 text-right text-xs ${
                             month.includes('24') ? 'bg-yellow-100' : 'bg-green-100'
                           }`}>
@@ -1378,15 +1385,15 @@ const ForecastCollaboration: React.FC = () => {
                   <td className="sticky left-[270px] bg-purple-100 border-r border-gray-300 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">KAM aprobado</td>
                   <td className="sticky left-[390px] bg-purple-100 border-r border-gray-300 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">Aprobación</td>
                   {months.map(month => {
-                    const currentValue = kamApprovals[customer.customer_id]?.[month] || '';
+                    const currentValue = kamApprovals[customer.customer_node_id]?.[month] || '';
                     
                     return (
-                      <td key={`${customer.customer_id}-${customer.product_id}-${month}-kam-approval`} 
+                      <td key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-approval`} 
                           className="border-r border-gray-200 p-1 text-center text-xs bg-purple-50">
                         <select 
                           className="w-full text-xs border-0 bg-transparent focus:outline-none focus:ring-0"
                           value={currentValue}
-                          onChange={(e) => handleKamApprovalChange(customer.customer_id, month, e.target.value)}
+                          onChange={(e) => handleKamApprovalChange(customer.customer_node_id, month, e.target.value)}
                         >
                           <option value="">-</option>
                           <option value="Si">Si</option>
