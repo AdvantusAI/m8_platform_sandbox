@@ -3,8 +3,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+
 import { 
-  Truck, 
+  Truck,
   Package, 
   RefreshCw,
   MapPin,
@@ -13,18 +14,17 @@ import {
 } from 'lucide-react';
 import { SupplyPlanService } from '@/services/supplyPlanService';
 import { ProductSelectionModal } from '@/components/ProductSelectionModal';
-import { CustomerSelectionModal } from '@/components/CustomerSelectionModal';
 import { LocationSelectionModal } from '@/components/LocationSelectionModal';
+import { SupplyPlanAgGrid } from '@/components/replenishment/SupplyPlanAgGrid';
 import { useProducts } from '@/hooks/useProducts';
-import { useCustomers } from '@/hooks/useCustomers';
 import { useLocations } from '@/hooks/useLocations';
 
+import { commonAgGridConfig, agGridContainerStyles } from '../lib/ag-grid-config';
 
 // Type definition for filter storage
 interface FilterStorage {
   productId: string;
   locationId: string;
-  customerId: string;
 }
 
 const ReplenishmentDashboard: React.FC = () => {
@@ -52,109 +52,92 @@ const ReplenishmentDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<string>(storedFilters.productId || '');
   const [selectedLocation, setSelectedLocation] = useState<string>(storedFilters.locationId || '');
-  const [selectedCustomer, setSelectedCustomer] = useState<string>(storedFilters.customerId || '');
   const [availableProducts, setAvailableProducts] = useState<Array<{product_id: string, location_id?: string}>>([]);
+  const [supplyPlanData, setSupplyPlanData] = useState<any[]>([]);
   
   // Modal visibility states
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   
   // ===== HOOKS =====
   const { getProductName } = useProducts();
-  const { getCustomerName } = useCustomers();
   const { getLocationName } = useLocations();
 
   // Load available products
   const loadAvailableProducts = useCallback(async () => {
     try {
-      const products = await SupplyPlanService.getAvailableProducts();
-      setAvailableProducts(products);
-      if (products.length > 0 && selectedProduct) {
-        const matchingProduct = products.find(p => p.product_id === selectedProduct);
-        if (matchingProduct) {
-          setSelectedLocation(matchingProduct.location_id || '');
-        }
-      }
+      // For now, we'll use a simple approach - the ProductSelectionModal will handle product loading
+      setAvailableProducts([{ product_id: 'sample', location_id: undefined }]);
     } catch (error) {
       console.error('Error loading available products:', error);
-      toast.error('Error al conectar con la base de datos. Verifique que la vista v_meio_supply_plan existe y tiene datos.');
+      toast.error('Error al conectar con la base de datos.');
       setAvailableProducts([]);
     }
   }, [selectedProduct]);
 
+  // Load supply plan data when filters change
+  const loadSupplyPlanData = useCallback(async () => {
+    if (!selectedProduct || !selectedLocation) {
+      setSupplyPlanData([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const data = await SupplyPlanService.getSupplyPlanData({
+        productId: selectedProduct,
+        locationId: selectedLocation
+      });
+      setSupplyPlanData(data);
+    } catch (error) {
+      console.error('Error loading supply plan data:', error);
+      toast.error('Error al cargar datos del plan de suministro');
+      setSupplyPlanData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedProduct, selectedLocation]);
 
   // ===== EVENT HANDLERS =====
-  /**
-   * Handles product selection from modal
-   * @param productId - Selected product ID
-   */
   const handleProductSelect = (productId: string): void => {
     setSelectedProduct(productId);
     saveFiltersToStorage({
       productId,
-      locationId: selectedLocation,
-      customerId: selectedCustomer
+      locationId: selectedLocation
     });
   };
 
-  /**
-   * Handles location selection from modal
-   * @param locationId - Selected location ID
-   */
   const handleLocationSelect = (locationId: string): void => {
     setSelectedLocation(locationId);
     saveFiltersToStorage({
       productId: selectedProduct,
-      locationId,
-      customerId: selectedCustomer
+      locationId
     });
   };
 
-  /**
-   * Handles customer selection from modal
-   * @param customerId - Selected customer ID
-   */
-  const handleCustomerSelect = (customerId: string): void => {
-    setSelectedCustomer(customerId);
-    saveFiltersToStorage({
-      productId: selectedProduct,
-      locationId: selectedLocation,
-      customerId
-    });
-  };
-
-  /**
-   * Clears all filters and resets to default state
-   */
   const handleClearFilters = (): void => {
     setSelectedProduct('');
     setSelectedLocation('');
-    setSelectedCustomer('');
     saveFiltersToStorage({
       productId: '',
-      locationId: '',
-      customerId: ''
+      locationId: ''
     });
   };
-
-
-
 
   useEffect(() => {
     loadAvailableProducts();
   }, [loadAvailableProducts]);
 
-  // Debug modal state changes
   useEffect(() => {
-    console.log('Product modal state changed to:', isProductModalOpen);
-  }, [isProductModalOpen]);
+    loadSupplyPlanData();
+  }, [loadSupplyPlanData]);
 
+  // Check if both filters are selected
+  const showDataTable = selectedProduct && selectedLocation;
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      
 
       {/* ===== FILTER SECTION ===== */}
       <Card className="transition-all hover:shadow-md">
@@ -179,13 +162,7 @@ const ReplenishmentDashboard: React.FC = () => {
                 <Button 
                   variant="outline" 
                   size="icon"
-                  onClick={() => {
-                    console.log('Product button clicked!');
-                    console.log('Current modal state before click:', isProductModalOpen);
-                    console.log('Available products:', availableProducts.length);
-                    setIsProductModalOpen(true);
-                    console.log('Modal state set to true');
-                  }}
+                  onClick={() => setIsProductModalOpen(true)}
                   className="ml-2 h-8 w-8"
                   disabled={availableProducts.length === 0}
                   title={availableProducts.length === 0 ? 'No hay productos disponibles en la base de datos' : 'Seleccionar producto'}
@@ -223,8 +200,7 @@ const ReplenishmentDashboard: React.FC = () => {
                       setSelectedLocation('');
                       saveFiltersToStorage({
                         productId: selectedProduct,
-                        locationId: '',
-                        customerId: selectedCustomer
+                        locationId: ''
                       });
                     }}
                     className="h-8 w-8"
@@ -233,51 +209,10 @@ const ReplenishmentDashboard: React.FC = () => {
                   </Button>
                 )}
               </div>
-
-              {/* Customer Filter - Optional */}
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-medium">Cliente:</span>           
-                {selectedCustomer ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{selectedCustomer}</Badge>
-                    <Badge variant="secondary">{getCustomerName(selectedCustomer)}</Badge>
-                  </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">No seleccionado (opcional)</span>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsCustomerModalOpen(true)}
-                  className="ml-2 h-8 w-8"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-                {/* Individual clear button for customer */}
-                {selectedCustomer && (
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => {
-                      setSelectedCustomer('');
-                      saveFiltersToStorage({
-                        productId: selectedProduct,
-                        locationId: selectedLocation,
-                        customerId: ''
-                      });
-                    }}
-                    className="h-8 w-8"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              
             </div>
             
             {/* Global clear all filters button */}
-            {(selectedProduct || selectedLocation || selectedCustomer) && (
+            {(selectedProduct || selectedLocation) && (
               <Button 
                 variant="outline" 
                 size="icon" 
@@ -292,15 +227,10 @@ const ReplenishmentDashboard: React.FC = () => {
         </CardContent>
       </Card>
 
-
       {/* ===== MODAL COMPONENTS ===== */}
-      {console.log('Rendering ProductSelectionModal with isOpen:', isProductModalOpen)}
       <ProductSelectionModal
         isOpen={isProductModalOpen}
-        onClose={() => {
-          console.log('Product modal closing');
-          setIsProductModalOpen(false);
-        }}
+        onClose={() => setIsProductModalOpen(false)}
         onSelect={handleProductSelect}
       />
       
@@ -308,15 +238,51 @@ const ReplenishmentDashboard: React.FC = () => {
         isOpen={isLocationModalOpen}
         onClose={() => setIsLocationModalOpen(false)}
         onSelect={handleLocationSelect}
-        selectedLocationId={selectedLocation}
       />
-      
-      <CustomerSelectionModal
-        isOpen={isCustomerModalOpen}
-        onClose={() => setIsCustomerModalOpen(false)}
-        onSelect={handleCustomerSelect}
-        selectedCustomerId={selectedCustomer}
-      />
+
+      {/* ===== SUPPLY PLAN DATA TABLE ===== */}
+      {showDataTable ? (
+        <SupplyPlanAgGrid
+          productId={selectedProduct}
+          locationId={selectedLocation}
+        />
+      ) : (
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center space-y-4">
+              <Package className="h-12 w-12 text-gray-400 mx-auto" />
+              <div className="space-y-2">
+                <p className="text-lg font-medium text-gray-700">
+                  Seleccione filtros para ver el plan de suministro
+                </p>
+                <p className="text-sm text-gray-500">
+                  Se requiere seleccionar tanto un producto como una ubicación para visualizar los datos
+                </p>
+              </div>
+              <div className="flex justify-center gap-4 pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsProductModalOpen(true)}
+                  disabled={!selectedProduct}
+                  className="gap-2"
+                >
+                  <Package className="h-4 w-4" />
+                  {selectedProduct ? 'Cambiar Producto' : 'Seleccionar Producto'}
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setIsLocationModalOpen(true)}
+                  disabled={!selectedProduct}
+                  className="gap-2"
+                >
+                  <MapPin className="h-4 w-4" />
+                  {selectedLocation ? 'Cambiar Ubicación' : 'Seleccionar Ubicación'}
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

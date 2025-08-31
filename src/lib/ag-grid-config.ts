@@ -1,6 +1,6 @@
 import { GridOptions } from 'ag-grid-community';
-import { myTheme } from '../styles/ag-grid-theme-m8.js';
 import { LicenseManager, ModuleRegistry, AllEnterpriseModule } from 'ag-grid-enterprise';
+import { myTheme } from '../styles/ag-grid-theme-m8.js';
 
 // Common AG Grid configuration
 export const commonAgGridConfig: Partial<GridOptions> = {

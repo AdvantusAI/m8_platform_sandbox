@@ -38,7 +38,15 @@ const items = [
   title: "Red de Suministro",
   url: "/supply-network",
   icon: Network
-}, /*{
+}, 
+
+{
+  title: "Ag-Data-Grids",
+  url: "/ag-data-grids",
+  icon: BarChart3
+},
+
+/*{
   title: "Análisis What-If",
   url: "/what-if-analysis",
   icon: Brain

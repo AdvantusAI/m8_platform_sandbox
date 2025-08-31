@@ -134,6 +134,7 @@ const App = () => {
               <Route path="/mrp-planning" element={<FulfillmentDashboard />} />
               <Route path="/purchase-orders" element={<FulfillmentDashboard />} />
               <Route path="/replenishment-dashboard" element={<ReplenishmentDashboard />} />
+              <Route path="/ag-data-grids" element={<DataGrids />} />
               {/* Protected Routes */}
             </Routes>
           </MasterLayout>
