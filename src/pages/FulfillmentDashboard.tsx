@@ -10,11 +10,13 @@ import {
   TrendingUp,
   CheckCircle,
   Clock,
-  ArrowUpRight
+  ArrowUpRight,
+  Settings
 } from 'lucide-react';
 import { MRPPlanningGrid } from '@/components/mrp/MRPPlanningGrid';
 import { PurchaseOrderManagement } from '@/components/fulfillment/PurchaseOrderManagement';
 import { PlanningExceptions } from '@/components/fulfillment/PlanningExceptions';
+import { PurchaseOrderParametersDashboard } from '@/components/fulfillment/PurchaseOrderParametersDashboard';
 import { SupplyNetworkFlow } from '@/components/supply-network/SupplyNetworkFlow';
 
 interface FulfillmentMetrics {
@@ -180,7 +182,7 @@ const FulfillmentDashboard: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="mrp-planning" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Planificación MRP
@@ -192,6 +194,10 @@ const FulfillmentDashboard: React.FC = () => {
           <TabsTrigger value="exceptions" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             Excepciones
+          </TabsTrigger>
+          <TabsTrigger value="parameters" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Parámetros PO
           </TabsTrigger>
           <TabsTrigger value="network" className="flex items-center gap-2">
             <Factory className="h-4 w-4" />
@@ -237,6 +243,20 @@ const FulfillmentDashboard: React.FC = () => {
             </CardHeader>
             <CardContent className="p-0">
               <PlanningExceptions />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="parameters" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Parámetros de Órdenes de Compra
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <PurchaseOrderParametersDashboard />
             </CardContent>
           </Card>
         </TabsContent>

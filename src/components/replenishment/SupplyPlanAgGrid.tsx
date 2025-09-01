@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -75,7 +75,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     stockDeSeguridad: '#FFA500'
   });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!productId || !locationId) return;
 
     setLoading(true);
@@ -125,7 +125,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId, locationId]);
 
   const formatValue = (value: number) => {
     // Enhanced formatting with better number display
@@ -440,6 +440,8 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     setGridApi(params.api);
   };
 
+
+
   const handleColorChange = (metric: string, color: string) => {
     setChartColors(prev => ({
       ...prev,
@@ -456,8 +458,10 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
   };
 
   useEffect(() => {
-    loadData();
-  }, [productId, locationId]);
+    if (productId && locationId) {
+      loadData();
+    }
+  }, [loadData]);
 
   if (!productId || !locationId) {
     return null;
@@ -718,9 +722,9 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
             pagination={false}
             paginationPageSize={20}
             suppressRowClickSelection={false}
-          
             enableRangeSelection={true}
-                            getRowClass={(params: any) => {
+            suppressMenuHide={true}
+            getRowClass={(params: any) => {
               const classes = [];
               if (params.node.rowIndex % 2 === 0) {
                 classes.push('ag-row-even');
@@ -732,6 +736,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
               }
               return classes.join(' ');
             }}
+            onGridReady={onGridReady}
           />
         </div>
       </div>

@@ -69,18 +69,18 @@ export function ForecastDataTable({
       let query = supabase
         .schema('m8_schema')
         .from('forecast_with_fitted_history')
-        .select('product_id,location_id,customer_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history')
+        .select('product_id,location_node_id,customer_node_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history')
         .eq('product_id', selectedProductId!)
         .order('postdate');
       
       // Apply location filter only if selected
       if (selectedLocationId) {
-        query = query.eq('location_id', selectedLocationId);
+        query = query.eq('location_node_id', selectedLocationId);
       }
       
-      // Apply vendor filter only if selected - use customer_id field for vendor filtering
+      // Apply vendor filter only if selected - use customer_node_id field for vendor filtering
       if (selectedCustomerId) {
-        query = query.eq('customer_id', selectedCustomerId);
+        query = query.eq('customer_node_id', selectedCustomerId);
       }
       
       
@@ -184,11 +184,11 @@ export function ForecastDataTable({
         .update({ demand_planner: newValue })
         .eq('postdate', date)
         .eq('product_id', selectedProductId)
-        .eq('customer_id', selectedCustomerId);
+        .eq('customer_node_id', selectedCustomerId);
 
       // Apply location filter if selected
       if (selectedLocationId) {
-        query = query.eq('location_id', selectedLocationId);
+        query = query.eq('location_node_id', selectedLocationId);
       }
 
       const { error } = await query;

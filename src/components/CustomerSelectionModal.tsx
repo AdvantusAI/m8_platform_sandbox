@@ -61,7 +61,7 @@ export function CustomerSelectionModal({
           node_type_id,
           supply_network_node_types!inner(type_code)
         `)
-        .eq('supply_network_node_types.type_code', 'CUSTOMERS')
+        .eq('supply_network_node_types.type_code', 'Customer')
         .eq('status', 'active')
         .order('node_name');
 

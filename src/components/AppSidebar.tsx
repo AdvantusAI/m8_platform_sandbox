@@ -101,6 +101,11 @@ const fulfillmentItems = [
     title: 'Dashboard de Excepciones',
     url: '/exception-dashboard',
     icon: Shield
+  },
+  {
+    title: 'Parámetros de Órdenes de Compra',
+    url: '/purchase-order-parameters',
+    icon: Settings
   }
 ];
 

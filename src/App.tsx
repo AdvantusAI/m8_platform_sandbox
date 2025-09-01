@@ -53,6 +53,7 @@ import ReplenishmentDashboard from "./pages/ReplenishmentDashboard";
 import AlertConfiguration from "./pages/AlertConfiguration";
 import ActiveAlerts from './pages/ActiveAlerts';
 import ExceptionDashboard from './pages/ExceptionDashboard';
+import PurchaseOrderParametersPage from './pages/PurchaseOrderParametersPage';
 
 
 const queryClient = new QueryClient();
@@ -138,6 +139,7 @@ const App = () => {
               <Route path="/purchase-orders" element={<FulfillmentDashboard />} />
               <Route path="/replenishment-dashboard" element={<ReplenishmentDashboard />} />
               <Route path="/exception-dashboard" element={<ExceptionDashboard />} />
+              <Route path="/purchase-order-parameters" element={<PurchaseOrderParametersPage />} />
               <Route path="/alert-configuration" element={<AlertConfiguration />} />
               <Route path="/active-alerts" element={<ActiveAlerts />} />
               <Route path="/ag-data-grids" element={<DataGrids />} />

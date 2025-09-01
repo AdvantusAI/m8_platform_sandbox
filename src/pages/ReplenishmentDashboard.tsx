@@ -31,7 +31,8 @@ interface FilterStorage {
 
 const ReplenishmentDashboard: React.FC = () => {
   // ===== URL PARAMETERS =====
-  const [searchParams, setSearchParams] = useSearchParams();
+  // Temporarily disabled for debugging
+  // const [searchParams, setSearchParams] = useSearchParams();
   
   // ===== LOCAL STORAGE HELPERS =====
   const getStoredFilters = (): Partial<FilterStorage> => {
@@ -54,13 +55,13 @@ const ReplenishmentDashboard: React.FC = () => {
   // ===== STATE MANAGEMENT =====
   const storedFilters = getStoredFilters();
   
-  // Get initial values from URL params or stored filters
+  // Get initial values from stored filters only (URL params temporarily disabled)
   const getInitialProduct = () => {
-    return searchParams.get('product_id') || storedFilters.productId || '';
+    return storedFilters.productId || '';
   };
   
   const getInitialLocation = () => {
-    return searchParams.get('location_id') || storedFilters.locationId || '';
+    return storedFilters.locationId || '';
   };
   
   const [loading, setLoading] = useState(false);
@@ -130,12 +131,18 @@ const ReplenishmentDashboard: React.FC = () => {
   };
 
   const handleClearFilters = (): void => {
+    // Clear localStorage first
+    try {
+      localStorage.removeItem('replenishmentDashboardFilters');
+    } catch (error) {
+      console.warn('Failed to clear filters from localStorage:', error);
+    }
+    
+    // Clear state
     setSelectedProduct('');
     setSelectedLocation('');
-    saveFiltersToStorage({
-      productId: '',
-      locationId: ''
-    });
+    
+    console.log('Filters cleared - selectedProduct:', '', 'selectedLocation:', '');
   };
 
   useEffect(() => {
@@ -146,38 +153,40 @@ const ReplenishmentDashboard: React.FC = () => {
     loadSupplyPlanData();
   }, [loadSupplyPlanData]);
 
-  // Handle URL parameter changes
-  useEffect(() => {
-    const urlProductId = searchParams.get('product_id');
-    const urlLocationId = searchParams.get('location_id');
-    
-    if (urlProductId && urlProductId !== selectedProduct) {
-      setSelectedProduct(urlProductId);
-    }
-    
-    if (urlLocationId && urlLocationId !== selectedLocation) {
-      setSelectedLocation(urlLocationId);
-    }
-  }, [searchParams, selectedProduct, selectedLocation]);
+  // URL parameter handling temporarily disabled for debugging
+  // useEffect(() => {
+  //   if (isClearingFilters) return; // Skip if we're clearing filters
+  //   
+  //   const urlProductId = searchParams.get('product_id');
+  //   const urlLocationId = searchParams.get('location_id');
+  //   
+  //   if (urlProductId && urlProductId !== selectedProduct) {
+  //     setSelectedProduct(urlProductId);
+  //   }
+  //   
+  //   if (urlLocationId && urlLocationId !== selectedLocation) {
+  //     setSelectedLocation(urlLocationId);
+  //   }
+  // }, [searchParams, selectedProduct, selectedLocation, isClearingFilters]);
 
-  // Update URL when filters change
-  useEffect(() => {
-    const newSearchParams = new URLSearchParams(searchParams);
-    
-    if (selectedProduct) {
-      newSearchParams.set('product_id', selectedProduct);
-    } else {
-      newSearchParams.delete('product_id');
-    }
-    
-    if (selectedLocation) {
-      newSearchParams.set('location_id', selectedLocation);
-    } else {
-      newSearchParams.delete('location_id');
-    }
-    
-    setSearchParams(newSearchParams, { replace: true });
-  }, [selectedProduct, selectedLocation, searchParams, setSearchParams]);
+  // Update URL when filters change - temporarily disabled
+  // useEffect(() => {
+  //   const newSearchParams = new URLSearchParams(searchParams);
+  //   
+  //   if (selectedProduct) {
+  //     newSearchParams.set('product_id', selectedProduct);
+  //   } else {
+  //     newSearchParams.delete('product_id');
+  //   }
+  //   
+  //   if (selectedLocation) {
+  //     newSearchParams.set('location_id', selectedLocation);
+  //   } else {
+  //     newSearchParams.delete('location_id');
+  //   }
+  //   
+  //   setSearchParams(newSearchParams, { replace: true });
+  // }, [selectedProduct, selectedLocation, searchParams, setSearchParams]);
 
   // Check if both filters are selected
   const showDataTable = selectedProduct && selectedLocation;
@@ -251,6 +260,7 @@ const ReplenishmentDashboard: React.FC = () => {
                       });
                     }}
                     className="h-8 w-8"
+                    title="Limpiar solo ubicación"
                   >
                     <X className="h-4 w-4" />
                   </Button>
@@ -260,15 +270,25 @@ const ReplenishmentDashboard: React.FC = () => {
             
             {/* Global clear all filters button */}
             {(selectedProduct || selectedLocation) && (
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={handleClearFilters}
-                className="h-8 w-8"
-                title="Limpiar todos los filtros"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="destructive" 
+                  size="icon" 
+                  onClick={handleClearFilters}
+                  className="h-8 w-8"
+                  title="Limpiar todos los filtros (producto y ubicación)"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={handleClearFilters}
+                  className="h-8 px-3 text-xs"
+                >
+                  Limpiar Todo
+                </Button>
+              </div>
             )}
           </div>
         </CardContent>
