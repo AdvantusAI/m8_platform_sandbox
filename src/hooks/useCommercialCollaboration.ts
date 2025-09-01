@@ -155,7 +155,7 @@ export function useCommercialCollaboration() {
       }
 
       // For now, just store in local state since table doesn't exist
-      //console.log('Would add market intelligence:', intelligence);
+      ////console.log('Would add market intelligence:', intelligence);
       toast.success('Inteligencia de mercado agregada (simulado)');
       
       // Add to local state

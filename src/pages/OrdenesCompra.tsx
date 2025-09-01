@@ -67,14 +67,14 @@ export default function OrdenesCompra() {
   const fetchReplenishmentOrders = async () => {
     try {
       setLoading(true);
-      //console.log('Fetching purchase order suggestions...');
+      ////console.log('Fetching purchase order suggestions...');
       
       const { data, error } = await supabase
         .from('purchase_order_suggestions' as any)
         .select('*')
         .order('order_date', { ascending: false });
 
-      //console.log('Purchase order suggestions query result:', { data, error });
+      ////console.log('Purchase order suggestions query result:', { data, error });
 
       if (error) {
         console.error('Supabase error:', error);
@@ -96,7 +96,7 @@ export default function OrdenesCompra() {
       setSelectedOrder(order);
       setShowCalculations(false);
       setOrderCalculations([]);
-      //console.log('Fetching details for order:', order.id);
+      ////console.log('Fetching details for order:', order.id);
       setIsDialogOpen(true);
     } catch (error) {
       console.error('Error fetching order details:', error);
@@ -109,14 +109,14 @@ export default function OrdenesCompra() {
   const fetchOrderCalculations = async (order: PurchaseOrderSuggestion) => {
     try {
       setCalculationsLoading(true);
-      //console.log('Fetching calculations for order:', order.id);
+      ////console.log('Fetching calculations for order:', order.id);
       
       const { data, error } = await supabase
         .from('purchase_order_calculations' as any)
         .select('*')
         .eq('purchase_order_suggestion_id', order.id);
 
-      //console.log('Purchase order calculations query result:', { data, error });
+      ////console.log('Purchase order calculations query result:', { data, error });
 
       if (error) {
         console.error('Error fetching order calculations:', error);

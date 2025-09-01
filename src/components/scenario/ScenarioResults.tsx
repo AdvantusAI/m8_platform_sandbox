@@ -15,7 +15,7 @@ export const ScenarioResults: React.FC<ScenarioResultsProps> = ({
   results,
   scenarioName
 }) => {
-  //console.log('🔍 resultados:', { results, scenarioName });
+  ////console.log('🔍 resultados:', { results, scenarioName });
   
   // Check if this is a service level scenario
   if (results.scenario_type === 'service' && results.service_level_results) {
@@ -29,11 +29,11 @@ export const ScenarioResults: React.FC<ScenarioResultsProps> = ({
 
   const { impact_summary } = results || {};
   
-  //console.log('📊 resumen de impacto:', impact_summary);
+  ////console.log('📊 resumen de impacto:', impact_summary);
   
   // If impact_summary is not available, show loading or fallback
   if (!impact_summary) {
-    //console.log('⚠️ No se encontró impact_summary, mostrando mensaje de no datos');
+    ////console.log('⚠️ No se encontró impact_summary, mostrando mensaje de no datos');
     return (
       <div className="flex items-center justify-center py-8">
         <div className="text-center max-w-md">

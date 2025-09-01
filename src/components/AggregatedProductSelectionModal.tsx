@@ -56,7 +56,7 @@ export function AggregatedProductSelectionModal({ isOpen, onClose, onSelect }: A
       if (error) throw error;
       
       const productsData = data || [];
-      //console.log('Raw products data sample:', productsData.slice(0, 3)); // Debug log
+      ////console.log('Raw products data sample:', productsData.slice(0, 3)); // Debug log
       setProducts(productsData);
       buildCategoryTree(productsData);
     } catch (error) {
@@ -134,7 +134,7 @@ export function AggregatedProductSelectionModal({ isOpen, onClose, onSelect }: A
   };
 
   const handleSelect = (node: CategoryNode) => {
-    //console.log('Node selected:', node); // Debug log
+    ////console.log('Node selected:', node); // Debug log
     
     // For subcategories, extract the subcategory ID from the composite key
     let formattedId = node.id;
@@ -145,7 +145,7 @@ export function AggregatedProductSelectionModal({ isOpen, onClose, onSelect }: A
     }
     // For categories and products, keep the original ID
     
-    //console.log('Formatted ID:', formattedId); // Debug log
+    ////console.log('Formatted ID:', formattedId); // Debug log
     
     onSelect({
       type: node.type,

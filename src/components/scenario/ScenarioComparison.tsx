@@ -105,7 +105,7 @@ export const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({
 
   const handleExport = () => {
     if (selectedComparisonData.length === 0) {
-      //console.log('No scenarios selected for export');
+      ////console.log('No scenarios selected for export');
       return;
     }
 
@@ -180,7 +180,7 @@ export const ScenarioComparison: React.FC<ScenarioComparisonProps> = ({
     link.click();
     document.body.removeChild(link);
 
-    //console.log('Comparison data exported successfully');
+    ////console.log('Comparison data exported successfully');
   };
 
   if (isLoading) {

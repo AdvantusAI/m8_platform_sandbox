@@ -43,7 +43,7 @@ export function CustomerSelectionModal({
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      //console.log('Fetching customers...');
+      ////console.log('Fetching customers...');
       
       if (!user) {
         setCustomers([]);
@@ -72,7 +72,7 @@ export function CustomerSelectionModal({
       const { data, error } = await query;
       if (error) throw error;
 
-      ////console.log('Customers data:', data);
+      //////console.log('Customers data:', data);
       
       const customerNodes: CustomerNode[] = (data || []).map(customer => ({
         id: customer.id,

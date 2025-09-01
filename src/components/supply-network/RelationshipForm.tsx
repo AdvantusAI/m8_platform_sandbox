@@ -176,7 +176,7 @@ export const RelationshipForm: React.FC<RelationshipFormProps> = ({ onSuccess, o
         relationshipData.is_bidirectional = data.is_bidirectional;
       }
 
-      console.log('Inserting relationship data:', relationshipData);
+      //console.log('Inserting relationship data:', relationshipData);
       await createRelationship.mutateAsync(relationshipData);
       toast.success('Relación creada exitosamente');
       reset();

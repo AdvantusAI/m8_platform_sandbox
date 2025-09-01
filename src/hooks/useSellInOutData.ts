@@ -152,8 +152,8 @@ export const useSellInOutData = () => {
     setLoading(true);
     try {
       // Debug: Log the incoming filters
-      console.log('=== Supabase Query Debug ===');
-      console.log('Incoming filters:', filters);
+      //console.log('=== Supabase Query Debug ===');
+      //console.log('Incoming filters:', filters);
       
       let query = (supabase as any)
         .schema('m8_schema')
@@ -162,40 +162,40 @@ export const useSellInOutData = () => {
 
       if (filters.product_id) {
         query = query.eq('product_id', filters.product_id);
-        console.log('Added product_id filter:', filters.product_id);
+        //console.log('Added product_id filter:', filters.product_id);
       }
       if (filters.category_id) {
         query = query.eq('category_id', filters.category_id);
-        console.log('Added category_id filter:', filters.category_id);
+        //console.log('Added category_id filter:', filters.category_id);
       }
       if (filters.subcategory_id) {
         query = query.eq('subcategory_id', filters.subcategory_id);
-        console.log('Added subcategory_id filter:', filters.subcategory_id);
+        //console.log('Added subcategory_id filter:', filters.subcategory_id);
       }
       if (filters.location_id) {
         query = query.eq('location_id', filters.location_id);
-        console.log('Added location_id filter:', filters.location_id);
+        //console.log('Added location_id filter:', filters.location_id);
       }
       if (filters.customer_id) {
         query = query.eq('customer_id', filters.customer_id);
-        console.log('Added customer_id filter:', filters.customer_id);
+        //console.log('Added customer_id filter:', filters.customer_id);
       }
       if (filters.period_start) {
         query = query.gte('period_month', filters.period_start);
-        console.log('Added period_start filter:', filters.period_start);
+        //console.log('Added period_start filter:', filters.period_start);
       }
       if (filters.period_end) {
         query = query.lte('period_month', filters.period_end);
-        console.log('Added period_end filter:', filters.period_end);
+        //console.log('Added period_end filter:', filters.period_end);
       }
 
-      console.log('Final query built, executing...');
+      //console.log('Final query built, executing...');
       const { data, error } = await query.order('period_month', { ascending: false });
       
-      console.log('Query result - data length:', data?.length || 0);
-      console.log('Query result - error:', error);
-      console.log('First few records:', data?.slice(0, 3));
-      console.log('===========================');
+      //console.log('Query result - data length:', data?.length || 0);
+      //console.log('Query result - error:', error);
+      //console.log('First few records:', data?.slice(0, 3));
+      //console.log('===========================');
       
       if (error) throw error;
       setSellThroughMetrics(data || []);

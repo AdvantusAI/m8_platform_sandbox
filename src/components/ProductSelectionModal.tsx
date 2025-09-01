@@ -32,7 +32,7 @@ interface ProductSelectionModalProps {
 }
 
 export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSelectionModalProps) {
-  console.log('ProductSelectionModal rendered with isOpen:', isOpen);
+ 
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);

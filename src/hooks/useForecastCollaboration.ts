@@ -113,7 +113,7 @@ export function useForecastCollaboration(
         forecastData = data || [];
         
       } else if (selectionType === 'subcategory') {
-        ////console.log('Fetching data for subcategory:', productId);
+        //////console.log('Fetching data for subcategory:', productId);
         
         const { data, error } = await supabase
           .schema('m8_schema')
@@ -139,7 +139,7 @@ export function useForecastCollaboration(
         forecastData = data || [];
         
       } else if (selectionType === 'product') {
-        ////console.log('Fetching data for product:', productId);
+        //////console.log('Fetching data for product:', productId);
         
         const { data, error } = await supabase
           .schema('m8_schema')

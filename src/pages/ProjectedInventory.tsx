@@ -31,24 +31,24 @@ export default function ProjectedInventory() {
 
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);
-    //console.log('Producto seleccionado en Projected Inventory:', productId);
+    ////console.log('Producto seleccionado en Projected Inventory:', productId);
   };
 
   const handleLocationSelect = (locationId: string) => {
     setSelectedLocationId(locationId);
-    //console.log('Ubicación seleccionada en Projected Inventory:', locationId);
+    ////console.log('Ubicación seleccionada en Projected Inventory:', locationId);
   };
 
   const handleCustomerSelect = (customerId: string) => {
     setSelectedCustomerId(customerId);
-    //console.log('Cliente seleccionado en Projected Inventory:', customerId);
+    ////console.log('Cliente seleccionado en Projected Inventory:', customerId);
   };
 
   const handleClearFilters = () => {
     setSelectedProductId('');
     setSelectedLocationId('');
     setSelectedCustomerId('');
-    //console.log('Filtros limpiados en Projected Inventory');
+    ////console.log('Filtros limpiados en Projected Inventory');
   };
 
   const getStatusBadge = (status: string) => {

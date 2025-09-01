@@ -164,8 +164,8 @@ export function DataGrids() {
         customer_name: item.customer_name
       })) || [];
 
-      //console.log('Raw data from view:', data);
-      //console.log('Transformed data:', transformedData);
+      ////console.log('Raw data from view:', data);
+      ////console.log('Transformed data:', transformedData);
 
       setDetailData(transformedData);
     } catch (error) {

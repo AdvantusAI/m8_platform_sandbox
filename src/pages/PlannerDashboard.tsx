@@ -58,7 +58,7 @@ export default function PlannerDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      //console.log('Fetching comprehensive dashboard data...');
+      ////console.log('Fetching comprehensive dashboard data...');
       
       await fetchLowStockItems();
       await fetchRecentOrders();
@@ -95,7 +95,7 @@ export default function PlannerDashboard() {
         product_code: item.product_id // Using product_id as code for now
       }));
       
-      //console.log('Low stock items fetched:', mappedData.length);
+      ////console.log('Low stock items fetched:', mappedData.length);
       setLowStockItems(mappedData);
     } catch (error) {
       console.error('Error in fetchLowStockItems:', error);
@@ -111,7 +111,7 @@ export default function PlannerDashboard() {
         { id: 3, po_number: 'PO-2024-003', status: 'PENDING', order_date: '2024-12-03', created_at: '2024-12-03T10:00:00Z' }
       ];
       
-      //console.log('Using mock purchase orders data');
+      ////console.log('Using mock purchase orders data');
       
       const mappedData: PurchaseOrder[] = mockOrders.map((item: any) => ({
         id: item.id || 0,
@@ -120,7 +120,7 @@ export default function PlannerDashboard() {
         order_date: item.order_date || new Date().toISOString()
       }));
       
-      //console.log('Recent orders fetched:', mappedData.length);
+      ////console.log('Recent orders fetched:', mappedData.length);
       setRecentOrders(mappedData);
     } catch (error) {
       console.error('Error in fetchRecentOrders:', error);
@@ -150,7 +150,7 @@ export default function PlannerDashboard() {
           locations_analyzed: uniqueLocations
         });
         
-        //console.log('Forecast accuracy calculated:', { avgAccuracy, uniqueLocations, totalProducts: data.length });
+        ////console.log('Forecast accuracy calculated:', { avgAccuracy, uniqueLocations, totalProducts: data.length });
       }
     } catch (error) {
       console.error('Error in fetchForecastAccuracy:', error);
@@ -186,7 +186,7 @@ export default function PlannerDashboard() {
         customer_name: item.customers?.customer_name || item.customer_id
       }));
 
-      //console.log('Low accuracy forecasts fetched:', mappedData.length);
+      ////console.log('Low accuracy forecasts fetched:', mappedData.length);
       setLowAccuracyForecasts(mappedData);
     } catch (error) {
       console.error('Error in fetchLowAccuracyForecasts:', error);
@@ -207,7 +207,7 @@ export default function PlannerDashboard() {
         { po_number: 'PO-2024-002', status: 'APPROVED' }
       ];
       
-      //console.log('Using mock pending orders data');
+      ////console.log('Using mock pending orders data');
       
       // Fetch outlier products
       const { count: outlierProducts } = await supabase

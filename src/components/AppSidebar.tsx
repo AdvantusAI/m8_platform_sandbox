@@ -84,7 +84,7 @@ const items = [
 const fulfillmentItems = [
   {
     title: 'Planificación de Suministro',
-    url: '/replenishment',
+    url: '/replenishment-dashboard',
     icon: Package
   },
   {

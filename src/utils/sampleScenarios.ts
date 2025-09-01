@@ -121,7 +121,7 @@ export const createSampleScenarios = async () => {
   ];
 
   try {
-    //console.log('📝 Creating sample scenarios...');
+    ////console.log('📝 Creating sample scenarios...');
     
     for (const scenario of sampleScenarios) {
       const { data, error } = await supabase
@@ -132,11 +132,11 @@ export const createSampleScenarios = async () => {
       if (error) {
         console.error('❌ Error creating sample scenario:', error);
       } else {
-        //console.log('✅ Created sample scenario:', data[0].scenario_name);
+        ////console.log('✅ Created sample scenario:', data[0].scenario_name);
       }
     }
     
-    //console.log('🎉 Sample scenarios created successfully!');
+    ////console.log('🎉 Sample scenarios created successfully!');
   } catch (error) {
     console.error('❌ Error creating sample scenarios:', error);
   }
