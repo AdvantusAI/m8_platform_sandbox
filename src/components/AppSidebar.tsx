@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, ChartScatter, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, Rocket, GitBranch, Network, TrendingDown, ArrowLeftRight, UserCheck, Factory, AlertTriangle, Truck } from "lucide-react";
+import { Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, ChartScatter, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, Rocket, GitBranch, Network, TrendingDown, ArrowLeftRight, UserCheck, Factory, AlertTriangle, Truck, BellRing } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useState, useEffect } from "react";
@@ -81,27 +81,23 @@ const items = [
 }*/];
 
 // Fulfillment items
-const fulfillmentItems = [{
-  title: "Logística",
-  url: "/fulfillment-dashboard",
-  icon: Factory
-}, {
-  title: "Planificación MRP",
-  url: "/mrp-planning",
-  icon: Package
-}, {
-  title: "Órdenes de Compra",
-  url: "/purchase-orders",
-  icon: ShoppingCart
-}, {
-  title: "Red de Suministro",
-  url: "/supply-network",
-  icon: Network
-}, {
-  title: "Replenishment Dashboard",
-  url: "/replenishment-dashboard",
-  icon: Truck
-}];
+const fulfillmentItems = [
+  {
+    title: 'Planificación de Suministro',
+    url: '/replenishment',
+    icon: Package
+  },
+  {
+    title: 'Configuración de Alertas',
+    url: '/alert-configuration',
+    icon: BellRing
+  },
+  {
+    title: 'Alertas Activas',
+    url: '/active-alerts',
+    icon: AlertTriangle
+  }
+];
 
 /*
 // NPI items
@@ -248,7 +244,7 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-gray-600 font-semibold">
-            🏭 Logística
+             Fulfillment
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

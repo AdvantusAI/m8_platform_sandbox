@@ -10,12 +10,26 @@ import {
   Download, 
   RefreshCw, 
   AlertTriangle,
-  Package
+  Package,
+  Palette
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  ComposedChart
+} from 'recharts';
 
 // Add custom styles for the demanda total row
 const customStyles = `
@@ -54,6 +68,12 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
   const [data, setData] = useState<SupplyPlanRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [gridApi, setGridApi] = useState<any>(null);
+  const [showColorCustomization, setShowColorCustomization] = useState(false);
+  const [chartColors, setChartColors] = useState({
+    inventarioProyectado: '#4285F4',
+    demandaTotal: '#DB4437',
+    stockDeSeguridad: '#FFA500'
+  });
 
   const loadData = async () => {
     if (!productId || !locationId) return;
@@ -119,6 +139,63 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     }
     return formatted;
   };
+
+  // Prepare chart data from the pivot data
+  const chartData = useMemo(() => {
+    console.log('Chart data processing - data length:', data.length);
+    if (data.length === 0) return [];
+
+    console.log('First row keys:', Object.keys(data[0]));
+    console.log('Available metrics:', data.map(row => row.metric));
+    console.log('First row data:', data[0]);
+
+    // Get all date columns (excluding metric and other non-date columns)
+    // The date columns are in format "2025_09_01", "2025_09_02", etc. (with underscores)
+    const dateColumns = Object.keys(data[0]).filter(key => 
+      !['metric', 'node_name', 'product_id', 'location_node_id', 'location_code'].includes(key) &&
+      (key.includes('date') || key.includes('Date') || /^\d{4}-\d{2}-\d{2}$/.test(key) || /^\d{4}\s\d{2}\s\d{2}$/.test(key) || /^\d{4}_\d{2}_\d{2}$/.test(key))
+    );
+
+    console.log('Date columns found:', dateColumns);
+
+    // Find the rows for Demanda Total, Inventario Proyectado, and Stock de Seguridad
+    // Since the data is already transformed, we look for the Spanish names
+    const demandaTotalRow = data.find(row => row.metric === 'Demanda Total');
+    const inventarioProyectadoRow = data.find(row => row.metric === 'Inventario Proyectado');
+    const stockDeSeguridadRow = data.find(row => row.metric === 'Stock de Seguridad');
+
+    console.log('Demanda Total row found:', !!demandaTotalRow);
+    console.log('Inventario Proyectado row found:', !!inventarioProyectadoRow);
+    console.log('Stock de Seguridad row found:', !!stockDeSeguridadRow);
+    console.log('Demanda Total row metric:', demandaTotalRow?.metric);
+    console.log('Inventario Proyectado row metric:', inventarioProyectadoRow?.metric);
+    console.log('Stock de Seguridad row metric:', stockDeSeguridadRow?.metric);
+
+    if (!demandaTotalRow || !inventarioProyectadoRow) {
+      console.log('Missing required rows for chart');
+      return [];
+    }
+
+    // Create chart data points
+    const chartDataPoints = dateColumns.map(dateCol => {
+      // Parse date from "2025_09_01" format to Date object
+      const [year, month, day] = dateCol.split('_');
+      const dateObj = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      
+      return {
+        date: format(dateObj, 'dd/MM/yyyy', { locale: es }),
+        originalDate: dateCol,
+        demandaTotal: demandaTotalRow[dateCol] || 0,
+        inventarioProyectado: inventarioProyectadoRow[dateCol] || 0,
+        stockDeSeguridad: stockDeSeguridadRow ? (stockDeSeguridadRow[dateCol] || 0) : 0
+      };
+    });
+
+    console.log('Chart data points created:', chartDataPoints.length);
+    console.log('Sample chart data:', chartDataPoints.slice(0, 3));
+
+    return chartDataPoints;
+  }, [data]);
 
   const getCellStyle = (params: any) => {
     const value = params.value;
@@ -363,6 +440,21 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     setGridApi(params.api);
   };
 
+  const handleColorChange = (metric: string, color: string) => {
+    setChartColors(prev => ({
+      ...prev,
+      [metric]: color
+    }));
+  };
+
+  const resetColors = () => {
+    setChartColors({
+      inventarioProyectado: '#4285F4',
+      demandaTotal: '#DB4437',
+      stockDeSeguridad: '#FFA500'
+    });
+  };
+
   useEffect(() => {
     loadData();
   }, [productId, locationId]);
@@ -449,6 +541,163 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Chart Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="space-y-1">
+              <h3 className="text-xl font-bold text-gray-900">
+                Gráfico de Demanda e Inventario
+              </h3>
+              <p className="text-sm text-gray-600">
+                Visualización de Demanda Total vs Inventario Proyectado - {productId} - {locationId}
+              </p>
+              <p className="text-xs text-gray-500">
+                Chart data points: {chartData.length} | Data rows: {data.length}
+              </p>
+            </div>
+                         <Button 
+               variant="outline"
+               size="sm"
+               onClick={() => setShowColorCustomization(!showColorCustomization)}
+               className="bg-white hover:bg-gray-50 border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900 transition-all duration-200 hover:shadow-sm rounded-md"
+             >
+               <Palette className="h-4 w-4 mr-1.5" />
+               Personalizar Colores
+             </Button>
+          </div>
+          
+          {/* Color Customization Panel */}
+          {showColorCustomization && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-semibold text-gray-700">Personalizar Colores del Gráfico</h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetColors}
+                  className="text-xs px-2 py-1"
+                >
+                  Restablecer
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-600">Inventario Proyectado</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={chartColors.inventarioProyectado}
+                      onChange={(e) => handleColorChange('inventarioProyectado', e.target.value)}
+                      className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-500">{chartColors.inventarioProyectado}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-600">Demanda Total</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={chartColors.demandaTotal}
+                      onChange={(e) => handleColorChange('demandaTotal', e.target.value)}
+                      className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-500">{chartColors.demandaTotal}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-600">Stock de Seguridad</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={chartColors.stockDeSeguridad}
+                      onChange={(e) => handleColorChange('stockDeSeguridad', e.target.value)}
+                      className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-500">{chartColors.stockDeSeguridad}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {chartData.length > 0 ? (
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    stroke="#6b7280"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                    labelStyle={{ fontWeight: 'bold', color: '#374151' }}
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36}
+                    wrapperStyle={{ paddingTop: '20px' }}
+                  />
+                  <Bar 
+                    dataKey="inventarioProyectado" 
+                    name="Inventario Proyectado"
+                    fill={chartColors.inventarioProyectado} 
+                    radius={[4, 4, 0, 0]}
+                    opacity={0.8}
+                  />
+                                     <Line 
+                     type="monotone" 
+                     dataKey="demandaTotal" 
+                     name="Demanda Total"
+                     stroke={chartColors.demandaTotal} 
+                     strokeWidth={3}
+                     dot={{ fill: chartColors.demandaTotal, strokeWidth: 2, r: 4 }}
+                     activeDot={{ r: 6, stroke: chartColors.demandaTotal, strokeWidth: 2, fill: '#fff' }}
+                   />
+                   <Line 
+                     type="monotone" 
+                     dataKey="stockDeSeguridad" 
+                     name="Stock de Seguridad"
+                     stroke={chartColors.stockDeSeguridad} 
+                     strokeWidth={2}
+                     strokeDasharray="5 5"
+                     dot={{ fill: chartColors.stockDeSeguridad, strokeWidth: 2, r: 3 }}
+                     activeDot={{ r: 5, stroke: chartColors.stockDeSeguridad, strokeWidth: 2, fill: '#fff' }}
+                   />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="h-80 flex items-center justify-center bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <p className="text-gray-500 mb-2">No hay datos disponibles para el gráfico</p>
+                <p className="text-sm text-gray-400">
+                  Se requieren las métricas "Demanda Total" e "Inventario Proyectado"
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Datos disponibles: {data.map(row => row.metric).join(', ')}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
         
         {/* AG Grid Section */}

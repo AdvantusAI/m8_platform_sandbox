@@ -50,6 +50,8 @@ import KPIDashboard from "./pages/KPIDashboard";
 import { DataGrids } from "./components/DataGrid";
 import FulfillmentDashboard from "./pages/FulfillmentDashboard";
 import ReplenishmentDashboard from "./pages/ReplenishmentDashboard";
+import AlertConfiguration from "./pages/AlertConfiguration";
+import ActiveAlerts from './pages/ActiveAlerts';
 
 
 const queryClient = new QueryClient();
@@ -134,6 +136,8 @@ const App = () => {
               <Route path="/mrp-planning" element={<FulfillmentDashboard />} />
               <Route path="/purchase-orders" element={<FulfillmentDashboard />} />
               <Route path="/replenishment-dashboard" element={<ReplenishmentDashboard />} />
+              <Route path="/alert-configuration" element={<AlertConfiguration />} />
+              <Route path="/active-alerts" element={<ActiveAlerts />} />
               <Route path="/ag-data-grids" element={<DataGrids />} />
               {/* Protected Routes */}
             </Routes>
