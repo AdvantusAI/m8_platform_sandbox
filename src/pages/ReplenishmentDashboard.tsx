@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +30,9 @@ interface FilterStorage {
 }
 
 const ReplenishmentDashboard: React.FC = () => {
+  // ===== URL PARAMETERS =====
+  const [searchParams, setSearchParams] = useSearchParams();
+  
   // ===== LOCAL STORAGE HELPERS =====
   const getStoredFilters = (): Partial<FilterStorage> => {
     try {
@@ -50,9 +54,18 @@ const ReplenishmentDashboard: React.FC = () => {
   // ===== STATE MANAGEMENT =====
   const storedFilters = getStoredFilters();
   
+  // Get initial values from URL params or stored filters
+  const getInitialProduct = () => {
+    return searchParams.get('product_id') || storedFilters.productId || '';
+  };
+  
+  const getInitialLocation = () => {
+    return searchParams.get('location_id') || storedFilters.locationId || '';
+  };
+  
   const [loading, setLoading] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<string>(storedFilters.productId || '');
-  const [selectedLocation, setSelectedLocation] = useState<string>(storedFilters.locationId || '');
+  const [selectedProduct, setSelectedProduct] = useState<string>(getInitialProduct());
+  const [selectedLocation, setSelectedLocation] = useState<string>(getInitialLocation());
   const [availableProducts, setAvailableProducts] = useState<Array<{product_id: string, location_id?: string}>>([]);
   const [supplyPlanData, setSupplyPlanData] = useState<any[]>([]);
   
@@ -132,6 +145,39 @@ const ReplenishmentDashboard: React.FC = () => {
   useEffect(() => {
     loadSupplyPlanData();
   }, [loadSupplyPlanData]);
+
+  // Handle URL parameter changes
+  useEffect(() => {
+    const urlProductId = searchParams.get('product_id');
+    const urlLocationId = searchParams.get('location_id');
+    
+    if (urlProductId && urlProductId !== selectedProduct) {
+      setSelectedProduct(urlProductId);
+    }
+    
+    if (urlLocationId && urlLocationId !== selectedLocation) {
+      setSelectedLocation(urlLocationId);
+    }
+  }, [searchParams, selectedProduct, selectedLocation]);
+
+  // Update URL when filters change
+  useEffect(() => {
+    const newSearchParams = new URLSearchParams(searchParams);
+    
+    if (selectedProduct) {
+      newSearchParams.set('product_id', selectedProduct);
+    } else {
+      newSearchParams.delete('product_id');
+    }
+    
+    if (selectedLocation) {
+      newSearchParams.set('location_id', selectedLocation);
+    } else {
+      newSearchParams.delete('location_id');
+    }
+    
+    setSearchParams(newSearchParams, { replace: true });
+  }, [selectedProduct, selectedLocation, searchParams, setSearchParams]);
 
   // Check if both filters are selected
   const showDataTable = selectedProduct && selectedLocation;

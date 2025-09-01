@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +42,7 @@ export const ExceptionList: React.FC<ExceptionListProps> = ({
   onExceptionSelect,
   onActionTaken
 }) => {
+  const navigate = useNavigate();
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
   const toggleRowExpansion = (id: string) => {
@@ -92,8 +94,18 @@ export const ExceptionList: React.FC<ExceptionListProps> = ({
   };
 
   const handleAction = (exception: ExceptionDetail, action: string) => {
-    toast.success(`Acción "${action}" iniciada para ${exception.exception_code}`);
-    onActionTaken?.(exception, action);
+    if (action === 'view_plan') {
+      // Navigate to replenishment dashboard with product and location parameters
+      const searchParams = new URLSearchParams({
+        product_id: exception.product_id,
+        location_id: exception.location_code
+      });
+      navigate(`/replenishment-dashboard?${searchParams.toString()}`);
+      toast.success(`Navegando al plan de suministro para ${exception.product_name}`);
+    } else {
+      toast.success(`Acción "${action}" iniciada para ${exception.exception_code}`);
+      onActionTaken?.(exception, action);
+    }
   };
 
   if (loading) {
