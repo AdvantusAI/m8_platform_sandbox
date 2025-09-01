@@ -62,7 +62,7 @@ export class ExceptionService {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .schema('m8_schema')
         .from('inventory_alerts')
         .select('alert_severity, alert_type, current_value, threshold_value')
@@ -130,8 +130,8 @@ export class ExceptionService {
       const today = new Date().toISOString().split('T')[0];
       
       // Build the query for inventory alerts
-      let query = supabase
-      .schema('m8_schema')
+      let query = (supabase as any)
+        .schema('m8_schema')
         .from('inventory_alerts')
         .select(`
           *,
@@ -166,11 +166,28 @@ export class ExceptionService {
       if (alertsError) throw alertsError;
       if (!alertsData) return [];
 
+      // Debug: Log the raw alerts data
+      console.log('Raw alerts data:', alertsData);
+
       // Process and enrich the data
       const exceptions: ExceptionDetail[] = await Promise.all(
         alertsData.map(async (alert, index) => {
+          // Manually fetch product name since join might not work
+          const { data: productData } = await (supabase as any)
+            .schema('m8_schema')
+            .from('products')
+            .select('product_name')
+            .eq('product_id', alert.product_id)
+            .single();
+
+          // Debug: Log the alert data to see what we're getting
+          console.log('Alert data:', {
+            product_id: alert.product_id,
+            product_name: productData?.product_name,
+            context_data: alert.context_data
+          });
           // Get inventory time phased plan data
-          const { data: itpData } = await supabase
+          const { data: itpData } = await (supabase as any)
             .schema('m8_schema')
             .from('inventory_time_phased_plan')
             .select('*')
@@ -180,7 +197,8 @@ export class ExceptionService {
             .single();
 
           // Get dynamic safety stock data
-          const { data: dssData } = await supabase
+          const { data: dssData } = await (supabase as any)
+            .schema('m8_schema')
             .from('dynamic_safety_stock_plan')
             .select('*')
             .eq('product_id', alert.product_id)
@@ -213,7 +231,7 @@ export class ExceptionService {
             alert_description: alert.alert_description,
             alert_message: alert.alert_message,
             product_id: alert.product_id,
-            product_name: alert.context_data?.product_name || `Producto ${alert.product_id}`,
+            product_name: productData?.product_name || `Producto ${alert.product_id}`,
             location_name: alert.supply_network_nodes.node_name,
             location_code: alert.supply_network_nodes.location_code,
             location_type: alert.supply_network_nodes.node_name,
@@ -257,8 +275,8 @@ export class ExceptionService {
       const today = new Date().toISOString().split('T')[0];
       
       // Get the specific exception
-      const { data: alertData, error: alertError } = await supabase
-      .schema('m8_schema')
+      const { data: alertData, error: alertError } = await (supabase as any)
+        .schema('m8_schema')
         .from('inventory_alerts')
         .select(`
           *,
@@ -274,11 +292,20 @@ export class ExceptionService {
 
       if (alertError || !alertData) return null;
 
+      // Manually fetch product name
+      const { data: productData } = await (supabase as any)
+        .schema('m8_schema')
+        .from('products')
+        .select('product_name')
+        .eq('product_id', alertData.product_id)
+        .single();
+
       // Get future projections
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 28); // 4 weeks projection
       
-      const { data: projectionData } = await supabase
+      const { data: projectionData } = await (supabase as any)
+        .schema('m8_schema')
         .from('inventory_time_phased_plan')
         .select('time_bucket, ending_balance, gross_requirements, scheduled_receipts, planned_receipts')
         .eq('product_id', alertData.product_id)
@@ -343,7 +370,7 @@ export class ExceptionService {
         alert_description: alertData.alert_description,
         alert_message: alertData.alert_message,
         product_id: alertData.product_id,
-        product_name: alertData.context_data?.product_name || `Producto ${alertData.product_id}`,
+        product_name: productData?.product_name || `Producto ${alertData.product_id}`,
         location_name: alertData.supply_network_nodes.node_name,
         location_code: alertData.supply_network_nodes.location_code,
         location_type: alertData.supply_network_nodes.node_name,
@@ -396,7 +423,7 @@ export class ExceptionService {
         updateData.resolution_notes = notes;
       }
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .schema('m8_schema')
         .from('inventory_alerts')
         .update(updateData)
