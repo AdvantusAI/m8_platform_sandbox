@@ -40,11 +40,6 @@ const items = [
   icon: Network
 }, 
 
-{
-  title: "Ag-Data-Grids",
-  url: "/ag-data-grids",
-  icon: BarChart3
-},
 
 /*{
   title: "Análisis What-If",
@@ -54,11 +49,7 @@ const items = [
   title: "Proyecciones de Inventario",
   url: "/inventory-projections",
   icon: Warehouse
-},*/ {
-  title: "Gestión de Compras",
-  url: "/purchase-management",
-  icon: ShoppingCart
-},  {
+},*/  {
   title: "Análisis Sell-Through",
   url: "/sell-through-analytics",
   icon: TrendingDown

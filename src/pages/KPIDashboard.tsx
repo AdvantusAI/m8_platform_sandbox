@@ -220,7 +220,7 @@ export default function KPIDashboard() {
       
       const { data: customerData, error: customerError } = await supabase
         .schema('m8_schema')
-        .from('customers')
+        .from('Customer')
         .select('customer_id, customer_name')
         .in('customer_id', uniqueCustomerIds);
 
@@ -317,7 +317,7 @@ export default function KPIDashboard() {
       const [customerResult, productResult] = await Promise.all([
         supabase
           .schema('m8_schema')
-          .from('customers')
+          .from('Customer')
           .select('customer_id, customer_name')
           .in('customer_id', uniqueCustomerIds),
         supabase

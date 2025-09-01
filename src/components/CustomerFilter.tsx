@@ -62,7 +62,7 @@ export function CustomerFilter({
       //////console.log('Fetching customers with client levels:', clientLevels);
       let query = supabase
         .schema('m8_schema')
-        .from('customers')
+        .from('Customer')
         .select('*');
 
       if (searchTerm) {

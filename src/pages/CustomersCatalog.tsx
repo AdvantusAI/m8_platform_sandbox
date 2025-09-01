@@ -65,7 +65,7 @@ export default function CustomersCatalog() {
       setLoading(true);
       const { data, error } = await supabase
         .schema('m8_schema') // Ensure to use the correct schema if needed
-        .from('customers')
+        .from('Customer')
         .select('*')
         .order('customer_id');
 
@@ -87,7 +87,7 @@ export default function CustomersCatalog() {
       if (editingCustomer) {
         const { error } = await supabase
           .schema('m8_schema') // Ensure to use the correct schema if needed    
-          .from('customers')
+          .from('Customer')
           .update(formData)
           .eq('id', editingCustomer.id);
         
@@ -96,7 +96,7 @@ export default function CustomersCatalog() {
       } else {
         const { error } = await supabase
           .schema('m8_schema') // Ensure to use the correct schema if needed
-          .from('customers')
+          .from('Customer')
           .insert([formData]);
         
         if (error) throw error;
@@ -133,7 +133,7 @@ export default function CustomersCatalog() {
     try {
       const { error } = await supabase
         .schema('m8_schema') // Ensure to use the correct schema if needed
-        .from('customers')
+        .from('Customer')
         .delete()
         .eq('id', customerId);
 

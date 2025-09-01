@@ -27,7 +27,7 @@ export const useChannelPartners = () => {
     try {
       let query = (supabase as any)
         .schema('m8_schema')
-        .from('customers')
+        .from('Customer')
         .select('*');
       
       if (filters.level_1) query = query.eq('level_1', filters.level_1);
