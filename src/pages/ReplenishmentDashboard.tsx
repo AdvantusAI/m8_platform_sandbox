@@ -16,6 +16,7 @@ import { SupplyPlanService } from '@/services/supplyPlanService';
 import { ProductSelectionModal } from '@/components/ProductSelectionModal';
 import { LocationSelectionModal } from '@/components/LocationSelectionModal';
 import { SupplyPlanAgGrid } from '@/components/replenishment/SupplyPlanAgGrid';
+import { PurchaseOrderRecommendationsGrid } from '@/components/replenishment/PurchaseOrderRecommendationsGrid';
 import { useProducts } from '@/hooks/useProducts';
 import { useLocations } from '@/hooks/useLocations';
 
@@ -242,10 +243,23 @@ const ReplenishmentDashboard: React.FC = () => {
 
       {/* ===== SUPPLY PLAN DATA TABLE ===== */}
       {showDataTable ? (
-        <SupplyPlanAgGrid
-          productId={selectedProduct}
-          locationId={selectedLocation}
-        />
+        
+        <div className="space-y-6">
+          <SupplyPlanAgGrid
+            productId={selectedProduct}
+            locationId={selectedLocation}
+          />
+          
+          {/* Purchase Order Recommendations Grid */}
+          <Card>
+            <CardContent className="p-0">
+              <PurchaseOrderRecommendationsGrid
+                productId={selectedProduct}
+                locationId={selectedLocation}
+              />
+            </CardContent>
+          </Card>
+        </div>
       ) : (
         <Card>
           <CardContent className="py-12">

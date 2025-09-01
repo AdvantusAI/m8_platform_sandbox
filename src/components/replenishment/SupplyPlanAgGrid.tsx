@@ -222,7 +222,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
         // Apply orange background to all other columns in Demanda Total row
         return {
           ...baseStyle,
-          backgroundColor: '#ffe3bd'
+          backgroundColor: '#faf0e3'
         };
       }
     }
@@ -239,7 +239,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
         // Apply green background to all other columns in Órdenes Planificadas row
         return {
           ...baseStyle,
-          backgroundColor: '#e1f7e4'
+          backgroundColor: '#f0faf1'
         };
       }
     }
@@ -264,7 +264,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
             projectedInventoryValue <= stockDeSeguridadValue) {
           return {
             ...baseStyle,
-            backgroundColor: '#faaaae'
+            backgroundColor: '#fadede'
           };
         }
       }
@@ -357,7 +357,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
              baseColumns.push({
          headerName: column === 'metric' ? 'Métrica' : (column === 'total_demand' ? 'Demanda Total' : column.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())),
          field: column,
-         width: isDateColumn ? 130 : (column === 'metric' ? 250 : 150),
+                   width: isDateColumn ? 100 : (column === 'metric' ? 160 : 120),
          type: isNumericColumn ? 'numericColumn' : undefined,
          pinned: isFirstColumn ? 'left' : undefined,
          headerClass: column === 'metric' ? 'font-bold text-gray-800' : (column === 'total_demand' ? 'font-bold text-gray-800' : 'font-semibold text-gray-800'),
@@ -700,8 +700,11 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
           )}
         </div>
         
+        <div style={{ marginTop: "20px" }}>
+        </div>
+        
         {/* AG Grid Section */}
-        <div className={`${agGridContainerStyles}`} style={{ height: '30vh',  margin: '0 auto' }}>
+        <div className={`${agGridContainerStyles}`} style={{ height: '18vh',  margin: '0 auto' }}>
           <AgGridReact
             columnDefs={columnDefs}
             rowData={data}
@@ -712,9 +715,8 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
               menuTabs: ['generalMenuTab', 'columnsMenuTab']
             }}
             theme={commonAgGridConfig.theme}
-            pagination={true}
+            pagination={false}
             paginationPageSize={20}
-            paginationPageSizeSelector={[10, 20, 50, 100]}
             suppressRowClickSelection={false}
           
             enableRangeSelection={true}

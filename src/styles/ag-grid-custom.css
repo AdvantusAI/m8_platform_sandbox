@@ -207,3 +207,31 @@
   .ag-theme-custom .ag-body-vertical-scroll::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
+
+  /* Purchase Order Recommendations - Urgency Level Row Styling */
+  .ag-theme-custom .ag-row-critical {
+    background-color: #fef2f2 !important; /* red-50 */
+    border-left: 4px solid #dc2626 !important; /* red-600 */
+  }
+
+  .ag-theme-custom .ag-row-high {
+    background-color: #fff7ed !important; /* orange-50 */
+    border-left: 4px solid #ea580c !important; /* orange-600 */
+  }
+
+  .ag-theme-custom .ag-row-medium {
+    background-color: #fffbeb !important; /* amber-50 */
+    border-left: 4px solid #d97706 !important; /* amber-600 */
+  }
+
+  .ag-theme-custom .ag-row-low {
+    background-color: #f0fdf4 !important; /* emerald-50 */
+    border-left: 4px solid #059669 !important; /* emerald-600 */
+  }
+
+  .ag-theme-custom .ag-row-critical:hover,
+  .ag-theme-custom .ag-row-high:hover,
+  .ag-theme-custom .ag-row-medium:hover,
+  .ag-theme-custom .ag-row-low:hover {
+    background-color: #f8fafc !important; /* slate-50 */
+  }
