@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface SafetyStockCalculation {
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   warehouse_id: number;
   current_safety_stock: number;
   recommended_safety_stock: number;
@@ -32,7 +32,7 @@ export interface MultiNodeInventory {
 export interface InventoryNode {
   node_id: string;
   node_type: 'warehouse' | 'distribution_center' | 'store';
-  location_id: string;
+  location_node_id: string;
   current_stock: number;
   capacity: number;
   lead_time_to_replenish: number;
@@ -72,7 +72,7 @@ export class SafetyStockService {
    */
   static async calculateAdvancedSafetyStock(
     product_id: string,
-    location_id?: string,
+    location_node_id?: string,
     warehouse_id?: number
   ): Promise<SafetyStockCalculation[]> {
     // Get current inventory data
@@ -101,7 +101,7 @@ export class SafetyStockService {
 
     for (const inventory of inventoryData || []) {
       const relevantDemand = demandHistory?.filter(d => 
-        location_id ? d.location_id === location_id : true
+        location_node_id ? d.location_node_id === location_node_id : true
       ) || [];
 
       // Calculate demand variability
@@ -120,7 +120,7 @@ export class SafetyStockService {
 
       results.push({
         product_id: inventory.product_id,
-        location_id: location_id || 'default',
+        location_node_id: location_node_id || 'default',
         warehouse_id: inventory.warehouse_id,
         current_safety_stock: inventory.safety_stock,
         recommended_safety_stock: calculations.recommended,
@@ -266,7 +266,7 @@ export class SafetyStockService {
     const nodes: InventoryNode[] = (inventoryNodes || []).map(inv => ({
       node_id: `${inv.warehouse_id}`,
       node_type: inv.warehouse_id < 10 ? 'distribution_center' : 'warehouse',
-      location_id: 'default', // Fallback since location_id doesn't exist in schema
+      location_node_id: 'default', // Fallback since location_node_id doesn't exist in schema
       current_stock: inv.current_stock,
       capacity: inv.current_stock * 2, // Estimated capacity since max_capacity doesn't exist
       lead_time_to_replenish: 14, // Default since lead_time doesn't exist
@@ -325,7 +325,7 @@ export class SafetyStockService {
     for (const node of nodes) {
       // Calculate expected demand for this node's zone
       const nodeDemand = forecastData?.filter(f => 
-        node.demand_zone.includes(f.location_id || 'unknown')
+        node.demand_zone.includes(f.location_node_id || 'unknown')
       ) || [];
 
       const avgDailyDemand = nodeDemand.length > 0 ?

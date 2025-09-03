@@ -17,7 +17,7 @@ CREATE TABLE public.channel_partners (
 CREATE TABLE public.sell_in_data (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   product_id text NOT NULL,
-  location_id text NOT NULL,
+  location_node_id text NOT NULL,
   channel_partner_id uuid REFERENCES public.channel_partners(id),
   transaction_date date NOT NULL,
   quantity numeric NOT NULL DEFAULT 0,
@@ -37,7 +37,7 @@ CREATE TABLE public.sell_in_data (
 CREATE TABLE public.sell_out_data (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   product_id text NOT NULL,
-  location_id text NOT NULL,
+  location_node_id text NOT NULL,
   channel_partner_id uuid REFERENCES public.channel_partners(id),
   transaction_date date NOT NULL,
   quantity numeric NOT NULL DEFAULT 0,
@@ -58,7 +58,7 @@ CREATE TABLE public.sell_out_data (
 CREATE TABLE public.sell_through_rates (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   product_id text NOT NULL,
-  location_id text NOT NULL,
+  location_node_id text NOT NULL,
   channel_partner_id uuid REFERENCES public.channel_partners(id),
   calculation_period date NOT NULL,
   period_type text NOT NULL DEFAULT 'monthly' CHECK (period_type IN ('weekly', 'monthly', 'quarterly')),
@@ -77,7 +77,7 @@ CREATE TABLE public.sell_through_rates (
 CREATE TABLE public.forecast_reconciliation (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   product_id text NOT NULL,
-  location_id text NOT NULL,
+  location_node_id text NOT NULL,
   channel_partner_id uuid REFERENCES public.channel_partners(id),
   forecast_period date NOT NULL,
   sell_in_forecast numeric NOT NULL DEFAULT 0,
@@ -103,17 +103,17 @@ ADD COLUMN channel_partner_id uuid REFERENCES public.channel_partners(id),
 ADD COLUMN forecast_reconciliation_id uuid REFERENCES public.forecast_reconciliation(id);
 
 -- Create indexes for performance
-CREATE INDEX idx_sell_in_data_product_location_date ON public.sell_in_data(product_id, location_id, transaction_date);
+CREATE INDEX idx_sell_in_data_product_location_date ON public.sell_in_data(product_id, location_node_id, transaction_date);
 CREATE INDEX idx_sell_in_data_channel_partner ON public.sell_in_data(channel_partner_id, transaction_date);
-CREATE INDEX idx_sell_out_data_product_location_date ON public.sell_out_data(product_id, location_id, transaction_date);
+CREATE INDEX idx_sell_out_data_product_location_date ON public.sell_out_data(product_id, location_node_id, transaction_date);
 CREATE INDEX idx_sell_out_data_channel_partner ON public.sell_out_data(channel_partner_id, transaction_date);
-CREATE INDEX idx_sell_through_rates_period ON public.sell_through_rates(product_id, location_id, calculation_period);
-CREATE INDEX idx_forecast_reconciliation_period ON public.forecast_reconciliation(product_id, location_id, forecast_period);
+CREATE INDEX idx_sell_through_rates_period ON public.sell_through_rates(product_id, location_node_id, calculation_period);
+CREATE INDEX idx_forecast_reconciliation_period ON public.forecast_reconciliation(product_id, location_node_id, forecast_period);
 
 -- Create function to calculate sell-through rate
 CREATE OR REPLACE FUNCTION public.calculate_sell_through_rate(
   p_product_id text,
-  p_location_id text,
+  p_location_node_id text,
   p_channel_partner_id uuid,
   p_period_start date,
   p_period_end date
@@ -130,7 +130,7 @@ BEGIN
   INTO total_sell_in
   FROM public.sell_in_data
   WHERE product_id = p_product_id
-    AND location_id = p_location_id
+    AND location_node_id = p_location_node_id
     AND channel_partner_id = p_channel_partner_id
     AND transaction_date BETWEEN p_period_start AND p_period_end;
 
@@ -139,7 +139,7 @@ BEGIN
   INTO total_sell_out
   FROM public.sell_out_data
   WHERE product_id = p_product_id
-    AND location_id = p_location_id
+    AND location_node_id = p_location_node_id
     AND channel_partner_id = p_channel_partner_id
     AND transaction_date BETWEEN p_period_start AND p_period_end;
 
@@ -175,7 +175,7 @@ BEGIN
   FOR rec IN (
     SELECT DISTINCT 
       si.product_id,
-      si.location_id,
+      si.location_node_id,
       si.channel_partner_id
     FROM public.sell_in_data si
     WHERE si.transaction_date BETWEEN p_period_start AND p_period_end
@@ -187,7 +187,7 @@ BEGIN
       -- Calculate sell-through rate for this period
       sell_through_rate := public.calculate_sell_through_rate(
         rec.product_id,
-        rec.location_id,
+        rec.location_node_id,
         rec.channel_partner_id,
         period_date,
         (period_date + INTERVAL '1 month' - INTERVAL '1 day')::date
@@ -198,14 +198,14 @@ BEGIN
       INTO inventory_days
       FROM public.sell_out_data
       WHERE product_id = rec.product_id
-        AND location_id = rec.location_id
+        AND location_node_id = rec.location_node_id
         AND channel_partner_id = rec.channel_partner_id
         AND transaction_date BETWEEN period_date AND (period_date + INTERVAL '1 month' - INTERVAL '1 day')::date;
 
       -- Insert calculated metrics
       INSERT INTO public.sell_through_rates (
         product_id,
-        location_id,
+        location_node_id,
         channel_partner_id,
         calculation_period,
         period_type,
@@ -214,7 +214,7 @@ BEGIN
         performance_category
       ) VALUES (
         rec.product_id,
-        rec.location_id,
+        rec.location_node_id,
         rec.channel_partner_id,
         period_date,
         'monthly',
@@ -239,7 +239,7 @@ $$;
 -- Create function for forecast reconciliation
 CREATE OR REPLACE FUNCTION public.reconcile_forecasts(
   p_product_id text,
-  p_location_id text,
+  p_location_node_id text,
   p_forecast_period date
 ) RETURNS uuid
 LANGUAGE plpgsql
@@ -257,7 +257,7 @@ BEGIN
   INTO sell_in_actual
   FROM public.sell_in_data
   WHERE product_id = p_product_id
-    AND location_id = p_location_id
+    AND location_node_id = p_location_node_id
     AND date_trunc('month', transaction_date) = date_trunc('month', p_forecast_period);
 
   -- Get actual sell-out data
@@ -265,7 +265,7 @@ BEGIN
   INTO sell_out_actual
   FROM public.sell_out_data
   WHERE product_id = p_product_id
-    AND location_id = p_location_id
+    AND location_node_id = p_location_node_id
     AND date_trunc('month', transaction_date) = date_trunc('month', p_forecast_period);
 
   -- Get forecast data
@@ -275,7 +275,7 @@ BEGIN
   INTO sell_in_forecast, sell_out_forecast
   FROM public.forecast_data
   WHERE product_id = p_product_id
-    AND location_id = p_location_id
+    AND location_node_id = p_location_node_id
     AND postdate = p_forecast_period
   LIMIT 1;
 
@@ -290,7 +290,7 @@ BEGIN
   -- Insert reconciliation record
   INSERT INTO public.forecast_reconciliation (
     product_id,
-    location_id,
+    location_node_id,
     forecast_period,
     sell_in_forecast,
     sell_out_forecast,
@@ -303,7 +303,7 @@ BEGIN
     gap_analysis
   ) VALUES (
     p_product_id,
-    p_location_id,
+    p_location_node_id,
     p_forecast_period,
     sell_in_forecast,
     sell_out_forecast,

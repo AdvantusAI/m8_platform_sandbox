@@ -12,7 +12,7 @@ import { Plus, Search, Edit, Trash2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 interface Location {
-  location_id: string;
+  location_node_id: string;
   location_name: string | null;
   type: string | null;
   level_1: string | null;
@@ -41,7 +41,7 @@ const LocationsCatalog = () => {
 
   const form = useForm<LocationForm>({
     defaultValues: {
-      location_id: "",
+      location_node_id: "",
       location_name: "",
       type: "",
       level_1: "",
@@ -67,10 +67,10 @@ const LocationsCatalog = () => {
         .range(start, end);
       
       if (searchTerm) {
-        query = query.or(`location_id.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%,type.ilike.%${searchTerm}%`);
+        query = query.or(`location_node_id.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%,type.ilike.%${searchTerm}%`);
       }
       
-      const { data, error, count } = await query.order("location_id");
+      const { data, error, count } = await query.order("location_node_id");
       
       if (error) throw error;
       
@@ -93,7 +93,7 @@ const LocationsCatalog = () => {
         const { error } = await supabase
           .from("locations")
           .update(data)
-          .eq("location_id", editingLocation.location_id);
+          .eq("location_node_id", editingLocation.location_node_id);
         
         if (error) throw error;
         toast.success("Ubicación actualizada exitosamente");
@@ -131,7 +131,7 @@ const LocationsCatalog = () => {
       const { error } = await supabase
         .from("locations")
         .delete()
-        .eq("location_id", locationId);
+        .eq("location_node_id", locationId);
       
       if (error) throw error;
       toast.success("Ubicación eliminada exitosamente");
@@ -233,7 +233,7 @@ const LocationsCatalog = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="location_id"
+                    name="location_node_id"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>ID de Ubicación *</FormLabel>
@@ -433,8 +433,8 @@ const LocationsCatalog = () => {
                   </TableRow>
                 ) : (
                   locations.map((location) => (
-                    <TableRow key={location.location_id}>
-                      <TableCell className="font-medium">{location.location_id}</TableCell>
+                    <TableRow key={location.location_node_id}>
+                      <TableCell className="font-medium">{location.location_node_id}</TableCell>
                       <TableCell>{location.location_name || "-"}</TableCell>
                       <TableCell>{location.type || "-"}</TableCell>
                       <TableCell>{location.level_1 || "-"}</TableCell>
@@ -452,7 +452,7 @@ const LocationsCatalog = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(location.location_id)}
+                            onClick={() => handleDelete(location.location_node_id)}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>

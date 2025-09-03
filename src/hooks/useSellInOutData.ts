@@ -5,7 +5,7 @@ import { toast } from '@/hooks/use-toast';
 export interface SellInData {
   id: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   channel_partner_id: string; // Maps to customer_id in the view
   transaction_date: string; // Maps to postdate in the view
   quantity: number; // Maps to value in the view
@@ -20,7 +20,7 @@ export interface SellInData {
 export interface SellOutData {
   id: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   channel_partner_id: string;
   transaction_date: string;
   quantity: number;
@@ -33,7 +33,7 @@ export interface SellOutData {
 
 export interface SellThroughMetrics {
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   customer_id: string;
   period_month: string;
   sell_in_units: number;
@@ -53,7 +53,7 @@ export const useSellInOutData = () => {
 
   const fetchSellInData = useCallback(async (filters: {
     product_id?: string;
-    location_id?: string;
+    location_node_id?: string;
     customer_id?: string;
     start_date?: string;
     end_date?: string;
@@ -66,7 +66,7 @@ export const useSellInOutData = () => {
         .select('*');
       
       if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
+      if (filters.location_node_id) query = query.eq('location_node_id', filters.location_node_id);
       if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
       if (filters.start_date) query = query.gte('postdate', filters.start_date);
       if (filters.end_date) query = query.lte('postdate', filters.end_date);
@@ -77,9 +77,9 @@ export const useSellInOutData = () => {
       
       // Transform the data to match the SellInData interface
       const transformedData = (data || []).map((item: any) => ({
-        id: `${item.product_id}_${item.location_id}_${item.customer_id}_${item.postdate}`,
+        id: `${item.product_id}_${item.location_node_id}_${item.customer_id}_${item.postdate}`,
         product_id: item.product_id,
-        location_id: item.location_id,
+        location_node_id: item.location_node_id,
         channel_partner_id: item.customer_id, // Map customer_id to channel_partner_id for compatibility
         transaction_date: item.postdate,
         quantity: item.quantity,
@@ -106,7 +106,7 @@ export const useSellInOutData = () => {
 
   const fetchSellOutData = useCallback(async (filters: {
     product_id?: string;
-    location_id?: string;
+    location_node_id?: string;
     channel_partner_id?: string;
     start_date?: string;
     end_date?: string;
@@ -119,7 +119,7 @@ export const useSellInOutData = () => {
         .select('*');
       
       if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
+      if (filters.location_node_id) query = query.eq('location_node_id', filters.location_node_id);
       if (filters.channel_partner_id) query = query.eq('channel_partner_id', filters.channel_partner_id);
       if (filters.start_date) query = query.gte('transaction_date', filters.start_date);
       if (filters.end_date) query = query.lte('transaction_date', filters.end_date);
@@ -144,7 +144,7 @@ export const useSellInOutData = () => {
     product_id?: string;
     category_id?: string;
     subcategory_id?: string;
-    location_id?: string;
+    location_node_id?: string;
     customer_id?: string;
     period_start?: string;
     period_end?: string;
@@ -172,9 +172,9 @@ export const useSellInOutData = () => {
         query = query.eq('subcategory_id', filters.subcategory_id);
         //console.log('Added subcategory_id filter:', filters.subcategory_id);
       }
-      if (filters.location_id) {
-        query = query.eq('location_id', filters.location_id);
-        //console.log('Added location_id filter:', filters.location_id);
+      if (filters.location_node_id) {
+        query = query.eq('location_node_id', filters.location_node_id);
+        //console.log('Added location_node_id filter:', filters.location_node_id);
       }
       if (filters.customer_id) {
         query = query.eq('customer_id', filters.customer_id);
@@ -225,7 +225,7 @@ export const useSellInOutData = () => {
         .from('time_series')
         .select('id')
         .eq('product_id', data.product_id)
-        .eq('location_id', data.location_id)
+        .eq('location_node_id', data.location_node_id)
         .eq('customer_id', data.channel_partner_id)
         .single();
 
@@ -241,7 +241,7 @@ export const useSellInOutData = () => {
           .from('time_series')
           .insert([{
             product_id: data.product_id,
-            location_id: data.location_id,
+            location_node_id: data.location_node_id,
             customer_id: data.channel_partner_id
           }])
           .select('id')

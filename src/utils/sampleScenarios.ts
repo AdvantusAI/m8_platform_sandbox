@@ -6,7 +6,7 @@ export const createSampleScenarios = async () => {
       scenario_name: 'Escenario de Demanda Alta',
       scenario_type: 'forecast_adjustment',
       product_id: 'PROD_001',
-      location_id: 'WH_001',
+      location_node_id: 'WH_001',
       description: 'Simulación de incremento del 20% en la demanda',
       parameters: { percentage: 20 },
       results: {
@@ -27,7 +27,7 @@ export const createSampleScenarios = async () => {
       scenario_name: 'Escenario de Disrupción de Suministro',
       scenario_type: 'supply_disruption',
       product_id: 'PROD_002',
-      location_id: 'WH_001',
+      location_node_id: 'WH_001',
       description: 'Simulación de reducción del 30% en la disponibilidad',
       parameters: { reduction: 30 },
       results: {
@@ -48,7 +48,7 @@ export const createSampleScenarios = async () => {
       scenario_name: 'Escenario de Nivel de Servicio',
       scenario_type: 'service',
       product_id: 'PROD_003',
-      location_id: 'WH_002',
+      location_node_id: 'WH_002',
       description: 'Optimización del nivel de servicio al 98%',
       parameters: { target_service_level: 0.98 },
       results: {
@@ -80,7 +80,7 @@ export const createSampleScenarios = async () => {
       scenario_name: 'Escenario de Promoción',
       scenario_type: 'promotional_impact',
       product_id: 'PROD_004',
-      location_id: 'WH_001',
+      location_node_id: 'WH_001',
       description: 'Simulación de campaña promocional con 25% de incremento',
       parameters: { lift: 0.25 },
       results: {
@@ -101,7 +101,7 @@ export const createSampleScenarios = async () => {
       scenario_name: 'Escenario de Optimización de Inventario',
       scenario_type: 'inventory_optimization',
       product_id: 'PROD_005',
-      location_id: 'WH_002',
+      location_node_id: 'WH_002',
       description: 'Reducción de inventario con mantenimiento de servicio',
       parameters: { reduction: 15 },
       results: {

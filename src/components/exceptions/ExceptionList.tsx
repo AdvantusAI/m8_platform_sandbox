@@ -98,7 +98,7 @@ export const ExceptionList: React.FC<ExceptionListProps> = ({
       // Navigate to replenishment dashboard with product and location parameters
       const searchParams = new URLSearchParams({
         product_id: exception.product_id,
-        location_id: exception.location_code
+        location_node_id: exception.location_code
       });
       navigate(`/replenishment-dashboard?${searchParams.toString()}`);
       toast.success(`Navegando al plan de suministro para ${exception.product_name}`);

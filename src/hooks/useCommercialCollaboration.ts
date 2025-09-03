@@ -32,7 +32,7 @@ interface MarketIntelligence {
   commercial_user_id?: string;
   customer_id?: string;
   product_id?: string;
-  location_id?: string;
+  location_node_id?: string;
   intelligence_type: string;
   impact_assessment: string;
   confidence_level: string;

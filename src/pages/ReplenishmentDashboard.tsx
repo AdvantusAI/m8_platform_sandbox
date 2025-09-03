@@ -67,7 +67,7 @@ const ReplenishmentDashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<string>(getInitialProduct());
   const [selectedLocation, setSelectedLocation] = useState<string>(getInitialLocation());
-  const [availableProducts, setAvailableProducts] = useState<Array<{product_id: string, location_id?: string}>>([]);
+  const [availableProducts, setAvailableProducts] = useState<Array<{product_id: string, location_node_id?: string}>>([]);
   const [supplyPlanData, setSupplyPlanData] = useState<any[]>([]);
   
   // Modal visibility states
@@ -82,7 +82,7 @@ const ReplenishmentDashboard: React.FC = () => {
   const loadAvailableProducts = useCallback(async () => {
     try {
       // For now, we'll use a simple approach - the ProductSelectionModal will handle product loading
-      setAvailableProducts([{ product_id: 'sample', location_id: undefined }]);
+      setAvailableProducts([{ product_id: 'sample', location_node_id: undefined }]);
     } catch (error) {
       console.error('Error loading available products:', error);
       toast.error('Error al conectar con la base de datos.');
@@ -158,7 +158,7 @@ const ReplenishmentDashboard: React.FC = () => {
   //   if (isClearingFilters) return; // Skip if we're clearing filters
   //   
   //   const urlProductId = searchParams.get('product_id');
-  //   const urlLocationId = searchParams.get('location_id');
+  //   const urlLocationId = searchParams.get('location_node_id');
   //   
   //   if (urlProductId && urlProductId !== selectedProduct) {
   //     setSelectedProduct(urlProductId);
@@ -180,9 +180,9 @@ const ReplenishmentDashboard: React.FC = () => {
   //   }
   //   
   //   if (selectedLocation) {
-  //     newSearchParams.set('location_id', selectedLocation);
+  //     newSearchParams.set('location_node_id', selectedLocation);
   //   } else {
-  //     newSearchParams.delete('location_id');
+  //     newSearchParams.delete('location_node_id');
   //   }
   //   
   //   setSearchParams(newSearchParams, { replace: true });

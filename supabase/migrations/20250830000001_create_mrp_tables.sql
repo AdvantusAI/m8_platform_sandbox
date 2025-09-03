@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS m8_schema.purchase_order_recommendations (
   plan_id UUID REFERENCES m8_schema.replenishment_plans(id) ON DELETE CASCADE,
   recommendation_id VARCHAR(50) UNIQUE NOT NULL,
   product_id VARCHAR(50) NOT NULL,
-  location_id VARCHAR(50) NOT NULL,
+  location_node_id VARCHAR(50) NOT NULL,
   supplier_id VARCHAR(50),
   supplier_name VARCHAR(255),
   week_start_date DATE NOT NULL,
@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS m8_schema.planning_exceptions (
   exception_type VARCHAR(50) NOT NULL, -- stockout, excess_inventory, below_safety_stock, order_urgency
   severity VARCHAR(20) NOT NULL, -- critical, high, medium, low
   product_id VARCHAR(50) NOT NULL,
-  location_id VARCHAR(50) NOT NULL,
+  location_node_id VARCHAR(50) NOT NULL,
   week_start_date DATE,
   exception_date DATE,
   current_inventory DECIMAL(15,2),
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS m8_schema.demand_explosion_results (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   plan_id UUID REFERENCES m8_schema.replenishment_plans(id) ON DELETE CASCADE,
   product_id VARCHAR(50) NOT NULL,
-  location_id VARCHAR(50) NOT NULL,
+  location_node_id VARCHAR(50) NOT NULL,
   week_start_date DATE NOT NULL,
   week_end_date DATE NOT NULL,
   week_number INTEGER NOT NULL,
@@ -110,14 +110,14 @@ CREATE TABLE IF NOT EXISTS m8_schema.demand_explosion_results (
   pegging_info JSONB DEFAULT '{}', -- Demand source tracking
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(plan_id, product_id, location_id, week_start_date)
+  UNIQUE(plan_id, product_id, location_node_id, week_start_date)
 );
 
 -- 5. MRP Parameters Table (per product/location)
 CREATE TABLE IF NOT EXISTS m8_schema.mrp_parameters (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   product_id VARCHAR(50) NOT NULL,
-  location_id VARCHAR(50) NOT NULL,
+  location_node_id VARCHAR(50) NOT NULL,
   safety_stock_method VARCHAR(50) DEFAULT 'statistical', -- statistical, fixed, lead_time_based
   safety_stock_value DECIMAL(15,2),
   safety_stock_days INTEGER,
@@ -140,7 +140,7 @@ CREATE TABLE IF NOT EXISTS m8_schema.mrp_parameters (
   active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(product_id, location_id),
+  UNIQUE(product_id, location_node_id),
   CONSTRAINT valid_safety_stock_method CHECK (safety_stock_method IN ('statistical', 'fixed', 'lead_time_based', 'percentage')),
   CONSTRAINT valid_lot_sizing CHECK (lot_sizing_rule IN ('lot_for_lot', 'fixed_quantity', 'min_max', 'economic_order_quantity', 'periods_of_supply'))
 );
@@ -150,20 +150,20 @@ CREATE INDEX idx_replenishment_plans_status ON m8_schema.replenishment_plans(sta
 CREATE INDEX idx_replenishment_plans_created_by ON m8_schema.replenishment_plans(created_by);
 
 CREATE INDEX idx_po_recommendations_plan ON m8_schema.purchase_order_recommendations(plan_id);
-CREATE INDEX idx_po_recommendations_product_location ON m8_schema.purchase_order_recommendations(product_id, location_id);
+CREATE INDEX idx_po_recommendations_product_location ON m8_schema.purchase_order_recommendations(product_id, location_node_id);
 CREATE INDEX idx_po_recommendations_week ON m8_schema.purchase_order_recommendations(week_start_date);
 CREATE INDEX idx_po_recommendations_status ON m8_schema.purchase_order_recommendations(approval_status);
 CREATE INDEX idx_po_recommendations_supplier ON m8_schema.purchase_order_recommendations(supplier_id);
 
 CREATE INDEX idx_exceptions_plan ON m8_schema.planning_exceptions(plan_id);
-CREATE INDEX idx_exceptions_product_location ON m8_schema.planning_exceptions(product_id, location_id);
+CREATE INDEX idx_exceptions_product_location ON m8_schema.planning_exceptions(product_id, location_node_id);
 CREATE INDEX idx_exceptions_type_severity ON m8_schema.planning_exceptions(exception_type, severity);
 CREATE INDEX idx_exceptions_status ON m8_schema.planning_exceptions(resolution_status);
 
 CREATE INDEX idx_explosion_plan ON m8_schema.demand_explosion_results(plan_id);
-CREATE INDEX idx_explosion_product_location_week ON m8_schema.demand_explosion_results(product_id, location_id, week_start_date);
+CREATE INDEX idx_explosion_product_location_week ON m8_schema.demand_explosion_results(product_id, location_node_id, week_start_date);
 
-CREATE INDEX idx_mrp_params_product_location ON m8_schema.mrp_parameters(product_id, location_id);
+CREATE INDEX idx_mrp_params_product_location ON m8_schema.mrp_parameters(product_id, location_node_id);
 CREATE INDEX idx_mrp_params_active ON m8_schema.mrp_parameters(active);
 
 -- Create RLS policies
@@ -234,7 +234,7 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION m8_schema.calculate_mrp_explosion(
   p_plan_id UUID,
   p_product_id VARCHAR(50),
-  p_location_id VARCHAR(50)
+  p_location_node_id VARCHAR(50)
 )
 RETURNS VOID AS $$
 DECLARE
@@ -263,7 +263,7 @@ BEGIN
     COALESCE(lead_time_days, 14)
   INTO v_safety_stock, v_min_order_qty, v_order_multiple, v_lead_time
   FROM m8_schema.mrp_parameters
-  WHERE product_id = p_product_id AND location_id = p_location_id;
+  WHERE product_id = p_product_id AND location_node_id = p_location_node_id;
 
   -- Get current inventory
   SELECT COALESCE(current_stock, 0) INTO v_beginning_inv
@@ -284,7 +284,7 @@ BEGIN
     SELECT COALESCE(SUM(forecast), 0) INTO v_gross_req
     FROM m8_schema.forecast_data
     WHERE product_id = p_product_id 
-      AND location_id = p_location_id
+      AND location_node_id = p_location_node_id
       AND postdate BETWEEN v_week.week_start AND v_week.week_end;
 
     -- Get scheduled receipts (existing POs)
@@ -315,19 +315,19 @@ BEGIN
 
     -- Insert or update explosion results
     INSERT INTO m8_schema.demand_explosion_results (
-      plan_id, product_id, location_id,
+      plan_id, product_id, location_node_id,
       week_start_date, week_end_date, week_number, year,
       beginning_inventory, gross_requirements, scheduled_receipts,
       projected_available, net_requirements, planned_order_receipts,
       safety_stock, reorder_point
     ) VALUES (
-      p_plan_id, p_product_id, p_location_id,
+      p_plan_id, p_product_id, p_location_node_id,
       v_week.week_start, v_week.week_end, v_week.week_number, v_week.year,
       v_beginning_inv, v_gross_req, v_scheduled_rec,
       v_projected_avail, v_net_req, v_planned_receipt,
       v_safety_stock, v_reorder_point
     )
-    ON CONFLICT (plan_id, product_id, location_id, week_start_date)
+    ON CONFLICT (plan_id, product_id, location_node_id, week_start_date)
     DO UPDATE SET
       beginning_inventory = EXCLUDED.beginning_inventory,
       gross_requirements = EXCLUDED.gross_requirements,

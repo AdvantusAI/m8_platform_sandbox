@@ -3,14 +3,14 @@ import { InventoryProjectionService, InventoryProjection } from '@/services/inve
 
 interface ProjectionResult {
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   warehouse_id: number;
   projections: InventoryProjection[];
 }
 
 interface ProjectionParams {
   product_id?: string;
-  location_id?: string;
+  location_node_id?: string;
   warehouse_id?: number;
   projection_days?: number;
 }

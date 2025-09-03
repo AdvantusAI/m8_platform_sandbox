@@ -25,7 +25,7 @@ import OutliersTab from "@/components/OutliersTab";
 export default function RetailForecast() {
   const [searchParams] = useSearchParams();
   const [selectedProductId, setSelectedProductId] = useState<string>(searchParams.get('product_id') || '');
-  const [selectedLocationId, setSelectedLocationId] = useState<string>(searchParams.get('location_id') || '');
+  const [selectedLocationId, setSelectedLocationId] = useState<string>(searchParams.get('location_node_id') || '');
   const [chartData, setChartData] = useState<any[]>([]);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -37,7 +37,7 @@ export default function RetailForecast() {
   // Update state when URL parameters change
   useEffect(() => {
     const productParam = searchParams.get('product_id');
-    const locationParam = searchParams.get('location_id');
+    const locationParam = searchParams.get('location_node_id');
     
     if (productParam && productParam !== selectedProductId) {
       setSelectedProductId(productParam);

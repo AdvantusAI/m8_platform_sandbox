@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface InterpretabilityData {
   id: number;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   model_name: string;
   interpretability_score: number;
   confidence_level: string;
@@ -44,7 +44,7 @@ export function useInterpretabilityData(productId?: string, locationId?: string,
       }
       
       if (locationId) {
-        query = query.eq('location_id', locationId);
+        query = query.eq('location_node_id', locationId);
       }
 
       // Apply customer filter if selected

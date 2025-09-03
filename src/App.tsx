@@ -54,6 +54,7 @@ import AlertConfiguration from "./pages/AlertConfiguration";
 import ActiveAlerts from './pages/ActiveAlerts';
 import ExceptionDashboard from './pages/ExceptionDashboard';
 import PurchaseOrderParametersPage from './pages/PurchaseOrderParametersPage';
+import InventoryPolicyReview from './pages/InventoryPolicyReview';
 
 
 const queryClient = new QueryClient();
@@ -139,6 +140,7 @@ const App = () => {
               <Route path="/purchase-orders" element={<FulfillmentDashboard />} />
               <Route path="/replenishment-dashboard" element={<ReplenishmentDashboard />} />
               <Route path="/exception-dashboard" element={<ExceptionDashboard />} />
+              <Route path="/inventory-policy-review" element={<InventoryPolicyReview />} />
               <Route path="/purchase-order-parameters" element={<PurchaseOrderParametersPage />} />
               <Route path="/alert-configuration" element={<AlertConfiguration />} />
               <Route path="/active-alerts" element={<ActiveAlerts />} />

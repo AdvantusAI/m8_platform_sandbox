@@ -19,7 +19,7 @@ export interface DemandExplosionResult {
   id: string;
   plan_id: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   week_start_date: string;
   week_end_date: string;
   week_number: number;
@@ -43,7 +43,7 @@ export interface PurchaseOrderRecommendation {
   plan_id: string;
   recommendation_id: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   supplier_id?: string;
   supplier_name?: string;
   week_start_date: string;
@@ -71,7 +71,7 @@ export interface PlanningException {
   exception_type: 'stockout' | 'excess_inventory' | 'below_safety_stock' | 'order_urgency' | 'forecast_deviation';
   severity: 'critical' | 'high' | 'medium' | 'low';
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   week_start_date?: string;
   exception_date?: string;
   current_inventory?: number;
@@ -90,7 +90,7 @@ export interface PlanningException {
 export interface MRPParameters {
   id: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   safety_stock_method: 'statistical' | 'fixed' | 'lead_time_based' | 'percentage';
   safety_stock_value?: number;
   safety_stock_days?: number;
@@ -175,7 +175,7 @@ export class MRPService {
    */
   static async runMRPCalculation(planId: string, filters?: {
     product_ids?: string[];
-    location_ids?: string[];
+    location_node_ids?: string[];
   }): Promise<void> {
     try {
       // Update plan status to running
@@ -203,10 +203,10 @@ export class MRPService {
       let locationsQuery = supabase
         .schema('m8_schema')
         .from('locations')
-        .select('location_id');
+        .select('location_node_id');
 
-      if (filters?.location_ids?.length) {
-        locationsQuery = locationsQuery.in('location_id', filters.location_ids);
+      if (filters?.location_node_ids?.length) {
+        locationsQuery = locationsQuery.in('location_node_id', filters.location_node_ids);
       }
 
       const { data: locations } = await locationsQuery;
@@ -214,7 +214,7 @@ export class MRPService {
       // Process each product-location combination
       for (const product of products || []) {
         for (const location of locations || []) {
-          await this.calculateMRPForItem(planId, product.product_id, location.location_id);
+          await this.calculateMRPForItem(planId, product.product_id, location.location_node_id);
         }
       }
 
@@ -258,7 +258,7 @@ export class MRPService {
     const { error } = await supabase.rpc('calculate_mrp_explosion', {
       p_plan_id: planId,
       p_product_id: productId,
-      p_location_id: locationId
+      p_location_node_id: locationId
     });
 
     if (error) {
@@ -273,7 +273,7 @@ export class MRPService {
     planId: string,
     filters?: {
       product_id?: string;
-      location_id?: string;
+      location_node_id?: string;
       week_start?: string;
       week_end?: string;
     }
@@ -287,8 +287,8 @@ export class MRPService {
     if (filters?.product_id) {
       query = query.eq('product_id', filters.product_id);
     }
-    if (filters?.location_id) {
-      query = query.eq('location_id', filters.location_id);
+    if (filters?.location_node_id) {
+      query = query.eq('location_node_id', filters.location_node_id);
     }
     if (filters?.week_start) {
       query = query.gte('week_start_date', filters.week_start);
@@ -299,7 +299,7 @@ export class MRPService {
 
     const { data, error } = await query
       .order('product_id')
-      .order('location_id')
+      .order('location_node_id')
       .order('week_start_date');
 
     if (error) throw error;
@@ -325,7 +325,7 @@ export class MRPService {
         .from('mrp_parameters')
         .select('*')
         .eq('product_id', result.product_id)
-        .eq('location_id', result.location_id)
+        .eq('location_node_id', result.location_node_id)
         .single();
 
       // Calculate order date considering lead time
@@ -340,7 +340,7 @@ export class MRPService {
         plan_id: planId,
         recommendation_id: `REC-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         product_id: result.product_id,
-        location_id: result.location_id,
+        location_node_id: result.location_node_id,
         supplier_id: params?.supplier_id,
         supplier_name: params?.preferred_supplier,
         week_start_date: result.week_start_date,
@@ -389,7 +389,7 @@ export class MRPService {
           exception_type: 'stockout',
           severity: 'critical',
           product_id: result.product_id,
-          location_id: result.location_id,
+          location_node_id: result.location_node_id,
           week_start_date: result.week_start_date,
           exception_date: result.week_start_date,
           current_inventory: result.beginning_inventory,
@@ -410,7 +410,7 @@ export class MRPService {
           exception_type: 'below_safety_stock',
           severity: 'high',
           product_id: result.product_id,
-          location_id: result.location_id,
+          location_node_id: result.location_node_id,
           week_start_date: result.week_start_date,
           exception_date: result.week_start_date,
           current_inventory: result.beginning_inventory,
@@ -431,7 +431,7 @@ export class MRPService {
           exception_type: 'excess_inventory',
           severity: 'low',
           product_id: result.product_id,
-          location_id: result.location_id,
+          location_node_id: result.location_node_id,
           week_start_date: result.week_start_date,
           exception_date: result.week_start_date,
           current_inventory: result.beginning_inventory,
@@ -460,7 +460,7 @@ export class MRPService {
     planId: string,
     filters?: {
       product_id?: string;
-      location_id?: string;
+      location_node_id?: string;
       supplier_id?: string;
       approval_status?: string;
       week_start?: string;
@@ -475,8 +475,8 @@ export class MRPService {
     if (filters?.product_id) {
       query = query.eq('product_id', filters.product_id);
     }
-    if (filters?.location_id) {
-      query = query.eq('location_id', filters.location_id);
+    if (filters?.location_node_id) {
+      query = query.eq('location_node_id', filters.location_node_id);
     }
     if (filters?.supplier_id) {
       query = query.eq('supplier_id', filters.supplier_id);
@@ -503,7 +503,7 @@ export class MRPService {
     planId: string,
     filters?: {
       product_id?: string;
-      location_id?: string;
+      location_node_id?: string;
       exception_type?: string;
       severity?: string;
       resolution_status?: string;
@@ -518,8 +518,8 @@ export class MRPService {
     if (filters?.product_id) {
       query = query.eq('product_id', filters.product_id);
     }
-    if (filters?.location_id) {
-      query = query.eq('location_id', filters.location_id);
+    if (filters?.location_node_id) {
+      query = query.eq('location_node_id', filters.location_node_id);
     }
     if (filters?.exception_type) {
       query = query.eq('exception_type', filters.exception_type);
@@ -622,7 +622,7 @@ export class MRPService {
       .from('mrp_parameters')
       .select('*')
       .eq('product_id', productId)
-      .eq('location_id', locationId)
+      .eq('location_node_id', locationId)
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
@@ -642,10 +642,10 @@ export class MRPService {
       .from('mrp_parameters')
       .upsert({
         product_id: productId,
-        location_id: locationId,
+        location_node_id: locationId,
         ...parameters
       }, {
-        onConflict: 'product_id,location_id'
+        onConflict: 'product_id,location_node_id'
       });
 
     if (error) throw error;

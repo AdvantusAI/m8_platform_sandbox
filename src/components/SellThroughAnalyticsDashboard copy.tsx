@@ -49,7 +49,7 @@ export function SellThroughAnalyticsDashboard({
     const filters: any = {};
     if (selectedProductId) filters.product_id = selectedProductId;
     if (selectedCustomerId) filters.customer_id = selectedCustomerId;
-    if (selectedLocationId) filters.location_id = selectedLocationId;
+    if (selectedLocationId) filters.location_node_id = selectedLocationId;
     
     // Set period filters based on selection
     const now = new Date();
@@ -75,7 +75,7 @@ export function SellThroughAnalyticsDashboard({
     const filters: any = {};
     if (selectedProductId) filters.product_id = selectedProductId;
     if (selectedCustomerId) filters.customer_id = selectedCustomerId;
-    if (selectedLocationId) filters.location_id = selectedLocationId;
+    if (selectedLocationId) filters.location_node_id = selectedLocationId;
     fetchSellThroughMetrics(filters);
   };
 

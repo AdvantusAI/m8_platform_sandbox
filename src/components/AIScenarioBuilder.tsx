@@ -71,7 +71,7 @@ export function AIScenarioBuilder({
 
       // Add location filter if provided
       if (selectedLocationId) {
-        query = query.eq('location_id', selectedLocationId);
+        query = query.eq('location_node_id', selectedLocationId);
       }
 
       // Add vendor filter if provided - Note: vendor_id may not exist in forecast_data
@@ -178,7 +178,7 @@ export function AIScenarioBuilder({
           scenario_name: scenarioName,
           scenario_type: scenarioType,
           product_id: selectedProductId,
-          location_id: selectedLocationId || null,
+          location_node_id: selectedLocationId || null,
           vendor_id: selectedVendorId || null,
           created_by: user.id,
           description,

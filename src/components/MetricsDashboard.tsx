@@ -94,8 +94,8 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
       
       // Apply location filter only if selected
       if (selectedLocationId) {
-        errorMetricsQuery = errorMetricsQuery.eq('location_id', selectedLocationId);
-        interpretabilityQuery = interpretabilityQuery.eq('location_id', selectedLocationId);
+        errorMetricsQuery = errorMetricsQuery.eq('location_node_id', selectedLocationId);
+        interpretabilityQuery = interpretabilityQuery.eq('location_node_id', selectedLocationId);
       }
 
       // Apply vendor filter if selected

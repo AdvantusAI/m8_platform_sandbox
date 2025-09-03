@@ -36,7 +36,7 @@ export function SellInOutDataEntry({
   const [activeTab, setActiveTab] = useState('sell-in');
   const [sellInForm, setSellInForm] = useState({
     product_id: selectedProductId,
-    location_id: selectedLocationId,
+    location_node_id: selectedLocationId,
     channel_partner_id: selectedCustomerId,
     transaction_date: '',
     quantity: '',
@@ -48,7 +48,7 @@ export function SellInOutDataEntry({
   
   const [sellOutForm, setSellOutForm] = useState({
     product_id: selectedProductId,
-    location_id: selectedLocationId,
+    location_node_id: selectedLocationId,
     channel_partner_id: selectedCustomerId,
     transaction_date: '',
     quantity: '',
@@ -69,13 +69,13 @@ export function SellInOutDataEntry({
     setSellInForm(prev => ({
       ...prev,
       product_id: selectedProductId || '',
-      location_id: selectedLocationId || '',
+      location_node_id: selectedLocationId || '',
       channel_partner_id: selectedCustomerId || ''
     }));
     setSellOutForm(prev => ({
       ...prev,
       product_id: selectedProductId || '',
-      location_id: selectedLocationId || '',
+      location_node_id: selectedLocationId || '',
       channel_partner_id: selectedCustomerId || ''
     }));
   }, [selectedProductId, selectedLocationId, selectedCustomerId]);
@@ -96,7 +96,7 @@ export function SellInOutDataEntry({
     if (success) {
       setSellInForm({
         product_id: '',
-        location_id: '',
+        location_node_id: '',
         channel_partner_id: '',
         transaction_date: '',
         quantity: '',
@@ -125,7 +125,7 @@ export function SellInOutDataEntry({
     if (success) {
       setSellOutForm({
         product_id: '',
-        location_id: '',
+        location_node_id: '',
         channel_partner_id: '',
         transaction_date: '',
         quantity: '',
@@ -245,8 +245,8 @@ export function SellInOutDataEntry({
                     <Label htmlFor="sell-in-location">ID de Ubicación</Label>
                     <Input
                       id="sell-in-location"
-                      value={sellInForm.location_id}
-                      onChange={(e) => setSellInForm(prev => ({ ...prev, location_id: e.target.value }))}
+                      value={sellInForm.location_node_id}
+                      onChange={(e) => setSellInForm(prev => ({ ...prev, location_node_id: e.target.value }))}
                       placeholder="Identificador de ubicación/almacén"
                     />
                   </div>
@@ -402,8 +402,8 @@ export function SellInOutDataEntry({
                     <Label htmlFor="sell-out-location">Location ID</Label>
                     <Input
                       id="sell-out-location"
-                      value={sellOutForm.location_id}
-                      onChange={(e) => setSellOutForm(prev => ({ ...prev, location_id: e.target.value }))}
+                      value={sellOutForm.location_node_id}
+                      onChange={(e) => setSellOutForm(prev => ({ ...prev, location_node_id: e.target.value }))}
                       placeholder="Location/warehouse identifier"
                     />
                   </div>

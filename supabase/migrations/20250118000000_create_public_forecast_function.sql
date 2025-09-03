@@ -1,13 +1,13 @@
 -- Create the aggregated forecast function in public schema for RPC access
 CREATE OR REPLACE FUNCTION public.get_aggregated_forecast_data(
   p_product_id TEXT DEFAULT NULL,
-  p_location_id TEXT DEFAULT NULL,
+  p_location_node_id TEXT DEFAULT NULL,
   p_customer_id TEXT DEFAULT NULL
 )
 RETURNS TABLE (
   postdate TEXT,
   product_id TEXT,
-  location_id TEXT,
+  location_node_id TEXT,
   customer_id TEXT,
   forecast NUMERIC,
   actual NUMERIC,
@@ -26,7 +26,7 @@ BEGIN
   SELECT 
     fd.postdate::text,
     COALESCE(p.product_id, fd.product_id)::text as product_id,
-    fd.location_id::text,
+    fd.location_node_id::text,
     fd.customer_id::text,
     SUM(fd.forecast)::numeric as forecast,
     SUM(fd.actual)::numeric as actual,
@@ -46,12 +46,12 @@ BEGIN
      (p_product_id LIKE 'CAT_%' AND p.category_id = SUBSTRING(p_product_id FROM 5)) OR
      (p_product_id LIKE 'SUBCAT_%' AND p.subcategory_id = SUBSTRING(p_product_id FROM 9)) OR
      (p_product_id NOT LIKE 'CAT_%' AND p_product_id NOT LIKE 'SUBCAT_%' AND fd.product_id = p_product_id))
-    AND (p_location_id IS NULL OR fd.location_id = p_location_id)
+    AND (p_location_node_id IS NULL OR fd.location_node_id = p_location_node_id)
     AND (p_customer_id IS NULL OR fd.customer_id = p_customer_id)
   GROUP BY 
     fd.postdate,
     COALESCE(p.product_id, fd.product_id),
-    fd.location_id,
+    fd.location_node_id,
     fd.customer_id,
     p.category_id,
     p.subcategory_id,

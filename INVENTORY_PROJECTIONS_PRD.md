@@ -134,7 +134,7 @@ Required fields:
 Required fields:
 - id (primary key)
 - product_id (foreign key)
-- location_id (foreign key)
+- location_node_id (foreign key)
 - date (demand date)
 - quantity (demand quantity)
 - actual_sales (actual sales data)
@@ -147,7 +147,7 @@ Required fields:
 Required fields:
 - id (primary key)
 - product_id (foreign key)
-- location_id (foreign key)
+- location_node_id (foreign key)
 - current_stock (current inventory level)
 - reserved_stock (allocated inventory)
 - in_transit_stock (incoming inventory)
@@ -160,7 +160,7 @@ Required fields:
 Required fields:
 - id (primary key)
 - product_id (foreign key)
-- location_id (foreign key)
+- location_node_id (foreign key)
 - forecast_date (future date)
 - forecasted_demand (predicted demand)
 - confidence_level (forecast accuracy)
@@ -173,7 +173,7 @@ Required fields:
 Required fields:
 - id (primary key)
 - product_id (foreign key)
-- location_id (foreign key)
+- location_node_id (foreign key)
 - method (calculation method)
 - service_level (target service level %)
 - review_period (days between reviews)

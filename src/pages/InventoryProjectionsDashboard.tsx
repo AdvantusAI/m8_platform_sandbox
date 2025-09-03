@@ -28,7 +28,7 @@ import { toast } from '@/hooks/use-toast';
 
 interface ProjectionData {
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   warehouse_id: number;
   projections: Array<{
     date: string;
@@ -51,7 +51,7 @@ interface SummaryStats {
 
 interface HighRiskItem {
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   stockout_risk_percentage: number;
   projected_ending_inventory: number;
 }
@@ -88,7 +88,7 @@ export default function InventoryProjectionsDashboard() {
       
       // Extract unique products and locations for filters
       const products = Array.from(new Set(results.map(r => r.product_id))).sort();
-      const locations = Array.from(new Set(results.map(r => r.location_id))).sort();
+      const locations = Array.from(new Set(results.map(r => r.location_node_id))).sort();
       
       setAvailableProducts(products);
       setAvailableLocations(locations);
@@ -121,7 +121,7 @@ export default function InventoryProjectionsDashboard() {
     }
 
     const uniqueProducts = new Set(data.map(p => p.product_id)).size;
-    const uniqueLocations = new Set(data.map(p => p.location_id)).size;
+    const uniqueLocations = new Set(data.map(p => p.location_node_id)).size;
     
     // Calculate risk metrics from all projections
     let totalRisk = 0;
@@ -179,7 +179,7 @@ export default function InventoryProjectionsDashboard() {
       if (maxRisk > 20 || worstProjection.projected_inventory < 0) {
         highRisk.push({
           product_id: result.product_id,
-          location_id: result.location_id,
+          location_node_id: result.location_node_id,
           stockout_risk_percentage: maxRisk,
           projected_ending_inventory: worstProjection.projected_inventory
         });
@@ -199,13 +199,13 @@ export default function InventoryProjectionsDashboard() {
     }
 
     if (selectedLocationId) {
-      filtered = filtered.filter(r => r.location_id === selectedLocationId);
+      filtered = filtered.filter(r => r.location_node_id === selectedLocationId);
     }
 
     if (searchTerm) {
       filtered = filtered.filter(r => 
         r.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.location_id.toLowerCase().includes(searchTerm.toLowerCase())
+        r.location_node_id.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -427,7 +427,7 @@ export default function InventoryProjectionsDashboard() {
                       {highRiskItems.map((item, index) => (
                         <tr key={index} className="border-b">
                           <td className="p-2 font-medium">{item.product_id}</td>
-                          <td className="p-2">{item.location_id}</td>
+                          <td className="p-2">{item.location_node_id}</td>
                           <td className="p-2">{item.stockout_risk_percentage.toFixed(1)}%</td>
                           <td className="p-2">
                             <span className={item.projected_ending_inventory < 0 ? 'text-red-600 font-bold' : ''}>
@@ -453,7 +453,7 @@ export default function InventoryProjectionsDashboard() {
           {/* Detailed Charts and Analysis */}
           {(selectedProductId && selectedLocationId) ? (() => {
             const selectedProjection = projectionResults.find(
-              p => p.product_id === selectedProductId && p.location_id === selectedLocationId
+              p => p.product_id === selectedProductId && p.location_node_id === selectedLocationId
             );
             
             if (!selectedProjection) {

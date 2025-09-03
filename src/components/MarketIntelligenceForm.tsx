@@ -18,7 +18,7 @@ export function MarketIntelligenceForm({ assignments, onClose }: MarketIntellige
   const [formData, setFormData] = useState({
     customer_id: '',
     product_id: '',
-    location_id: '',
+    location_node_id: '',
     intelligence_type: 'competitive',
     impact_assessment: 'neutral',
     confidence_level: 'medium',
@@ -85,11 +85,11 @@ export function MarketIntelligenceForm({ assignments, onClose }: MarketIntellige
               />
             </div>
             <div>
-              <Label htmlFor="location_id">Ubicación ID</Label>
+              <Label htmlFor="location_node_id">Ubicación ID</Label>
               <Input
-                id="location_id"
-                value={formData.location_id}
-                onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
+                id="location_node_id"
+                value={formData.location_node_id}
+                onChange={(e) => setFormData({ ...formData, location_node_id: e.target.value })}
                 placeholder="ID de ubicación"
               />
             </div>

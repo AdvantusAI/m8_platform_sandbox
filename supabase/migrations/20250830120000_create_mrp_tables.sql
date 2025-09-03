@@ -23,7 +23,7 @@ CREATE TABLE m8_schema.demand_explosion_results (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     plan_id TEXT NOT NULL REFERENCES m8_schema.replenishment_plans(plan_id),
     product_id TEXT NOT NULL,
-    location_id TEXT NOT NULL,
+    location_node_id TEXT NOT NULL,
     week_start_date DATE NOT NULL,
     week_end_date DATE NOT NULL,
     week_number INTEGER NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE m8_schema.purchase_order_recommendations (
     plan_id TEXT NOT NULL REFERENCES m8_schema.replenishment_plans(plan_id),
     recommendation_id TEXT UNIQUE NOT NULL,
     product_id TEXT NOT NULL,
-    location_id TEXT NOT NULL,
+    location_node_id TEXT NOT NULL,
     supplier_id TEXT,
     supplier_name TEXT,
     week_start_date DATE NOT NULL,
@@ -83,7 +83,7 @@ CREATE TABLE m8_schema.planning_exceptions (
     exception_type TEXT NOT NULL CHECK (exception_type IN ('stockout', 'excess_inventory', 'below_safety_stock', 'order_urgency', 'forecast_deviation')),
     severity TEXT NOT NULL CHECK (severity IN ('critical', 'high', 'medium', 'low')),
     product_id TEXT NOT NULL,
-    location_id TEXT NOT NULL,
+    location_node_id TEXT NOT NULL,
     week_start_date DATE,
     exception_date DATE,
     current_inventory DECIMAL(15,2),
@@ -107,7 +107,7 @@ CREATE TABLE m8_schema.planning_exceptions (
 CREATE TABLE m8_schema.mrp_parameters (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     product_id TEXT NOT NULL,
-    location_id TEXT NOT NULL,
+    location_node_id TEXT NOT NULL,
     safety_stock_method TEXT NOT NULL DEFAULT 'statistical' CHECK (safety_stock_method IN ('statistical', 'fixed', 'lead_time_based', 'percentage')),
     safety_stock_value DECIMAL(15,2),
     safety_stock_days INTEGER,
@@ -129,17 +129,17 @@ CREATE TABLE m8_schema.mrp_parameters (
     active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(product_id, location_id)
+    UNIQUE(product_id, location_node_id)
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_demand_explosion_plan_product_location ON m8_schema.demand_explosion_results(plan_id, product_id, location_id);
+CREATE INDEX idx_demand_explosion_plan_product_location ON m8_schema.demand_explosion_results(plan_id, product_id, location_node_id);
 CREATE INDEX idx_demand_explosion_week ON m8_schema.demand_explosion_results(week_start_date, week_number);
 CREATE INDEX idx_purchase_recommendations_plan_status ON m8_schema.purchase_order_recommendations(plan_id, approval_status);
 CREATE INDEX idx_purchase_recommendations_order_date ON m8_schema.purchase_order_recommendations(recommended_order_date);
 CREATE INDEX idx_planning_exceptions_plan_status ON m8_schema.planning_exceptions(plan_id, resolution_status);
 CREATE INDEX idx_planning_exceptions_severity ON m8_schema.planning_exceptions(severity, exception_type);
-CREATE INDEX idx_mrp_parameters_product_location ON m8_schema.mrp_parameters(product_id, location_id);
+CREATE INDEX idx_mrp_parameters_product_location ON m8_schema.mrp_parameters(product_id, location_node_id);
 
 -- Create updated_at triggers
 CREATE OR REPLACE FUNCTION m8_schema.update_updated_at_column()
@@ -198,23 +198,23 @@ INSERT INTO m8_schema.replenishment_plans (plan_id, plan_name, plan_type, status
 ('MRP-2025-W01', 'Plan MRP Semana 1 - 2025', 'MRP', 'active');
 
 -- Insert sample MRP parameters for existing products
-INSERT INTO m8_schema.mrp_parameters (product_id, location_id, safety_stock_method, safety_stock_value, lot_sizing_rule, lead_time_days, unit_cost)
+INSERT INTO m8_schema.mrp_parameters (product_id, location_node_id, safety_stock_method, safety_stock_value, lot_sizing_rule, lead_time_days, unit_cost)
 SELECT 
     p.product_id,
-    l.location_id,
+    l.location_node_id,
     'statistical',
     FLOOR(RANDOM() * 100 + 50),
     'min_max',
     FLOOR(RANDOM() * 21 + 7),
     ROUND((RANDOM() * 100 + 10)::numeric, 2)
 FROM (SELECT DISTINCT product_id FROM m8_schema.forecast_data LIMIT 50) p
-CROSS JOIN (SELECT DISTINCT location_id FROM m8_schema.forecast_data LIMIT 5) l;
+CROSS JOIN (SELECT DISTINCT location_node_id FROM m8_schema.forecast_data LIMIT 5) l;
 
 -- Create stored procedure for MRP explosion calculation
 CREATE OR REPLACE FUNCTION calculate_mrp_explosion(
     p_plan_id TEXT,
     p_product_id TEXT,
-    p_location_id TEXT
+    p_location_node_id TEXT
 )
 RETURNS VOID AS $$
 DECLARE
@@ -237,7 +237,7 @@ BEGIN
     
     -- Get MRP parameters
     SELECT * INTO mrp_params FROM m8_schema.mrp_parameters 
-    WHERE product_id = p_product_id AND location_id = p_location_id;
+    WHERE product_id = p_product_id AND location_node_id = p_location_node_id;
     
     -- Get current inventory (simplified - would come from actual inventory table)
     current_inventory := FLOOR(RANDOM() * 500 + 100);
@@ -245,7 +245,7 @@ BEGIN
     
     -- Delete existing explosion results for this combination
     DELETE FROM m8_schema.demand_explosion_results 
-    WHERE plan_id = p_plan_id AND product_id = p_product_id AND location_id = p_location_id;
+    WHERE plan_id = p_plan_id AND product_id = p_product_id AND location_node_id = p_location_node_id;
     
     -- Calculate for each week in the planning horizon
     FOR week_counter IN 1..plan_rec.planning_horizon_weeks LOOP
@@ -256,7 +256,7 @@ BEGIN
         SELECT COALESCE(SUM(forecast), 0) INTO gross_requirements
         FROM m8_schema.forecast_data 
         WHERE product_id = p_product_id 
-        AND location_id = p_location_id
+        AND location_node_id = p_location_node_id
         AND postdate BETWEEN week_start AND week_end;
         
         -- Apply some randomization for testing
@@ -286,7 +286,7 @@ BEGIN
         INSERT INTO m8_schema.demand_explosion_results (
             plan_id,
             product_id,
-            location_id,
+            location_node_id,
             week_start_date,
             week_end_date,
             week_number,
@@ -303,7 +303,7 @@ BEGIN
         ) VALUES (
             p_plan_id,
             p_product_id,
-            p_location_id,
+            p_location_node_id,
             week_start,
             week_end,
             week_counter,

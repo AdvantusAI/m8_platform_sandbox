@@ -4,7 +4,7 @@ import { SafetyStockService, SafetyStockCalculation, MultiNodeInventory } from '
 
 interface EnhancedProjectionResult {
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   warehouse_id: number;
   projections: any[];
   safetyStockAnalysis?: SafetyStockCalculation;
@@ -44,7 +44,7 @@ export const useAdvancedInventoryProjections = () => {
           try {
             const safetyStockResults = await SafetyStockService.calculateAdvancedSafetyStock(
               projection.product_id,
-              projection.location_id,
+              projection.location_node_id,
               projection.warehouse_id
             );
             safetyStockAnalysis = safetyStockResults[0]; // Take first result

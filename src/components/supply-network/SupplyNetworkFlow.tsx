@@ -23,29 +23,15 @@ import { RelationshipEditorModal } from './RelationshipEditorModal';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { Wrench, Settings } from 'lucide-react';
 
 const nodeTypes: NodeTypes = {
   supplyNetworkNode: SupplyNetworkNode,
 };
 
 const getNodeColor = (nodeTypeCode: string) => {
-  switch (nodeTypeCode?.toLowerCase()) {
-    case 'factory': 
-    case 'manufacturer': 
-      return '#ef4444'; // Red
-    case 'warehouse': 
-      return '#3b82f6'; // Blue
-    case 'distributor': 
-    case 'distribution_center':
-      return '#10b981'; // Green
-    case 'retailer': 
-    case 'retail':
-      return '#8b5cf6'; // Purple
-    case 'supplier': 
-      return '#f59e0b'; // Orange
-    default: 
-      return '#6b7280'; // Gray
-  }
+  // Return default color for all node types
+  return '#082647'; // Default gray
 };
 
 // Save/load positions from localStorage
@@ -71,6 +57,11 @@ export const SupplyNetworkFlow: React.FC = () => {
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editingRelationshipId, setEditingRelationshipId] = useState<string | null>(null);
   const [dbNodeTypes, setDbNodeTypes] = useState<Array<{id: string, type_code: string, type_name: string, icon_name: string}>>([]);
+  const [contextMenu, setContextMenu] = useState<{
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Fetch node types
   useEffect(() => {
@@ -129,21 +120,23 @@ export const SupplyNetworkFlow: React.FC = () => {
       const labelParts = [leadTime, cost].filter(Boolean);
       const label = labelParts.length > 0 ? labelParts.join(' | ') : 'Connection';
 
-      return {
-        id: rel.id,
-        source: rel.source_node_id,
-        target: rel.target_node_id,
-        type: 'smoothstep',
-        animated: rel.status === 'active',
-        label: label,
-        markerEnd: {
-          type: MarkerType.ArrowClosed,
-        },
-        style: {
-          stroke: rel.status === 'active' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
-          strokeWidth: 2,
-        },
-        data: {
+              return {
+          id: rel.id,
+          source: rel.source_node_id,
+          target: rel.target_node_id,
+          animated: rel.status === 'active',
+          label: 'marker size and color',
+          style: {
+            strokeWidth: 2,
+            stroke: '#FF0072',
+          },
+          markerEnd: {
+            type: MarkerType.ArrowClosed,
+            width: 20,
+            height: 20,
+            color: '#FF0072',
+          },
+          data: {
           relationshipId: rel.id,
           relationshipType: rel.relationship_type_id || 'unknown',
           properties: { 
@@ -214,6 +207,22 @@ export const SupplyNetworkFlow: React.FC = () => {
     []
   );
 
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: Node) => {
+      event.preventDefault();
+      setContextMenu({
+        id: node.id,
+        x: event.clientX,
+        y: event.clientY,
+      });
+    },
+    []
+  );
+
+  const onPaneClick = useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
   if (isLoading) {
     return (
       <Card className="w-full h-[800px] p-4">
@@ -237,28 +246,16 @@ export const SupplyNetworkFlow: React.FC = () => {
         onConnect={onConnect}
         onEdgeDoubleClick={onEdgeDoubleClick}
         onNodeDoubleClick={onNodeDoubleClick}
+        onNodeContextMenu={onNodeContextMenu}
+        onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
         attributionPosition="top-right"
-        style={{ 
-          backgroundColor: 'hsl(var(--background))',
-        }}
         className="bg-background"
       >
         <Controls />
-        <MiniMap 
-          style={{
-            backgroundColor: 'hsl(var(--muted))',
-          }}
-          nodeColor={(node) => node.style?.background as string || 'hsl(var(--primary))'}
-        />
-        <Background 
-          color="hsl(var(--muted-foreground))" 
-          gap={20}
-          style={{
-            backgroundColor: 'hsl(var(--background))',
-          }}
-        />
+        <MiniMap />
+        <Background />
       </ReactFlow>
 
       {editingNodeId && (
@@ -275,6 +272,36 @@ export const SupplyNetworkFlow: React.FC = () => {
           onClose={() => setEditingRelationshipId(null)}
           relationshipId={editingRelationshipId}
         />
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div
+          className="fixed z-50 bg-[#e1ebf7] border border-gray-200 rounded-lg shadow-lg py-1 min-w-[150px]"
+          style={{
+            left: contextMenu.x,
+            top: contextMenu.y,
+          }}
+        >
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center"
+            onClick={() => {
+              console.log('Supply workbench clicked for node:', contextMenu.id);
+              setContextMenu(null);
+            }}
+          >
+            <Wrench className="mr-2 h-4 w-4" /> Supply workbench
+          </button>
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center"
+            onClick={() => {
+              console.log('Parámetros de suministro clicked for node:', contextMenu.id);
+              setContextMenu(null);
+            }}
+          >
+            <Settings className="mr-2 h-4 w-4" /> Parámetros de suministro
+          </button>
+        </div>
       )}
     </div>
   );

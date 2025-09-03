@@ -30,7 +30,7 @@ interface MRPGridRow {
   id: string;
   product_id: string;
   product_name: string;
-  location_id: string;
+  location_node_id: string;
   location_name: string;
   inventory_status: 'optimal' | 'warning' | 'critical' | 'stockout';
   current_stock: number;
@@ -118,14 +118,14 @@ export const MRPPlanningGrid: React.FC = () => {
   ): MRPGridRow[] => {
     // Group by product and location
     const grouped = results.reduce((acc, result) => {
-      const key = `${result.product_id}_${result.location_id}`;
+      const key = `${result.product_id}_${result.location_node_id}`;
       if (!acc[key]) {
         acc[key] = {
           id: key,
           product_id: result.product_id,
           product_name: result.product_id, // Would be joined with product name
-          location_id: result.location_id,
-          location_name: result.location_id, // Would be joined with location name
+          location_node_id: result.location_node_id,
+          location_name: result.location_node_id, // Would be joined with location name
           inventory_status: 'optimal',
           current_stock: 0,
           safety_stock: result.safety_stock,
@@ -174,7 +174,7 @@ export const MRPPlanningGrid: React.FC = () => {
         id: item.id,
         product_id: item.product_id,
         product_name: item.product_name,
-        location_id: item.location_id,
+        location_node_id: item.location_node_id,
         location_name: item.location_name,
         inventory_status: item.inventory_status,
         current_stock: item.current_stock,
@@ -225,7 +225,7 @@ export const MRPPlanningGrid: React.FC = () => {
         cellClass: 'font-medium'
       },
       {
-        field: 'location_id',
+        field: 'location_node_id',
         headerName: 'CEDIS',
         pinned: 'left',
         width: 100

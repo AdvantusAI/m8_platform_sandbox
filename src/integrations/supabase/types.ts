@@ -2630,7 +2630,7 @@ export type Database = {
       get_aggregated_forecast_data: {
         Args: {
           p_customer_id?: string
-          p_location_id?: string
+          p_location_node_id?: string
           p_product_id?: string
         }
         Returns: {
@@ -2643,7 +2643,7 @@ export type Database = {
           customer_id: string
           demand_planner: number
           forecast: number
-          location_id: string
+          location_node_id: string
           postdate: string
           product_id: string
           sales_plan: number

@@ -2,7 +2,7 @@
 CREATE OR REPLACE VIEW m8_schema.commercial_collaboration_view AS
 SELECT 
     fd.product_id, 
-    fd.location_id, 
+    fd.location_node_id, 
     fd.customer_id, 
     fd.postdate, 
     fd.actual, 
@@ -20,12 +20,12 @@ FROM
     m8_schema.forecast_data fd 
     INNER JOIN m8_schema.products prd ON prd.product_id = fd.product_id::text
     INNER JOIN m8_schema.time_series ts ON fd.product_id = ts.product_id::text 
-      AND fd.location_id = ts.location_id 
+      AND fd.location_node_id = ts.location_node_id 
       AND fd.customer_id = ts.customer_id
     LEFT JOIN m8_schema.time_series_data tsd ON ts.id = tsd.series_id 
       AND tsd.period_date = fd.postdate
     LEFT JOIN m8_schema.commercial_collaboration coc ON coc.product_id = ts.product_id::text
       AND coc.customer_id = ts.customer_id
-      AND coc.location_id = ts.location_id
+      AND coc.location_node_id = ts.location_node_id
       AND coc.postdate = tsd.period_date
 ORDER BY fd.postdate;

@@ -78,7 +78,7 @@ export function SalesVelocityReports({
     const filters: any = {};
     if (selectedProductId) filters.product_id = selectedProductId;
     if (selectedCustomerId) filters.channel_partner_id = selectedCustomerId;
-    if (selectedLocationId) filters.location_id = selectedLocationId;
+    if (selectedLocationId) filters.location_node_id = selectedLocationId;
     
     // Set period filters based on selection
     const now = new Date();
@@ -148,7 +148,7 @@ export function SalesVelocityReports({
     const filters: any = {};
     if (selectedProductId) filters.product_id = selectedProductId;
     if (selectedCustomerId) filters.channel_partner_id = selectedCustomerId;
-    if (selectedLocationId) filters.location_id = selectedLocationId;
+    if (selectedLocationId) filters.location_node_id = selectedLocationId;
     
     await exportVelocityReport(filters);
   };

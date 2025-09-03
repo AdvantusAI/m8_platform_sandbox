@@ -162,10 +162,10 @@ export function LocationFilter({
       // Final level: Location (always included)
       if (location.location_name) {
         const locationNode: LocationNode = {
-          id: location.location_id,
-          name: `${location.location_id} - ${location.location_name}`,
+          id: location.location_node_id,
+          name: `${location.location_node_id} - ${location.location_name}`,
           level: 'location',
-          displayId: location.location_id
+          displayId: location.location_node_id
         };
         currentParent.children!.push(locationNode);
       }

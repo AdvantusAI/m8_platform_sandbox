@@ -14,7 +14,7 @@ interface AIRecommendation {
   expected_impact: string;
   status: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   customer_id?: string;
   vendor_id?: string;
 }
@@ -91,7 +91,7 @@ export function useAIRecommendations(productId?: string, locationId?: string, cu
         expected_impact: 'Incremento esperado del 15-25% en precisión del pronóstico',
         status: 'pending',
         product_id: productId,
-        location_id: locationId,
+        location_node_id: locationId,
         vendor_id: vendor_id
       });
     }
@@ -112,7 +112,7 @@ export function useAIRecommendations(productId?: string, locationId?: string, cu
         expected_impact: 'Reducción del 20% en riesgo de desabasto',
         status: 'pending',
         product_id: productId,
-        location_id: locationId,
+        location_node_id: locationId,
         vendor_id: vendor_id
       });
     }
@@ -133,7 +133,7 @@ export function useAIRecommendations(productId?: string, locationId?: string, cu
         expected_impact: 'Mejor disponibilidad durante crecimiento de demanda',
         status: 'pending',
         product_id: productId,
-        location_id: locationId,
+        location_node_id: locationId,
         vendor_id: vendor_id
       });
     }
@@ -154,7 +154,7 @@ export function useAIRecommendations(productId?: string, locationId?: string, cu
         expected_impact: 'Mejora en estabilidad del modelo y precisión del pronóstico',
         status: 'pending',
         product_id: productId,
-        location_id: locationId,
+        location_node_id: locationId,
         vendor_id: vendor_id
       });
     }
@@ -173,7 +173,7 @@ export function useAIRecommendations(productId?: string, locationId?: string, cu
         .from('forecast_data')
         .select('*')
         .eq('product_id', productId)
-        .eq('location_id', locationId)
+        .eq('location_node_id', locationId)
         .order('postdate', { ascending: true });
 
       if (customerId) {
@@ -221,7 +221,7 @@ export function useAIRecommendations(productId?: string, locationId?: string, cu
         .from('ai_recommendations')
         .select('*')
         .eq('product_id', productId)
-        .eq('location_id', locationId)
+        .eq('location_node_id', locationId)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
 

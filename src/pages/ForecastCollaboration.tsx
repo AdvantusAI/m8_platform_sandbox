@@ -270,7 +270,7 @@ const ForecastCollaboration: React.FC = () => {
         query = query.eq('product_id', filterProductId);
       }
       if (filterLocationId) {
-        query = query.eq('location_id', filterLocationId);
+        query = query.eq('location_node_id', filterLocationId);
       }
       if (filterCustomerId) {
         query = query.eq('customer_id', filterCustomerId);
@@ -377,7 +377,7 @@ const ForecastCollaboration: React.FC = () => {
         .upsert({
           product_id: filterProductId,
           customer_id: customerId,
-          location_id: filterLocationId || null,
+          location_node_id: filterLocationId || null,
           postdate: postdate,
           commercial_input: value
         });

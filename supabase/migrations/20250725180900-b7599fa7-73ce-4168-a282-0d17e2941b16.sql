@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.sell_in_data (
     id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     product_id text NOT NULL,
-    location_id text NOT NULL,
+    location_node_id text NOT NULL,
     channel_partner_id uuid REFERENCES channel_partners(id),
     transaction_date date NOT NULL,
     quantity numeric NOT NULL DEFAULT 0,
@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS public.sell_in_data (
 CREATE TABLE IF NOT EXISTS public.sell_out_data (
     id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     product_id text NOT NULL,
-    location_id text NOT NULL,
+    location_node_id text NOT NULL,
     channel_partner_id uuid REFERENCES channel_partners(id),
     transaction_date date NOT NULL,
     quantity numeric NOT NULL DEFAULT 0,
@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.sell_out_data (
 CREATE TABLE IF NOT EXISTS public.sell_through_rates (
     id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     product_id text NOT NULL,
-    location_id text NOT NULL,
+    location_node_id text NOT NULL,
     channel_partner_id uuid REFERENCES channel_partners(id),
     calculation_period date NOT NULL,
     period_type text NOT NULL DEFAULT 'monthly',
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS public.sell_through_rates (
     performance_category text DEFAULT 'medium',
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    UNIQUE(product_id, location_id, channel_partner_id, calculation_period)
+    UNIQUE(product_id, location_node_id, channel_partner_id, calculation_period)
 );
 
 -- Enable RLS on all new tables

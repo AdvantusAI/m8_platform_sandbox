@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface DemandOutlier {
   id: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   customer_id: string;
   vendor_id: string;
   capped_value: number;
@@ -34,7 +34,7 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
       };
 
       if (selectedLocationId) {
-        filters.location_id = selectedLocationId;
+        filters.location_node_id = selectedLocationId;
       }
 
       const { data, error } = await supabase
@@ -48,7 +48,7 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
       return data?.map((item: any) => ({
         id: String(item.id || ''),
         product_id: item.product_id || '',
-        location_id: item.location_id || '',
+        location_node_id: item.location_node_id || '',
         customer_id: item.customer_id || '',
         vendor_id: item.vendor_id || '',
         capped_value: item.capped_value || 0,

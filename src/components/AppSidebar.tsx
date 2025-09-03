@@ -49,7 +49,11 @@ const items = [
   title: "Proyecciones de Inventario",
   url: "/inventory-projections",
   icon: Warehouse
-},*/  {
+},*/ {
+  title: "Gestión de Compras",
+  url: "/purchase-management",
+  icon: ShoppingCart
+},  {
   title: "Análisis Sell-Through",
   url: "/sell-through-analytics",
   icon: TrendingDown
@@ -73,6 +77,11 @@ const items = [
 
 // Fulfillment items
 const fulfillmentItems = [
+  {
+    title: 'Revisión de Políticas de Inventario',
+    url: '/inventory-policy-review',
+    icon: Database
+  },
   {
     title: 'Planificación de Suministro',
     url: '/replenishment-dashboard',

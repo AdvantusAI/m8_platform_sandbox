@@ -111,7 +111,7 @@ export const PurchaseOrderManagement: React.FC = () => {
         headerCheckboxSelection: true
       },
       {
-        field: 'location_id',
+        field: 'location_node_id',
         headerName: 'CEDIS',
         pinned: 'left',
         width: 100

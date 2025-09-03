@@ -31,7 +31,7 @@ CREATE TABLE public.market_intelligence (
   commercial_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   customer_id TEXT,
   product_id TEXT,
-  location_id TEXT,
+  location_node_id TEXT,
   intelligence_type TEXT NOT NULL,
   impact_assessment TEXT NOT NULL,
   confidence_level TEXT NOT NULL,

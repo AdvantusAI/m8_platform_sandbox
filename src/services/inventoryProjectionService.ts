@@ -17,7 +17,7 @@ export interface InventoryProjection {
 
 export interface ProjectionParams {
   product_id?: string;
-  location_id?: string;
+  location_node_id?: string;
   warehouse_id?: number;
   projection_days?: number;
 }
@@ -28,7 +28,7 @@ export class InventoryProjectionService {
    */
   static async calculateProjections(params: ProjectionParams = {}): Promise<{
     product_id: string;
-    location_id: string;
+    location_node_id: string;
     warehouse_id: number;
     projections: InventoryProjection[];
   }[]> {
@@ -60,8 +60,8 @@ export class InventoryProjectionService {
         .gte('postdate', new Date().toISOString().split('T')[0]) // Future dates only
         .order('postdate', { ascending: true });
 
-      if (params.location_id) {
-        forecastQuery = forecastQuery.eq('location_id', params.location_id);
+      if (params.location_node_id) {
+        forecastQuery = forecastQuery.eq('location_node_id', params.location_node_id);
       }
 
       const { data: forecastData, error: forecastError } = await forecastQuery;
@@ -73,7 +73,7 @@ export class InventoryProjectionService {
         inventoryData.map(async (inventory) => {
           const relevantForecasts = forecastData?.filter(
             f => f.product_id === inventory.product_id &&
-                 (params.location_id ? f.location_id === params.location_id : true)
+                 (params.location_node_id ? f.location_node_id === params.location_node_id : true)
           ) || [];
 
           const projections = this.calculateInventoryTimeline(
@@ -84,7 +84,7 @@ export class InventoryProjectionService {
 
           return {
             product_id: inventory.product_id,
-            location_id: relevantForecasts[0]?.location_id || 'default',
+            location_node_id: relevantForecasts[0]?.location_node_id || 'default',
             warehouse_id: inventory.warehouse_id,
             projections
           };

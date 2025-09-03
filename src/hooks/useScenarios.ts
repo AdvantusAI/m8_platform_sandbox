@@ -58,7 +58,7 @@ export const useScenarios = () => {
             time_horizon_months: 6,
             product_ids: scenario.product_id ? [scenario.product_id] : [],
             customer_id: scenario.customer_id ? [scenario.customer_id] : [],
-            warehouse_ids: scenario.location_id ? [scenario.location_id] : []
+            warehouse_ids: scenario.location_node_id ? [scenario.location_node_id] : []
           },
           description: scenario.description,
           results: results
@@ -77,7 +77,7 @@ export const useScenarios = () => {
         scenario_name: scenario.scenario_name,
         scenario_type: scenario.scenario_type,
         parameters: scenario.parameters,
-        location_id: scenario.scope.warehouse_ids?.[0] || 'default_location',
+        location_node_id: scenario.scope.warehouse_ids?.[0] || 'default_location',
         product_id: scenario.scope.product_ids?.[0] || 'default_product',
         description: scenario.description,
         created_by: null, // Set to null since we don't have a user UUID
@@ -116,7 +116,7 @@ export const useScenarios = () => {
         scenario_name: updates.scenario_name,
         scenario_type: updates.scenario_type,
         parameters: updates.parameters,
-        location_id: updates.scope?.warehouse_ids?.[0],
+        location_node_id: updates.scope?.warehouse_ids?.[0],
         product_id: updates.scope?.product_ids?.[0],
         description: updates.description,
         updated_at: new Date().toISOString()
@@ -179,7 +179,7 @@ export const useScenarios = () => {
           parameters: scenario.parameters as any,
           scope: {
             product_ids: scenario.product_id ? [scenario.product_id] : [],
-            warehouse_ids: scenario.location_id ? [scenario.location_id] : [],
+            warehouse_ids: scenario.location_node_id ? [scenario.location_node_id] : [],
             customer_ids: scenario.customer_id ? [scenario.customer_id] : [],
             time_horizon_months: 6 // Default
           },

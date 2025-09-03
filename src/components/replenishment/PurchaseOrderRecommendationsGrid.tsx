@@ -13,7 +13,7 @@ interface PurchaseOrderRecommendation {
   product_name?: string;
   supplier_id: string;
   supplier_name?: string;
-  location_id: string;
+  location_node_id: string;
   location_name?: string;
   recommended_quantity: number;
   unit_cost: number;

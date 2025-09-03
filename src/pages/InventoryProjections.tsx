@@ -43,7 +43,7 @@ import { useSearchParams } from 'react-router-dom';
 interface InventoryProjectionData {
   id: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   projection_month: string;
   current_inventory: number;
   forecasted_demand: number;
@@ -99,7 +99,7 @@ export default function InventoryProjections() {
     searchParams.get('product_id') || storedFilters.productId || ''
   );
   const [selectedLocationId, setSelectedLocationId] = useState<string>(
-    searchParams.get('location_id') || storedFilters.locationId || ''
+    searchParams.get('location_node_id') || storedFilters.locationId || ''
   );
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     searchParams.get('customer_id') || storedFilters.customerId || ''
@@ -136,7 +136,7 @@ export default function InventoryProjections() {
   // Update state when URL parameters change
   useEffect(() => {
     const productParam = searchParams.get('product_id');
-    const locationParam = searchParams.get('location_id');
+    const locationParam = searchParams.get('location_node_id');
     const customerParam = searchParams.get('customer_id');
     
     if (productParam && productParam !== selectedProductId) {
@@ -208,7 +208,7 @@ export default function InventoryProjections() {
     try {
       const results = await calculateAdvancedProjections({
         product_id: selectedProductId || undefined,
-        location_id: selectedLocationId || undefined,
+        location_node_id: selectedLocationId || undefined,
         projection_days: projectionDays,
         includeSafetyStockAnalysis,
         includeMultiNodeAnalysis
@@ -248,7 +248,7 @@ export default function InventoryProjections() {
         query = query.eq('product_id', selectedProductId);
       }
       if (selectedLocationId) {
-        query = query.eq('location_id', selectedLocationId);
+        query = query.eq('location_node_id', selectedLocationId);
       }
 
       ////console.log('Executing query for monthly projections...');
@@ -571,11 +571,11 @@ export default function InventoryProjections() {
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-medium">Seleccionar producto/ubicación:</span>
                   <Select
-                    value={selectedResult ? `${selectedResult.product_id}_${selectedResult.location_id}` : ''}
+                    value={selectedResult ? `${selectedResult.product_id}_${selectedResult.location_node_id}` : ''}
                     onValueChange={(value) => {
-                      const [product_id, location_id] = value.split('_');
+                      const [product_id, location_node_id] = value.split('_');
                       const result = projectionResults.find(r => 
-                        r.product_id === product_id && r.location_id === location_id
+                        r.product_id === product_id && r.location_node_id === location_node_id
                       );
                       setSelectedResult(result || null);
                     }}
@@ -586,10 +586,10 @@ export default function InventoryProjections() {
                     <SelectContent>
                       {projectionResults.map((result) => (
                         <SelectItem 
-                          key={`${result.product_id}_${result.location_id}`}
-                          value={`${result.product_id}_${result.location_id}`}
+                          key={`${result.product_id}_${result.location_node_id}`}
+                          value={`${result.product_id}_${result.location_node_id}`}
                         >
-                          {result.product_id} - {result.location_id}
+                          {result.product_id} - {result.location_node_id}
                         </SelectItem>
                       ))}
                     </SelectContent>

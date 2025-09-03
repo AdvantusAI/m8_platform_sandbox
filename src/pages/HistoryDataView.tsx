@@ -16,7 +16,7 @@ configureAGGridLicense();
 interface HistoryData {
   id: number;
   product_id: string | null;
-  location_id: string | null;
+  location_node_id: string | null;
   customer_id: string | null;
   quantity: number | null;
   type: string | null;
@@ -178,7 +178,7 @@ const HistoryDataView: React.FC = () => {
     
     return inventory.filter(item =>
       item.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.location_node_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.customer_id.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [inventory, searchTerm]);

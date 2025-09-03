@@ -123,7 +123,7 @@ export const PlanningExceptions: React.FC = () => {
         cellClass: 'font-medium'
       },
       {
-        field: 'location_id',
+        field: 'location_node_id',
         headerName: 'CEDIS',
         pinned: 'left',
         width: 100
@@ -543,7 +543,7 @@ export const PlanningExceptions: React.FC = () => {
           <div className="space-y-4">
             {selectedException && (
               <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="font-medium">{selectedException.product_id} - {selectedException.location_id}</p>
+                <p className="font-medium">{selectedException.product_id} - {selectedException.location_node_id}</p>
                 <p className="text-sm text-gray-600">{selectedException.recommended_action}</p>
               </div>
             )}

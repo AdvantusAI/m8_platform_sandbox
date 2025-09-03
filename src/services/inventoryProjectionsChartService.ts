@@ -8,7 +8,7 @@ export interface ChartDataPoint {
 
 export interface ChartFilters {
   product_id?: string;
-  location_id?: string;
+  location_node_id?: string;
   customer_id?: string;
 }
 
@@ -26,7 +26,7 @@ export class InventoryProjectionsChartService {
           forecast,
           fitted_history,
           product_id,
-          location_id,
+          location_node_id,
           customer_id
         `)
         .order('postdate', { ascending: true });
@@ -35,8 +35,8 @@ export class InventoryProjectionsChartService {
       if (filters.product_id) {
         query = query.eq('product_id', filters.product_id);
       }
-      if (filters.location_id) {
-        query = query.eq('location_id', filters.location_id);
+      if (filters.location_node_id) {
+        query = query.eq('location_node_id', filters.location_node_id);
       }
       if (filters.customer_id) {
         query = query.eq('customer_id', filters.customer_id);

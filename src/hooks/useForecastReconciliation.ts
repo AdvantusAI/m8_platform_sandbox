@@ -5,7 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 export interface ForecastReconciliationData {
   id: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   channel_partner_id?: string;
   forecast_period: string;
   sell_in_forecast: number;
@@ -25,7 +25,7 @@ export interface ForecastReconciliationData {
 
 export interface ReconciliationFilters {
   product_id?: string;
-  location_id?: string;
+  location_node_id?: string;
   channel_partner_id?: string;
   period_start?: string;
   period_end?: string;
@@ -57,8 +57,8 @@ export function useForecastReconciliation() {
       if (filters.product_id) {
         query = query.eq('product_id', filters.product_id);
       }
-      if (filters.location_id) {
-        query = query.eq('location_id', filters.location_id);
+      if (filters.location_node_id) {
+        query = query.eq('location_node_id', filters.location_node_id);
       }
       if (filters.channel_partner_id) {
         query = query.eq('channel_partner_id', filters.channel_partner_id);

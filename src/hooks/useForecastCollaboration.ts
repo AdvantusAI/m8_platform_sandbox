@@ -7,7 +7,7 @@ interface ForecastCollaboration {
   id: string;
   postdate: string;
   product_id: string;
-  location_id: string;
+  location_node_id: string;
   customer_id: string;
   forecast: number;
   actual: number;
@@ -68,7 +68,7 @@ export function useForecastCollaboration(
       let forecastData: Array<{
         postdate: string;
         product_id: string;
-        location_id: string;
+        location_node_id: string;
         customer_id: string;
         forecast: number | null;
         actual: number | null;
@@ -95,7 +95,7 @@ export function useForecastCollaboration(
           .select(`
             postdate,
             product_id,
-            location_id,
+            location_node_id,
             customer_id,
             forecast,
             actual,
@@ -121,7 +121,7 @@ export function useForecastCollaboration(
           .select(`
             postdate,
             product_id,
-            location_id,
+            location_node_id,
             customer_id,
             forecast,
             actual,
@@ -147,7 +147,7 @@ export function useForecastCollaboration(
           .select(`
             postdate,
             product_id,
-            location_id,
+            location_node_id,
             customer_id,
             forecast,
             actual,
@@ -167,7 +167,7 @@ export function useForecastCollaboration(
 
       // Apply additional filters
       if (locationId) {
-        forecastData = forecastData.filter(item => item.location_id === locationId);
+        forecastData = forecastData.filter(item => item.location_node_id === locationId);
       }
       if (customerId) {
         forecastData = forecastData.filter(item => item.customer_id === customerId);
@@ -179,7 +179,7 @@ export function useForecastCollaboration(
       const aggregatedData = new Map<string, {
         postdate: string;
         product_id: string;
-        location_id: string;
+        location_node_id: string;
         customer_id: string;
         forecast: number;
         actual: number;
@@ -196,7 +196,7 @@ export function useForecastCollaboration(
           aggregatedData.set(postdate, {
             postdate,
             product_id: item.product_id,
-            location_id: item.location_id,
+            location_node_id: item.location_node_id,
             customer_id: item.customer_id,
             forecast: 0,
             actual: 0,
@@ -221,7 +221,7 @@ export function useForecastCollaboration(
         id: `agg_${item.postdate}_${item.product_id}`,
         postdate: item.postdate,
         product_id: item.product_id,
-        location_id: item.location_id,
+        location_node_id: item.location_node_id,
         customer_id: item.customer_id,
         forecast: item.forecast,
         actual: item.actual,

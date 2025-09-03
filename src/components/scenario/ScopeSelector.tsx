@@ -71,11 +71,11 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
       const { data: locationsData, error: locationsError } = await supabase
         .schema('m8_schema')
         .from('locations')
-        .select('location_id, location_name')
+        .select('location_node_id, location_name')
         .limit(100);
       
       if (locationsData && !locationsError) {
-        setLocations(locationsData.map(l => ({ id: l.location_id, name: l.location_name || l.location_id })));
+        setLocations(locationsData.map(l => ({ id: l.location_node_id, name: l.location_name || l.location_node_id })));
       } else if (locationsError) {
         console.warn('Almacenes no disponibles:', locationsError);
         setLocations([

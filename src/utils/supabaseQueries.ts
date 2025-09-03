@@ -19,7 +19,7 @@ export const fetchVentasYTD = async (
       .from('history')
       .select('quantity')
       .eq('product_id', productId)
-      .eq('location_id', locationId)
+      .eq('location_node_id', locationId)
       .eq('customer_id', customerId)
       .gte('postdate', `${year}-01-01`)
       .lte('postdate', `${year}-12-31`);
@@ -55,7 +55,7 @@ export const fetchVentasLY = async (
       .from('history')
       .select('quantity')
       .eq('product_id', productId)
-      .eq('location_id', locationId)
+      .eq('location_node_id', locationId)
       .eq('customer_id', customerId)
       .gte('postdate', `${year}-01-01`)
       .lte('postdate', `${year}-12-31`);
@@ -94,7 +94,7 @@ export const fetchVentas3Months = async (
       .from('history')
       .select('quantity')
       .eq('product_id', productId)
-      .eq('location_id', locationId)
+      .eq('location_node_id', locationId)
       .eq('customer_id', customerId)
       .gte('postdate', startDate)
       .lte('postdate', endDate);

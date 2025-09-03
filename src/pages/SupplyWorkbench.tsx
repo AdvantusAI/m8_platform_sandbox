@@ -20,7 +20,7 @@ export default function SupplyWorkbench() {
   useEffect(() => {
     fetchChartData({
       product_id: selectedProductId || undefined,
-      location_id: selectedLocationId || undefined,
+      location_node_id: selectedLocationId || undefined,
     });
   }, [selectedProductId, selectedLocationId, fetchChartData]);
 

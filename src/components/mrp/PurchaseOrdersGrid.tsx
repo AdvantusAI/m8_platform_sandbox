@@ -76,7 +76,7 @@ export const PurchaseOrdersGrid: React.FC = () => {
         return {
           ...rec,
           product_name: rec.product_id, // Would be joined with product name
-          location_name: rec.location_id, // Would be joined with location name
+          location_name: rec.location_node_id, // Would be joined with location name
           days_until_order: daysUntilOrder,
           urgency_level: urgencyLevel
         };
@@ -139,7 +139,7 @@ export const PurchaseOrdersGrid: React.FC = () => {
         width: 200
       },
       {
-        field: 'location_id',
+        field: 'location_node_id',
         headerName: 'CEDIS',
         width: 100
       },

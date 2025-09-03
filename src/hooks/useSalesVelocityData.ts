@@ -6,7 +6,7 @@ export interface SalesVelocityData {
   id: string;
   product_id: string;
   channel_partner_id: string;
-  location_id: string;
+  location_node_id: string;
   period: string;
   velocity_units_per_day: number;
   velocity_units_per_week: number;
@@ -22,7 +22,7 @@ export interface VelocityMetrics {
   id: string;
   product_id: string;
   channel_partner_id: string;
-  location_id: string;
+  location_node_id: string;
   velocity_units_per_day: number;
   velocity_units_per_week: number;
   normalized_velocity_per_location: number;
@@ -65,7 +65,7 @@ export const useSalesVelocityData = () => {
   const fetchVelocityData = useCallback(async (filters: {
     product_id?: string;
     customer_id?: string;
-    location_id?: string;
+    location_node_id?: string;
     period_start?: string;
     period_end?: string;
   } = {}) => {
@@ -83,7 +83,7 @@ export const useSalesVelocityData = () => {
       
       if (filters.product_id) query = query.eq('product_id', filters.product_id);
       if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
+      if (filters.location_node_id) query = query.eq('location_node_id', filters.location_node_id);
       if (filters.period_start) query = query.gte('period_month', filters.period_start);
       if (filters.period_end) query = query.lte('period_month', filters.period_end);
 
@@ -93,10 +93,10 @@ export const useSalesVelocityData = () => {
 
       // Transform the data to match our interface
       const velocityData: SalesVelocityData[] = data?.map(record => ({
-        id: `${record.product_id}_${record.customer_id}_${record.location_id}_${record.period_month}`,
+        id: `${record.product_id}_${record.customer_id}_${record.location_node_id}_${record.period_month}`,
         product_id: record.product_id,
         channel_partner_id: record.customer_id, // Map customer_id to channel_partner_id for compatibility
-        location_id: record.location_id,
+        location_node_id: record.location_node_id,
         period: record.period_month,
         velocity_units_per_day: record.velocity_units_per_day || 0,
         velocity_units_per_week: record.velocity_units_per_week || 0,
@@ -124,7 +124,7 @@ export const useSalesVelocityData = () => {
   const fetchVelocityMetrics = useCallback(async (filters: {
     product_id?: string;
     customer_id?: string;
-    location_id?: string;
+    location_node_id?: string;
     period_start?: string;
     period_end?: string;
   } = {}) => {
@@ -142,7 +142,7 @@ export const useSalesVelocityData = () => {
       
       if (filters.product_id) query = query.eq('product_id', filters.product_id);
       if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
+      if (filters.location_node_id) query = query.eq('location_node_id', filters.location_node_id);
       if (filters.period_start) query = query.gte('period_month', filters.period_start);
       if (filters.period_end) query = query.lte('period_month', filters.period_end);
 
@@ -152,10 +152,10 @@ export const useSalesVelocityData = () => {
 
       // Transform the data to match our metrics interface
       const metrics: VelocityMetrics[] = data?.map((record, index) => ({
-        id: `${record.product_id}_${record.customer_id}_${record.location_id}_${record.period_month}`,
+        id: `${record.product_id}_${record.customer_id}_${record.location_node_id}_${record.period_month}`,
         product_id: record.product_id,
         channel_partner_id: record.customer_id, // Map customer_id to channel_partner_id for compatibility
-        location_id: record.location_id,
+        location_node_id: record.location_node_id,
         velocity_units_per_day: record.velocity_units_per_day || 0,
         velocity_units_per_week: record.velocity_units_per_week || 0,
         normalized_velocity_per_location: record.velocity_units_per_month_per_location || 0,
@@ -236,14 +236,14 @@ export const useSalesVelocityData = () => {
   const exportVelocityReport = useCallback(async (filters: {
     product_id?: string;
     channel_partner_id?: string;
-    location_id?: string;
+    location_node_id?: string;
   } = {}) => {
     try {
       // Simulate CSV export
       const csvData = velocityMetrics.map(metric => ({
         'Product ID': metric.product_id,
         'Channel Partner ID': metric.channel_partner_id,
-        'Location ID': metric.location_id,
+        'Location ID': metric.location_node_id,
         'Velocity (Units/Week)': metric.velocity_units_per_week.toFixed(2),
         'Velocity (Units/Day)': metric.velocity_units_per_day.toFixed(2),
         'Trailing 3M Velocity': metric.trailing_velocity_l3m.toFixed(2),

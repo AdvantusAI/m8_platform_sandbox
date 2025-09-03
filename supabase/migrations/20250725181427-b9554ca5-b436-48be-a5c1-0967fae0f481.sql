@@ -1,5 +1,5 @@
 -- Insert sample sell-in data
-INSERT INTO sell_in_data (id, product_id, location_id, channel_partner_id, transaction_date, quantity, unit_price, total_value, invoice_number, payment_terms) VALUES
+INSERT INTO sell_in_data (id, product_id, location_node_id, channel_partner_id, transaction_date, quantity, unit_price, total_value, invoice_number, payment_terms) VALUES
 (gen_random_uuid(), '103275', 'WH001', 'a1b2c3d4-e5f6-4789-a1b2-c3d4e5f67890', '2024-11-15', 500, 12.50, 6250.00, 'INV-2024-001', 'Net 30'),
 (gen_random_uuid(), '103276', 'WH001', 'a1b2c3d4-e5f6-4789-a1b2-c3d4e5f67890', '2024-11-15', 300, 13.00, 3900.00, 'INV-2024-002', 'Net 30'),
 (gen_random_uuid(), '103249', 'WH001', 'b2c3d4e5-f6a7-4890-b2c3-d4e5f6a78901', '2024-11-20', 750, 11.80, 8850.00, 'INV-2024-003', 'Net 45'),
@@ -13,7 +13,7 @@ INSERT INTO sell_in_data (id, product_id, location_id, channel_partner_id, trans
 (gen_random_uuid(), '103247', 'WH001', 'd4e5f6a7-b8c9-4012-d4e5-f6a7b8c90123', '2024-10-28', 550, 12.25, 6737.50, 'INV-2024-104', 'Net 30');
 
 -- Insert sample sell-out data  
-INSERT INTO sell_out_data (id, product_id, location_id, channel_partner_id, transaction_date, quantity, unit_price, total_value, end_customer_id, inventory_on_hand) VALUES
+INSERT INTO sell_out_data (id, product_id, location_node_id, channel_partner_id, transaction_date, quantity, unit_price, total_value, end_customer_id, inventory_on_hand) VALUES
 (gen_random_uuid(), '103275', 'WH001', 'a1b2c3d4-e5f6-4789-a1b2-c3d4e5f67890', '2024-11-20', 420, 18.99, 7975.80, 'CUST001', 80),
 (gen_random_uuid(), '103276', 'WH001', 'a1b2c3d4-e5f6-4789-a1b2-c3d4e5f67890', '2024-11-22', 280, 19.50, 5460.00, 'CUST002', 20),
 (gen_random_uuid(), '103249', 'WH001', 'b2c3d4e5-f6a7-4890-b2c3-d4e5f6a78901', '2024-11-25', 585, 17.85, 10441.25, 'CUST003', 165),
@@ -27,7 +27,7 @@ INSERT INTO sell_out_data (id, product_id, location_id, channel_partner_id, tran
 (gen_random_uuid(), '103247', 'WH001', 'd4e5f6a7-b8c9-4012-d4e5-f6a7b8c90123', '2024-10-30', 480, 18.50, 8880.00, 'CUST010', 70);
 
 -- Insert forecast data for reconciliation
-INSERT INTO forecast_data (id, product_id, location_id, postdate, sell_in_forecast, sell_out_forecast, collaboration_status) VALUES
+INSERT INTO forecast_data (id, product_id, location_node_id, postdate, sell_in_forecast, sell_out_forecast, collaboration_status) VALUES
 (gen_random_uuid(), '103275', 'WH001', '2024-11-01', 500, 425, 'completed'),
 (gen_random_uuid(), '103276', 'WH001', '2024-11-01', 300, 285, 'completed'),
 (gen_random_uuid(), '103249', 'WH001', '2024-11-01', 750, 590, 'completed'),

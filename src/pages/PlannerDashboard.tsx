@@ -132,7 +132,7 @@ export default function PlannerDashboard() {
       const { data, error } = await supabase
        .schema('m8_schema')
         .from('forecast_error_metrics')
-        .select('mae, product_id, location_id')
+        .select('mae, product_id, location_node_id')
         .not('mae', 'is', null);
       
       if (error) {
@@ -142,7 +142,7 @@ export default function PlannerDashboard() {
       
       if (data && data.length > 0) {
         const avgAccuracy = data.reduce((sum, item) => sum + (100 - (item.mae || 0)), 0) / data.length;
-        const uniqueLocations = new Set(data.map(item => item.location_id)).size;
+        const uniqueLocations = new Set(data.map(item => item.location_node_id)).size;
         
         setForecastAccuracy({
           product_count: data.length,
