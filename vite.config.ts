@@ -7,7 +7,12 @@ import path from "path";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "0.0.0.0",
-    port: 8080 
+    port: 8080,
+    allowedHosts: [
+      "demoenv.m8solutions.platform.com",
+      "localhost",
+      "127.0.0.1"
+    ]
   },
   proxy: {
     '/api': {
