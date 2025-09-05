@@ -10,11 +10,11 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 
 interface Location{
+  id: string,
   location_code: string,
   description?: string,
   type_code?: string
 }
-
 
 
 interface LocationSelectionModalProps {
@@ -71,8 +71,9 @@ const fetchLocations = async () => {
     if (!searchTerm) return locations;
     
     return locations.filter(location => 
+      location.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       location.location_code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      location.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      location.description?.toLowerCase().includes(searchTerm.toLowerCase()) 
     );
   };
 
@@ -99,13 +100,13 @@ const fetchLocations = async () => {
               className="pl-10"
             />
           </div>
-
+          {/* Scrollable location list area */}
           <ScrollArea className="h-96 border rounded-md">
             {loading ? (
               <div className="flex items-center justify-center p-8">
                 <div className="text-sm text-muted-foreground">Cargando ubicaciones...</div>
               </div>
-            ) : filteredLocations.length === 0 ? (
+               ) : filteredLocations.length === 0 ? (
               <div className="flex items-center justify-center p-8">
                 <div className="text-sm text-muted-foreground">
                   {searchTerm ? 'No se encontraron ubicaciones' : 'No hay ubicaciones disponibles'}
@@ -115,18 +116,16 @@ const fetchLocations = async () => {
               <div className="p-2">
                 {filteredLocations.map(location => (
                   <div 
-                    key={location.location_code}
+                  key={location.location_code}
                     className="flex items-center p-2 hover:bg-gray-50 cursor-pointer text-sm"
                     onClick={() => handleSelect(location.location_code)}
                   >
                     <Package className="h-4 w-4 mr-2 text-blue-500" />
                     <span className="flex-1">{location.description || location.location_code}</span>
                     <div className="ml-2 flex gap-1">
-                      {location.location_code && (
-                        <Badge variant="outline" className="text-xs">
-                          {location.location_code}
-                        </Badge>
-                      )}
+                    <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    {location.location_code}
+                    </Badge>
                     </div>
                   </div>
                 ))}

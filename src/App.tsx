@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { MasterLayout } from "@/components/MasterLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { configureAGGridLicense } from "@/lib/ag-grid-config";
 import CommercialCollaboration from "./pages/CommercialCollaboration";
 import ForecastCollaboration from "./pages/ForecastCollaboration";
@@ -55,6 +56,7 @@ import ActiveAlerts from './pages/ActiveAlerts';
 import ExceptionDashboard from './pages/ExceptionDashboard';
 import PurchaseOrderParametersPage from './pages/PurchaseOrderParametersPage';
 import InventoryPolicyReview from './pages/InventoryPolicyReview';
+import ThemeSettings from './pages/ThemeSettings';
 
 
 const queryClient = new QueryClient();
@@ -79,24 +81,27 @@ const App = () => {
   if (!user) {
     return (
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/*" element={<Auth />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/*" element={<Auth />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     );
   }
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <BrowserRouter>
-          <MasterLayout>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <BrowserRouter>
+            <MasterLayout>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/planner-dashboard" element={<PlannerDashboard />} />
@@ -144,12 +149,14 @@ const App = () => {
               <Route path="/purchase-order-parameters" element={<PurchaseOrderParametersPage />} />
               <Route path="/alert-configuration" element={<AlertConfiguration />} />
               <Route path="/active-alerts" element={<ActiveAlerts />} />
+              <Route path="/theme-settings" element={<ThemeSettings />} />
               <Route path="/ag-data-grids" element={<DataGrids />} />
               {/* Protected Routes */}
             </Routes>
-          </MasterLayout>
-        </BrowserRouter>
-      </TooltipProvider>
+            </MasterLayout>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };

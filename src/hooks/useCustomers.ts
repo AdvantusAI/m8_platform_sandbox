@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
-  node_name: string;
+  customer_code: string;
   description: string | null;
   node_code: string;
   status: string;
@@ -25,21 +25,11 @@ export function useCustomers() {
       setLoading(true);
       const { data, error } = await supabase
         .schema('m8_schema')
-        .from('supply_network_nodes')
-        .select(`
-          id,
-          node_name,
-          description,
-          node_code,
-          status,
-          created_at,
-          updated_at,
-          node_type_id,
-          supply_network_node_types!inner(type_code)
+        .from('v_customer_node')
+        .select(`*
         `)
-        .eq('supply_network_node_types.type_code', 'Customer')
         .eq('status', 'active')
-        .order('node_name');
+        .order('customer_code');
 
       if (error) throw error;
       setCustomers(data || []);
@@ -53,7 +43,7 @@ export function useCustomers() {
 
   const getCustomerName = (customerId: string): string => {
     const customer = customers.find(c => c.id === customerId);
-    return customer?.node_name || `Cliente ${customerId}`;
+    return customer?.customer_code || `Cliente ${customerId}`;
   };
 
   return {

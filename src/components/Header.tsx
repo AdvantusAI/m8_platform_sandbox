@@ -1,6 +1,7 @@
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { UserMenu } from "@/components/UserMenu";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 export function Header() {
   return (
@@ -10,6 +11,7 @@ export function Header() {
         <h1 className="text-lg font-semibold text-gray-900">M8 Platform</h1>
       </div>
       <div className="flex items-center gap-4">
+        <ThemeSwitcher />
         <UserMenu />
       </div>
     </header>
