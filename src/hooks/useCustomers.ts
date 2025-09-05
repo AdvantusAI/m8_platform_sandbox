@@ -3,12 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
-  customer_code: string;
+  customer_id: string;
   description: string | null;
   node_code: string;
+  customer_code: string;
   status: string;
-  created_at: string;
-  updated_at: string;
 }
 
 export function useCustomers() {
@@ -25,7 +24,7 @@ export function useCustomers() {
       setLoading(true);
       const { data, error } = await supabase
         .schema('m8_schema')
-        .from('v_customer_node')
+        .from('v_customer_node')  
         .select(`*
         `)
         .eq('status', 'active')
@@ -42,8 +41,8 @@ export function useCustomers() {
   };
 
   const getCustomerName = (customerId: string): string => {
-    const customer = customers.find(c => c.id === customerId);
-    return customer?.customer_code || `Cliente ${customerId}`;
+    const customer = customers.find(c => c.customer_code === customerId);
+    return customer?.description;
   };
 
   return {

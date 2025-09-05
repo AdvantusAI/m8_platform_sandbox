@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Users, X } from 'lucide-react';
+import { Search, Users, X, ShoppingCart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 
 interface CustomerNode {
-  id: string;
-  node_name: string;
-  description?: string;
+  customer_id: string;
+  customer_code: string;
+  description: string;
+  status?: string;
 }
 
 interface CustomerSelectionModalProps {
@@ -51,19 +53,12 @@ export function CustomerSelectionModal({
       }
 
       // Fetch customer nodes from supply_network_nodes where node_type_id corresponds to CUSTOMERS type
-      let query = supabase
+      let query = (supabase as any)
         .schema('m8_schema')
-        .from('supply_network_nodes')
-        .select(`
-          id,
-          node_name,
-          description,
-          node_type_id,
-          supply_network_node_types!inner(type_code)
-        `)
-        .eq('supply_network_node_types.type_code', 'Customer')
+        .from('v_customer_node')
+        .select(`*`)
         .eq('status', 'active')
-        .order('node_name');
+        .order('description');
 
       if (searchTerm) {
         query = query.or(`node_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
@@ -75,9 +70,10 @@ export function CustomerSelectionModal({
       //////console.log('Customers data:', data);
       
       const customerNodes: CustomerNode[] = (data || []).map(customer => ({
-        id: customer.id,
-        node_name: customer.node_name || 'Sin nombre',
-        description: customer.description
+        customer_id: customer.customer_id,
+        customer_code: customer.customer_code,
+        description: customer.description,
+        status: customer.status
       }));
 
       setCustomers(customerNodes);
@@ -95,38 +91,24 @@ export function CustomerSelectionModal({
   };
 
   const renderCustomer = (customer: CustomerNode) => {
-    const isSelected = selectedCustomerId === customer.id;
+    const isSelected = selectedCustomerId === customer.customer_code;
 
     return (
-      <div key={customer.id} className="w-full">
-        <div
-          className={cn(
-            "flex items-center py-3 px-3 cursor-pointer hover:bg-gray-100 rounded transition-colors border-b border-gray-100",
-            isSelected && "bg-blue-100 text-blue-800"
-          )}
-          onClick={() => handleCustomerClick(customer.id)}
-        >
-          <div className="mr-3">
-            <div className="h-4 w-4 flex items-center justify-center">
-              <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-            </div>
-          </div>
+      <div key={customer.customer_code} 
+          className="flex items-center p-2 hover:bg-gray-50 cursor-pointer text-sm"
+          onClick={() => handleCustomerClick(customer.customer_code)}
           
-          <div className="flex-1 min-w-0">
-            <div className={cn(
-              "text-sm font-medium truncate",
-              isSelected && "font-semibold"
-            )}>
-              {customer.node_name}
-            </div>
-            {customer.description && (
-              <div className="text-xs text-gray-500 truncate">
-                {customer.description}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+        >
+          <ShoppingCart className="h-4 w-4 mr-2 text-blue-500" />
+
+          <span className="flex-1">{customer.description}</span>
+                    <div className="ml-2 flex gap-1">
+                    <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200">
+                     {customer.customer_code}
+                    </Badge>
+                    </div>
+                  </div>
+
     );
   };
 
@@ -134,8 +116,9 @@ export function CustomerSelectionModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle className="flex items-center">
-                        Seleccionar Cliente
+          <DialogTitle className="flex items-center  gap-2">
+          <ShoppingCart className="h-5 w-5" />
+           Seleccionar Cliente
           </DialogTitle>
             <DialogDescription>
               Elige un cliente de la lista para asignarlo.
@@ -158,17 +141,16 @@ export function CustomerSelectionModal({
           
           <ScrollArea className="flex-1">
             {loading ? (
-              <div className="text-center py-8 text-gray-500">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                Cargando clientes...
+              <div className="flex items-center justify-center p-8">
+                <div className="text-sm text-muted-foreground">Cargando clientes...</div>
               </div>
             ) : customers.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <div className="flex items-center justify-center p-8">
+                <Users className="text-sm text-muted-foreground" />
                 {searchTerm ? 'No se encontraron clientes' : 'No hay clientes disponibles'}
               </div>
             ) : (
-              <div className="space-y-1">
+              <div className="p-2">
                 {customers.map(customer => renderCustomer(customer))}
               </div>
             )}

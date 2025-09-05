@@ -109,7 +109,7 @@ export default function DemandForecast() {
   const { data: interpretabilityData } = useInterpretabilityData(selectedProductId, selectedLocationId, selectedCustomerId);
   const { getProductName } = useProducts();
   const { getLocationName, loading: locationsLoading } = useLocations();
-  const { getCustomerName } = useCustomers();
+  const { getCustomerName, loading: customersLoading } =  useCustomers();
 
   // ===== URL PARAMETER SYNC =====
   /**
@@ -152,7 +152,7 @@ export default function DemandForecast() {
    * @param locationId - Selected location ID
    */
   const handleLocationSelect = (locationId: string): void => {
-    setSelectedLocationId(locationId);
+    console.log('selectedLocationId', selectedLocationId);
     saveFiltersToStorage({
       productId: selectedProductId,
       locationId,
@@ -165,6 +165,7 @@ export default function DemandForecast() {
    * @param customerId - Selected customer ID
    */
   const handleCustomerSelect = (customerId: string): void => {
+  
     setSelectedCustomerId(customerId);
     saveFiltersToStorage({
       productId: selectedProductId,
@@ -241,8 +242,8 @@ export default function DemandForecast() {
                 <span className="text-sm font-medium">Producto:</span>
                 {selectedProductId ? (
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{selectedProductId}</Badge>
-                    <Badge variant="secondary">{getProductName(selectedProductId)}</Badge>
+                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">{selectedProductId}</Badge>
+                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">{getProductName(selectedProductId)}</Badge>
                   </div>
                 ) : (
                   <span className="text-sm text-muted-foreground">No seleccionado (obligatorio)</span>
@@ -263,8 +264,8 @@ export default function DemandForecast() {
                 <span className="text-sm font-medium">Ubicación:</span>
                 {selectedLocationId ? (
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{selectedLocationId}</Badge>
-                    <Badge variant="secondary">
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">{selectedLocationId}</Badge>
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                       {locationsLoading ? 'Cargando...' : getLocationName(selectedLocationId)}
                     </Badge>
                   </div>
@@ -292,21 +293,22 @@ export default function DemandForecast() {
                         customerId: selectedCustomerId
                       });
                     }}
+                    
                     className="h-8 w-8"
                   >
                     <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>
-
+                
               {/* Customer Filter - Optional */}
               <div className="flex items-center gap-2">
                 <Truck className="h-4 w-4 text-orange-500" />
                 <span className="text-sm font-medium">Cliente:</span>           
                 {selectedCustomerId ? (
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{selectedCustomerId}</Badge>
-                    <Badge variant="secondary">{getCustomerName(selectedCustomerId)}</Badge>
+                    <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">{selectedCustomerId}</Badge>
+                    <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">{getCustomerName(selectedCustomerId)}</Badge>
                   </div>
                 ) : (
                   <span className="text-sm text-muted-foreground">No seleccionado (opcional)</span>

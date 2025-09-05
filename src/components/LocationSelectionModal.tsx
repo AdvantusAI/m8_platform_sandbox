@@ -124,7 +124,7 @@ const fetchLocations = async () => {
                     <span className="flex-1">{location.description || location.location_code}</span>
                     <div className="ml-2 flex gap-1">
                     <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200">
-                    {location.location_code}
+                     {location.location_code}
                     </Badge>
                     </div>
                   </div>
