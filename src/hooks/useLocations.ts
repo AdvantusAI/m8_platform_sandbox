@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Location {
+  location_id: string;
   location_code: string;
   description?: string;
   type_code?: string;

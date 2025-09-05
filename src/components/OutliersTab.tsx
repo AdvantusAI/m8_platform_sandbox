@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Info, AlertCircle } from 'lucide-react';
 
+
 interface OutliersTabProps {
   selectedProductId?: string;
   selectedCustomerId?: string;
@@ -30,9 +31,9 @@ export const OutliersTab: React.FC<OutliersTabProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-center text-center py-8">
               <div className="space-y-2">
-                <Info className="h-6 w-6 mx-auto text-muted-foreground" />
+                <Info className="h-12 w-12 mx-auto text-muted-foreground" />
                 <h3 className="text-lg font-medium">Selecciona Filtros</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">
+                <p className="text-sm text-muted-foreground">
                   Para ver el análisis de outliers, selecciona un producto y un cliente. 
                   La ubicación es opcional.
                 </p>
@@ -88,10 +89,12 @@ export const OutliersTab: React.FC<OutliersTabProps> = ({
           <CardContent className="p-6">
             <div className="flex items-center justify-center text-center py-8">
               <div className="space-y-2">
-                <Info className="h-6 w-6 mx-auto text-muted-foreground" />
-                <h3 className="text-lg font-medium">Sin Outliers Detectados</h3>
+                <Info className="h-12 w-12 mx-auto text-[#ff5252]" />
+                <h3 className="text-lg font-medium">No hay datos disponibles</h3>
                 <p className="text-sm text-muted-foreground">
-                  No se encontraron outliers para los filtros seleccionados.
+                  No se encontraron outliers para el producto seleccionado
+                  {selectedLocationId && ` en la ubicación ${selectedLocationId}`}
+                  {selectedCustomerId && ` para el cliente ${selectedCustomerId}`}.
                 </p>
               </div>
             </div>

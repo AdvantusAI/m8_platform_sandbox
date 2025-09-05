@@ -152,7 +152,7 @@ export default function DemandForecast() {
    * @param locationId - Selected location ID
    */
   const handleLocationSelect = (locationId: string): void => {
-    console.log('selectedLocationId', selectedLocationId);
+    setSelectedLocationId(locationId);
     saveFiltersToStorage({
       productId: selectedProductId,
       locationId,
@@ -398,6 +398,7 @@ export default function DemandForecast() {
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
+            
               <ForecastDataTable 
                 selectedProductId={selectedProductId}
                 selectedLocationId={selectedLocationId}

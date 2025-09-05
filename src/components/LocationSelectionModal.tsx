@@ -15,7 +15,7 @@ interface Location{
   description?: string,
   type_code?: string
 }
-
+ 
 
 interface LocationSelectionModalProps {
   isOpen: boolean;

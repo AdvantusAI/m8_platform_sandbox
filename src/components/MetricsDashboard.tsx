@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, TrendingDown, BarChart3, AlertTriangle, CheckCircle, Package, MapPin } from "lucide-react";
-import { useInterpretabilityData } from "@/hooks/useInterpretabilityData";
+import { TrendingUp, TrendingDown, BarChart3, AlertTriangle, CheckCircle, Package, BadgeAlert } from "lucide-react";
+import { useLocations } from "@/hooks/useLocations";
+import { useCustomers } from "@/hooks/useCustomers";
 
 interface MetricsData {
   forecast_accuracy: number;
@@ -36,9 +37,27 @@ interface MetricsDashboardProps {
 }
 
 export function MetricsDashboard({ selectedProductId, selectedLocationId, selectedCustomerId }: MetricsDashboardProps) {
+  // State management for metrics data and loading status
   const [metricsData, setMetricsData] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   
+  // Hooks for location and customer data
+  const { locations } = useLocations();
+  const { customers } = useCustomers();
+  
+  // Helper function to convert location code to location ID
+  const getLocationId = (locationCode: string): string | undefined => {
+    const location = locations.find(l => l.location_code === locationCode);
+    return location?.location_id;
+  };
+  
+  // Helper function to convert customer code to customer ID
+  const getCustomerId = (customerCode: string): string | undefined => {
+    const customer = customers.find(c => c.customer_code === customerCode);
+    return customer?.customer_node_id;
+  };
+  
+  // Effect to fetch metrics data when filters change
   useEffect(() => {
     if (selectedProductId) {
       fetchMetricsData();
@@ -51,17 +70,17 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
   // Show selection prompt if no product is selected
   if (!selectedProductId) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center p-8 text-center space-y-4">
-            <div className="flex items-center gap-4 text-muted-foreground">
-              <Package className="h-8 w-8" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Selecciona Producto</h3>
-              <p className="text-sm text-muted-foreground">
-                Para ver las métricas detalladas, selecciona un producto. La ubicación es opcional.
-              </p>
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center text-center py-8">
+              <div className="space-y-2">
+                <Package className="h-12 w-12 mx-auto text-muted-foreground" />
+                <h3 className="text-lg font-medium">Selecciona Filtros</h3>
+                <p className="text-sm text-muted-foreground">
+                  Para ver el análisis de métricas, selecciona un producto y un cliente. La ubicación es opcional.
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -69,18 +88,20 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
     );
   }
 
+  // Function to fetch metrics data from database
   const fetchMetricsData = async () => {
     try {
       setLoading(true);
       
-      // Build filters based on selected product, location, and vendor
-      let errorMetricsQuery = supabase
+      // Build query for forecast error metricsW
+      let errorMetricsQuery = (supabase as any)
         .schema('m8_schema')
         .from('forecast_error_metrics')
         .select('*')
         .order('created_at', { ascending: false });
       
-      let interpretabilityQuery = supabase
+      // Build query for forecast interpretability data
+      let interpretabilityQuery = (supabase as any)
        .schema('m8_schema')
         .from('forecast_interpretability')
         .select('*')
@@ -92,76 +113,115 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
         interpretabilityQuery = interpretabilityQuery.eq('product_id', selectedProductId);
       }
       
-      // Apply location filter only if selected
+      // Apply location filter if selected
       if (selectedLocationId) {
-        errorMetricsQuery = errorMetricsQuery.eq('location_node_id', selectedLocationId);
-        interpretabilityQuery = interpretabilityQuery.eq('location_node_id', selectedLocationId);
+        const actualLocationId = getLocationId(selectedLocationId);
+        if (actualLocationId) {
+          errorMetricsQuery = errorMetricsQuery.eq('location_node_id', actualLocationId);
+          interpretabilityQuery = interpretabilityQuery.eq('location_node_id', actualLocationId);
+        }
       }
 
-      // Apply vendor filter if selected
+      // Apply customer filter if selected
       if (selectedCustomerId) {
-        errorMetricsQuery = errorMetricsQuery.eq('customer_id', selectedCustomerId);
-        interpretabilityQuery = interpretabilityQuery.eq('customer_id', selectedCustomerId);
+        const actualCustomerId = getCustomerId(selectedCustomerId);
+        if (actualCustomerId) {
+          errorMetricsQuery = errorMetricsQuery.eq('customer_node_id', actualCustomerId);
+          interpretabilityQuery = interpretabilityQuery.eq('customer_node_id', actualCustomerId);
+        }
       }
 
-      const { data: errorMetrics } = await errorMetricsQuery.limit(1).single();
-      const { data: interpretabilityData } = await interpretabilityQuery.limit(1).single();
+      // Execute queries
+      const { data: errorMetricsData, error: errorMetricsError } = await errorMetricsQuery.limit(1);
+      const { data: interpretabilityDataArray, error: interpretabilityError } = await interpretabilityQuery.limit(1);
 
+      // Handle query errors
+      if (errorMetricsError) {
+        console.error('Error fetching error metrics:', errorMetricsError);
+        throw errorMetricsError;
+      }
+      if (interpretabilityError) {
+        console.error('Error fetching interpretability data:', interpretabilityError);
+        throw interpretabilityError;
+      }
+
+      // Get the first result from each query
+      const errorMetrics = errorMetricsData?.[0];
+      const interpretabilityData = interpretabilityDataArray?.[0];
+
+      // Only set data if both queries return results
       if (errorMetrics && interpretabilityData) {
         const combinedData: MetricsData = {
-          forecast_accuracy: 100 - (errorMetrics.mape || 0),
-          model_confidence: interpretabilityData.interpretability_score || 0,
-          forecast_bias: errorMetrics.forecast_bias || 0,
-          uncertainty_quality: errorMetrics.uncertainty_quality_score || 0,
-          mae: errorMetrics.mae || 0,
-          rmse: errorMetrics.rmse || 0,
-          smape: errorMetrics.smape || 0,
-          model_name: interpretabilityData.model_name || 'Unknown',
-          interpretability_score: interpretabilityData.interpretability_score || 0,
-          model_complexity: interpretabilityData.model_complexity || 'Moderado',
-          confidence_level: interpretabilityData.confidence_level || 'Media',
-          forecast_explanation: interpretabilityData.forecast_explanation || '',
-          primary_drivers: interpretabilityData.primary_drivers || [],
-          risk_factors: interpretabilityData.risk_factors || [],
-          recommended_actions: interpretabilityData.recommended_actions || [],
-          data_pattern_type: interpretabilityData.data_pattern_type || 'intermittent',
-          zero_frequency: errorMetrics.zero_frequency || 0,
-          volatility_coefficient: errorMetrics.volatility_coefficient || 0,
-          seasonality_strength: errorMetrics.seasonality_strength || 0,
-          inventory_recommendations: String(interpretabilityData.inventory_recommendations || ''),
+          forecast_accuracy: 100 - errorMetrics.mape,
+          model_confidence: interpretabilityData.interpretability_score,
+          forecast_bias: errorMetrics.forecast_bias,
+          uncertainty_quality: errorMetrics.uncertainty_quality_score,
+          mae: errorMetrics.mae,
+          rmse: errorMetrics.rmse,
+          smape: errorMetrics.smape,
+          model_name: interpretabilityData.model_name,
+          interpretability_score: interpretabilityData.interpretability_score,
+          model_complexity: interpretabilityData.model_complexity,
+          confidence_level: interpretabilityData.confidence_level,
+          forecast_explanation: interpretabilityData.forecast_explanation,
+          primary_drivers: interpretabilityData.primary_drivers,
+          risk_factors: interpretabilityData.risk_factors,
+          recommended_actions: interpretabilityData.recommended_actions,
+          data_pattern_type: interpretabilityData.data_pattern_type,
+          zero_frequency: errorMetrics.zero_frequency,
+          volatility_coefficient: errorMetrics.volatility_coefficient,
+          seasonality_strength: errorMetrics.seasonality_strength,
+          inventory_recommendations: String(interpretabilityData.inventory_recommendations),
         };
         setMetricsData(combinedData);
+      } else {
+        // No data found - show no data message
+        setMetricsData(null);
       }
     } catch (error) {
       console.error('Error fetching metrics data:', error);
+      setMetricsData(null);
     } finally {
       setLoading(false);
     }
   };
 
+  // Helper function to get status icon based on value and threshold
   const getStatusIcon = (value: number, threshold: number = 70) => {
     return value >= threshold ? 
       <TrendingUp className="h-4 w-4 text-custom-slate" /> : 
       <TrendingDown className="h-4 w-4 text-red-500" />;
   };
 
+  // Helper function to get status color based on value and threshold
   const getStatusColor = (value: number, threshold: number = 70) => {
     return value >= threshold ? 'text-custom-slate' : 'text-red-500';
   };
 
+  // Loading state
   if (loading) {
     return <div className="flex items-center justify-center p-8">Cargando métricas...</div>;
   }
 
+  // No data state - show message when no metrics are found for selected filters
   if (!metricsData) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <p className="text-muted-foreground">No hay datos disponibles</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            No se encontraron métricas para el producto y ubicación seleccionados
-          </p>
-        </div>
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-center text-center py-8">
+              <div className="space-y-2">
+                <BadgeAlert className="h-12 w-12 mx-auto text-[#ff5252]" />
+                <h3 className="text-lg font-medium">No hay datos disponibles</h3>
+                <p className="text-sm text-muted-foreground">
+                  No se encontraron métricas para el producto seleccionado
+                  {selectedLocationId && ` en la ubicación ${selectedLocationId}`}
+                  {selectedCustomerId && ` para el cliente ${selectedCustomerId}`}.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -379,8 +439,7 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
             <div>
               <span className="text-sm font-medium">Explicación del Pronóstico</span>
               <p className="text-sm mt-1 text-muted-foreground">
-                {metricsData.forecast_explanation || 
-                "No disponible."}
+                {metricsData.forecast_explanation}
               </p>
             </div>
           </CardContent>
@@ -398,32 +457,22 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
             <div>
               <span className="text-sm font-medium">Factores Principales</span>
               <div className="flex flex-wrap gap-2 mt-2">
-                {metricsData.primary_drivers.length > 0 ? 
-                  metricsData.primary_drivers.map((driver, index) => (
-                    <Badge key={index} variant="outline" className="text-xs bg-custom-slate-50 text-custom-slate-700 border-custom-slate-200">
-                      {driver}
-                    </Badge>
-                  )) :
-                  <>
-                    
-                  </>
-                }
+                {metricsData.primary_drivers.map((driver, index) => (
+                  <Badge key={index} variant="outline" className="text-xs bg-custom-slate-50 text-custom-slate-700 border-custom-slate-200">
+                    {driver}
+                  </Badge>
+                ))}
               </div>
             </div>
             
             <div>
               <span className="text-sm font-medium">Factores de Riesgo</span>
               <div className="flex flex-wrap gap-2 mt-2">
-                {metricsData.risk_factors.length > 0 ? 
-                  metricsData.risk_factors.map((risk, index) => (
-                    <Badge key={index} variant="destructive" className="text-xs">
-                      {risk}
-                    </Badge>
-                  )) :
-                  <>
-                    
-                  </>
-                }
+                {metricsData.risk_factors.map((risk, index) => (
+                  <Badge key={index} variant="destructive" className="text-xs">
+                    {risk}
+                  </Badge>
+                ))}
               </div>
             </div>
             
@@ -437,32 +486,12 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
             <div>
               <span className="text-sm font-medium">Acciones Recomendadas</span>
               <div className="space-y-2 mt-2">
-                {metricsData.recommended_actions.length > 0 ? 
-                  metricsData.recommended_actions.map((action, index) => (
-                    <div key={index} className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-custom-slate mt-0.5" />
-                      <span className="text-sm">{action}</span>
-                    </div>
-                  )) :
-                  <>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-custom-slate mt-0.5" />
-                      <span className="text-sm">Mantener inventario base mínimo con capacidad de reabastecimiento rápido</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-custom-slate mt-0.5" />
-                      <span className="text-sm">Implementar detección de demanda para señales tempranas</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-custom-slate mt-0.5" />
-                      <span className="text-sm">Considerar estrategia make-to-order para este ítem</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-custom-slate mt-0.5" />
-                      <span className="text-sm">Monitorear precisión del pronóstico y ajustar inventario de seguridad según corresponda</span>
-                    </div>
-                  </>
-                }
+                {metricsData.recommended_actions.map((action, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-custom-slate mt-0.5" />
+                    <span className="text-sm">{action}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>

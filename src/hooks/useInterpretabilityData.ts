@@ -1,6 +1,15 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useLocations } from './useLocations';
+import { useCustomers } from './useCustomers';
+
+interface Location {
+  location_id: string;
+  location_code: string;
+  description?: string;
+  type_code?: string;
+}
 
 interface InterpretabilityData {
   id: number;
@@ -19,21 +28,37 @@ interface InterpretabilityData {
   created_at: string;
 }
 
+
 export function useInterpretabilityData(productId?: string, locationId?: string, customerId?: string) {
   const [data, setData] = useState<InterpretabilityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { locations } = useLocations();
+  const { customers } = useCustomers();
   useEffect(() => {
     fetchData();
   }, [productId, locationId, customerId]);
+
+
+  const getLocationId = (locationId: string): string | undefined => {
+    const location = locations.find(l => l.location_code === locationId);
+    console.log('location', location.location_id);
+    return location?.location_id;
+  };
+
+  const getCustomerId = (customerId: string): string | undefined => {
+    const customer = customers.find(c => c.customer_code === customerId);
+    console.log('customer', customer.customer_node_id);
+    return customer?.customer_node_id;
+  };
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      let query = supabase
+      let query = (supabase as any)
        .schema('m8_schema')
         .from('forecast_interpretability')        
         .select('*')
@@ -44,12 +69,16 @@ export function useInterpretabilityData(productId?: string, locationId?: string,
       }
       
       if (locationId) {
-        query = query.eq('location_node_id', locationId);
+        const actualLocationId = getLocationId(locationId);
+        if (actualLocationId) {
+          query = query.eq('location_node_id', actualLocationId);
+        }
       }
 
       // Apply customer filter if selected
       if (customerId) {
-        query = query.eq('customer_id', customerId);
+       
+        query = query.eq('customer_node_id', getCustomerId(customerId));
       }
 
       const { data: result, error: fetchError } = await query;

@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useLocations } from "./useLocations";
+import { useCustomers } from "./useCustomers";
 
 interface DemandOutlier {
   id: string;
   product_id: string;
   location_node_id: string;
-  customer_id: string;
+  customer_node_id: string;
   vendor_id: string;
   capped_value: number;
   original_value: number;
@@ -21,6 +23,21 @@ interface DemandOutlier {
 }
 
 export const useOutliersData = (selectedProductId?: string, selectedCustomerId?: string, selectedLocationId?: string) => {
+  const { locations } = useLocations();
+  const { customers } = useCustomers();
+
+  // Helper function to convert location code to location ID
+  const getLocationId = (locationCode: string): string | undefined => {
+    const location = locations.find(l => l.location_code === locationCode);
+    return location?.location_id;
+  };
+
+  // Helper function to convert customer code to customer ID
+  const getCustomerId = (customerCode: string): string | undefined => {
+    const customer = customers.find(c => c.customer_code === customerCode);
+    console.log('customer', customer?.customer_id);
+    return customer?.customer_id;
+  };
   return useQuery({
     queryKey: ['outliers', selectedProductId, selectedCustomerId, selectedLocationId],
     queryFn: async (): Promise<DemandOutlier[]> => {
@@ -30,14 +47,15 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
 
       const filters: any = {
         product_id: selectedProductId,
-        customer_id: selectedCustomerId
+        customer_node_id: getCustomerId(selectedCustomerId)
       };
+    
 
       if (selectedLocationId) {
-        filters.location_node_id = selectedLocationId;
+        filters.location_node_id = getLocationId(selectedLocationId);
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
        .schema('m8_schema')
         .from('demand_outliers')
         .select('*')
@@ -49,8 +67,8 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
         id: String(item.id || ''),
         product_id: item.product_id || '',
         location_node_id: item.location_node_id || '',
-        customer_id: item.customer_id || '',
-        vendor_id: item.vendor_id || '',
+        customer_id: item.customer_node_id || '',
+        vendor_id: item.customer_node_id || '',
         capped_value: item.capped_value || 0,
         original_value: item.original_value || 0,
         expected_value: item.expected_value || 0,

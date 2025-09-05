@@ -5,6 +5,18 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { useLocations } from '@/hooks/useLocations';
+import { useCustomers } from '@/hooks/useCustomers';
+
+interface Customer {
+  customer_id: string;
+  customer_code: string;
+}
+
+interface Location {
+  location_id: string;
+  location_code: string;
+}
 
 interface ForecastDataTableProps {
   selectedProductId?: string;
@@ -29,11 +41,33 @@ export function ForecastDataTable({
   selectedLocationId,
   selectedCustomerId,
   onDataUpdate
-}: ForecastDataTableProps) {
+}: ForecastDataTableProps) 
+
+{
   const [forecastData, setForecastData] = useState<ForecastData[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingValues, setEditingValues] = useState<{[key: string]: number | null}>({});
   const [savingValues, setSavingValues] = useState<{[key: string]: boolean}>({});
+  
+  const { locations } = useLocations();
+  const { customers } = useCustomers();
+
+
+  const getLocationId = (locationCode: string): string | undefined => {
+    console.log('Looking for location with code:', locationCode);
+    console.log('Available locations:', locations.map(l => ({ code: l.location_code, id: l.location_id })));
+    const location = locations.find(l => l.location_code === locationCode);
+    console.log('Found location:', location);
+    return location?.location_id;
+  };
+
+  const getCustomerId = (customerCode: string): string | undefined => {
+    console.log('Looking for customer with code:', customerCode);
+    console.log('Available customers:', customers.map(c => ({ code: c.customer_code, id: c.customer_node_id })));
+    const customer = customers.find(c => c.customer_code === customerCode);
+    console.log('Found customer:', customer);
+    return customer?.customer_node_id;
+  };
 
   useEffect(() => {
     // Only fetch data if product is selected (location is now optional)
@@ -45,6 +79,7 @@ export function ForecastDataTable({
     }
   }, [selectedProductId, selectedLocationId, selectedCustomerId]);
 
+  
   useEffect(() => {
     if (onDataUpdate) {
       onDataUpdate(forecastData);
@@ -66,7 +101,13 @@ export function ForecastDataTable({
 
   const fetchAndAggregateManually = async () => {
     try {
-      let query = supabase
+      console.log('Starting fetch with filters:', {
+        selectedProductId,
+        selectedLocationId,
+        selectedCustomerId
+      });
+
+      let query = (supabase as any)
         .schema('m8_schema')
         .from('forecast_with_fitted_history')
         .select('product_id,location_node_id,customer_node_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history')
@@ -75,16 +116,28 @@ export function ForecastDataTable({
       
       // Apply location filter only if selected
       if (selectedLocationId) {
-        query = query.eq('location_node_id', selectedLocationId);
+        const locationId = getLocationId(selectedLocationId);
+        console.log('Applying location filter:', { selectedLocationId, locationId });
+        if (locationId) {
+          query = query.eq('location_node_id', locationId);
+        } else {
+          console.warn('Location ID not found for code:', selectedLocationId);
+        }
       }
       
       // Apply vendor filter only if selected - use customer_node_id field for vendor filtering
       if (selectedCustomerId) {
-        query = query.eq('customer_node_id', selectedCustomerId);
+        console.log('selectedCustomerId', selectedCustomerId);
+        const customerId = getCustomerId(selectedCustomerId);
+        console.log('Applying customer filter:', { selectedCustomerId, customerId });
+        if (customerId) {
+          query = query.eq('customer_node_id', getCustomerId(customerId));
+        } else {
+          console.warn('Customer ID not found for code:', selectedCustomerId);
+        }
       }
       
-      
-      
+      console.log('Executing query...');
       const { data, error } = await query;
       
       if (error) {
@@ -92,7 +145,8 @@ export function ForecastDataTable({
         return;
       }
       
-      
+      console.log('Raw data received:', data);
+      console.log('Number of records:', data?.length || 0);
       
       // Group and aggregate by postdate
       const aggregatedData = new Map<string, ForecastData>();
@@ -134,7 +188,8 @@ export function ForecastDataTable({
         new Date(a.postdate).getTime() - new Date(b.postdate).getTime()
       );
 
-      ////console.log('Aggregated forecast data:', result);
+      console.log('Aggregated forecast data:', result);
+      console.log('Number of aggregated records:', result.length);
       setForecastData(result);
       
     } catch (error) {
@@ -178,17 +233,17 @@ export function ForecastDataTable({
 
     try {
       // Build the update query with filters
-      let query = supabase
+      let query = (supabase as any)
         .schema('m8_schema')
         .from('forecast_data')
         .update({ demand_planner: newValue })
         .eq('postdate', date)
         .eq('product_id', selectedProductId)
-        .eq('customer_node_id', selectedCustomerId);
+        .eq('customer_node_id', getCustomerId(selectedCustomerId));
 
       // Apply location filter if selected
       if (selectedLocationId) {
-        query = query.eq('location_node_id', selectedLocationId);
+        query = query.eq('location_node_id', getLocationId(selectedLocationId));
       }
 
       const { error } = await query;

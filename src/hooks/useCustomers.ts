@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface Customer {
   id: string;
-  customer_id: string;
+  customer_node_id: string;
   description: string | null;
   node_code: string;
   customer_code: string;
@@ -42,6 +42,7 @@ export function useCustomers() {
 
   const getCustomerName = (customerId: string): string => {
     const customer = customers.find(c => c.customer_code === customerId);
+    console.log('vhvavcustomer', customer);
     return customer?.description;
   };
 
