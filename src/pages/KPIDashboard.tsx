@@ -794,6 +794,7 @@ export default function KPIDashboard() {
                   <AgGridReact
                     rowData={lowAccuracyProducts}
                     columnDefs={productColumns}
+                    theme="legacy"
                     defaultColDef={{
                       sortable: true,
                       filter: true,
@@ -835,6 +836,7 @@ export default function KPIDashboard() {
                   <AgGridReact
                     rowData={lowAccuracyCustomers}
                     columnDefs={customerColumns}
+                    theme="legacy"
                     defaultColDef={{
                       sortable: true,
                       filter: true,
@@ -876,6 +878,7 @@ export default function KPIDashboard() {
                   <AgGridReact
                     rowData={customerProductCombinations}
                     columnDefs={combinationColumns}
+                    theme="legacy"
                     defaultColDef={{
                       sortable: true,
                       filter: true,
