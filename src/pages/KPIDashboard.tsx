@@ -20,7 +20,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef } from 'ag-grid-community';
+import { ColDef, ICellRendererParams } from 'ag-grid-community';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
 
@@ -456,64 +456,87 @@ export default function KPIDashboard() {
     }
   };
 
+  // React Component Cell Renderers
+  const CategoryCellRenderer = (params: ICellRendererParams) => {
+    return (
+      <span className="inline-flex items-center rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600">
+        {params.value || 'Sin categoría'}
+      </span>
+    );
+  };
+
+  const AccuracyCellRenderer = (params: ICellRendererParams) => {
+    const score = params.value;
+    const colorClass = score >= 80 ? 'text-green-600 bg-green-50' : 
+                      score >= 60 ? 'text-yellow-600 bg-yellow-50' : 
+                      'text-red-600 bg-red-50';
+    
+    return (
+      <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colorClass}`}>
+        {score}%
+      </span>
+    );
+  };
+
+  const TrendCellRenderer = (params: ICellRendererParams) => {
+    const trend = params.value;
+    const icon = trend === 'improving' ? '↗️' : trend === 'declining' ? '↘️' : '➡️';
+    
+    return (
+      <div className="flex items-center justify-center">
+        {icon}
+      </div>
+    );
+  };
+
   // Column definitions for ag-Grid
   const productColumns: ColDef[] = [
     { 
       field: 'product_id', 
       headerName: 'Producto ID', 
-      width: 120,
+      width: 140,
       cellClass: 'font-mono text-xs'
     },
     { 
       field: 'product_name', 
       headerName: 'Nombre del Producto', 
-      width: 200,
+      width: 280,
       cellClass: 'font-medium'
     },
     { 
       field: 'category_name', 
       headerName: 'Categoría', 
-      width: 150,
-      cellRenderer: (params: any) => {
-        return `<span class="inline-flex items-center rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600">${params.value}</span>`;
-      }
+      width: 180,
+      cellRenderer: CategoryCellRenderer
     },
     { 
       field: 'accuracy_score', 
       headerName: 'Precisión', 
-      width: 100,
-      cellRenderer: (params: any) => {
-        const score = params.value;
-        const colorClass = score >= 80 ? 'text-green-600 bg-green-50' : score >= 60 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
-        return `<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colorClass}">${score}%</span>`;
-      }
+      width: 120,
+      cellRenderer: AccuracyCellRenderer
     },
     { 
       field: 'avg_error_percentage', 
       headerName: 'Error %', 
-      width: 100,
+      width: 120,
       cellClass: 'text-red-600 font-medium text-center'
     },
     { 
       field: 'forecast_count', 
       headerName: 'Pronósticos', 
-      width: 100,
+      width: 120,
       cellClass: 'text-center'
     },
     { 
       field: 'trend', 
       headerName: 'Tendencia', 
-      width: 100,
-      cellRenderer: (params: any) => {
-        const trend = params.value;
-        const icon = trend === 'improving' ? '↗️' : trend === 'declining' ? '↘️' : '➡️';
-        return `<div class="flex items-center justify-center">${icon}</div>`;
-      }
+      width: 120,
+      cellRenderer: TrendCellRenderer
     },
     { 
       field: 'last_forecast_date', 
       headerName: 'Último Pronóstico', 
-      width: 150,
+      width: 180,
       cellRenderer: (params: any) => {
         return new Date(params.value).toLocaleDateString('es-ES');
       },
@@ -525,46 +548,38 @@ export default function KPIDashboard() {
     { 
       field: 'customer_id', 
       headerName: 'Cliente ID', 
-      width: 120,
+      width: 140,
       cellClass: 'font-mono text-xs'
     },
     { 
       field: 'customer_name', 
       headerName: 'Nombre del Cliente', 
-      width: 200,
+      width: 280,
       cellClass: 'font-medium'
     },
     { 
       field: 'accuracy_score', 
       headerName: 'Precisión', 
-      width: 100,
-      cellRenderer: (params: any) => {
-        const score = params.value;
-        const colorClass = score >= 80 ? 'text-green-600 bg-green-50' : score >= 60 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
-        return `<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colorClass}">${score}%</span>`;
-      }
+      width: 120,
+      cellRenderer: AccuracyCellRenderer
     },
     { 
       field: 'avg_error_percentage', 
       headerName: 'Error %', 
-      width: 100,
+      width: 120,
       cellClass: 'text-red-600 font-medium text-center'
     },
     { 
       field: 'forecast_count', 
       headerName: 'Pronósticos', 
-      width: 100,
+      width: 120,
       cellClass: 'text-center'
     },
     { 
       field: 'trend', 
       headerName: 'Tendencia', 
-      width: 100,
-      cellRenderer: (params: any) => {
-        const trend = params.value;
-        const icon = trend === 'improving' ? '↗️' : trend === 'declining' ? '↘️' : '➡️';
-        return `<div class="flex items-center justify-center">${icon}</div>`;
-      }
+      width: 120,
+      cellRenderer: TrendCellRenderer
     },
     { 
       field: 'last_forecast_date', 
@@ -606,19 +621,13 @@ export default function KPIDashboard() {
       field: 'category_name', 
       headerName: 'Categoría', 
       width: 120,
-      cellRenderer: (params: any) => {
-        return `<span class="inline-flex items-center rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600">${params.value}</span>`;
-      }
+      cellRenderer: CategoryCellRenderer
     },
     { 
       field: 'accuracy_score', 
       headerName: 'Precisión', 
       width: 100,
-      cellRenderer: (params: any) => {
-        const score = params.value;
-        const colorClass = score >= 80 ? 'text-green-600 bg-green-50' : score >= 60 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
-        return `<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colorClass}">${score}%</span>`;
-      }
+      cellRenderer: AccuracyCellRenderer
     },
     { 
       field: 'avg_error_percentage', 
@@ -647,11 +656,7 @@ export default function KPIDashboard() {
       field: 'trend', 
       headerName: 'Tendencia', 
       width: 100,
-      cellRenderer: (params: any) => {
-        const trend = params.value;
-        const icon = trend === 'improving' ? '↗️' : trend === 'declining' ? '↘️' : '➡️';
-        return `<div class="flex items-center justify-center">${icon}</div>`;
-      }
+      cellRenderer: TrendCellRenderer
     },
     { 
       field: 'last_forecast_date', 
