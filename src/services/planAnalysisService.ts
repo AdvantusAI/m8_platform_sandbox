@@ -342,7 +342,7 @@ export class PlanAnalysisService {
       }, {})
     }));
 
-    //console.log('Export data prepared:', exportData);
+    ////console.log('Export data prepared:', exportData);
     // TODO: Implement actual Excel export
   }
 }

@@ -29,14 +29,15 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
   // Helper function to convert location code to location ID
   const getLocationId = (locationCode: string): string | undefined => {
     const location = locations.find(l => l.location_code === locationCode);
+    console.log(location.location_id);
     return location?.location_id;
   };
 
   // Helper function to convert customer code to customer ID
   const getCustomerId = (customerCode: string): string | undefined => {
     const customer = customers.find(c => c.customer_code === customerCode);
-    console.log('customer', customer?.customer_id);
-    return customer?.customer_id;
+    //console.log('customer', customer?.customer_id);
+    return customer?.customer_code;
   };
   return useQuery({
     queryKey: ['outliers', selectedProductId, selectedCustomerId, selectedLocationId],
@@ -52,9 +53,10 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
     
 
       if (selectedLocationId) {
-        filters.location_node_id = getLocationId(selectedLocationId);
+        const location = getLocationId(selectedLocationId);
+        filters.location_node_id = getLocationId(location);
       }
-
+      console.log('filters', filters);
       const { data, error } = await (supabase as any)
        .schema('m8_schema')
         .from('demand_outliers')

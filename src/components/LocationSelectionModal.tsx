@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ChevronDown, ChevronRight, Search, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -87,6 +87,9 @@ const fetchLocations = async () => {
             <Package className="h-5 w-5" />
             Seleccionar Ubicación
           </DialogTitle>
+          <DialogDescription>
+              Elige una ubicación de la lista para asignarlo.
+            </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -120,10 +123,10 @@ const fetchLocations = async () => {
                     className="flex items-center p-2 hover:bg-gray-50 cursor-pointer text-sm"
                     onClick={() => handleSelect(location.location_code)}
                   >
-                    <Package className="h-4 w-4 mr-2 text-blue-500" />
+                    <Package className="h-4 w-4 mr-2 text-green-500" />
                     <span className="flex-1">{location.description || location.location_code}</span>
                     <div className="ml-2 flex gap-1">
-                    <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-green-700 border-green-200">
                      {location.location_code}
                     </Badge>
                     </div>

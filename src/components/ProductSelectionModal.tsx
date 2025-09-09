@@ -51,15 +51,17 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
       setLoading(true);
       const { data, error } = await supabase
         .schema('m8_schema')
-        .from('products')
+        .from('v_products_w_forecast')
         .select('product_id, product_name, category_name, subcategory_name, category_id, subcategory_id')
         .order('product_name');
 
       if (error) throw error;
       
+      console.log('Products data:', data);
       const productsData = data || [];
       setProducts(productsData);
       buildCategoryTree(productsData);
+
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {

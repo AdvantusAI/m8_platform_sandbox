@@ -49,12 +49,12 @@ export default function RetailForecast() {
 
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);
-    ////console.log('Producto seleccionado en Retail Forecast:', productId);
+    //////console.log('Producto seleccionado en Retail Forecast:', productId);
   };
 
   const handleLocationSelect = (locationId: string) => {
     setSelectedLocationId(locationId);
-    ////console.log('Ubicación seleccionada en Retail Forecast:', locationId);
+    //////console.log('Ubicación seleccionada en Retail Forecast:', locationId);
   };
 
   const handleForecastDataUpdate = (data: any[]) => {
@@ -64,7 +64,7 @@ export default function RetailForecast() {
   const handleClearFilters = () => {
     setSelectedProductId('');
     setSelectedLocationId('');
-    ////console.log('Filtros limpiados');
+    //////console.log('Filtros limpiados');
   };
 
   // Calculate dynamic collaboration metrics from interpretability data

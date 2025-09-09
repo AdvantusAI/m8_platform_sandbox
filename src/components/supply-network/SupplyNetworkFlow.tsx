@@ -31,7 +31,7 @@ const nodeTypes: NodeTypes = {
 
 const getNodeColor = (nodeTypeCode: string) => {
   // Return default color for all node types
-  return '#082647'; // Default gray
+  return '#21788f'; // Default gray
 };
 
 // Save/load positions from localStorage
@@ -53,7 +53,7 @@ const loadNodePositions = (): Record<string, { x: number; y: number }> => {
 };
 
 export const SupplyNetworkFlow: React.FC = () => {
-  const { nodes: dbNodes, relationships: dbRelationships, isLoading, createRelationship, deleteRelationship } = useSupplyNetwork();
+    const { nodes: dbNodes, relationships: dbRelationships, isLoading, createRelationship, deleteRelationship } = useSupplyNetwork();
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editingRelationshipId, setEditingRelationshipId] = useState<string | null>(null);
   const [dbNodeTypes, setDbNodeTypes] = useState<Array<{id: string, type_code: string, type_name: string, icon_name: string}>>([]);
@@ -81,6 +81,7 @@ export const SupplyNetworkFlow: React.FC = () => {
   
   // Convert database nodes to React Flow nodes
   const flowNodes: Node[] = useMemo(() => {
+    
     if (!dbNodes) return [];
     
     const savedPositions = loadNodePositions();
@@ -111,6 +112,7 @@ export const SupplyNetworkFlow: React.FC = () => {
 
   // Convert database relationships to React Flow edges
   const flowEdges: Edge[] = useMemo(() => {
+    
     if (!dbRelationships) return [];
     
     return dbRelationships.map((rel) => {
@@ -120,23 +122,36 @@ export const SupplyNetworkFlow: React.FC = () => {
       const labelParts = [leadTime, cost].filter(Boolean);
       const label = labelParts.length > 0 ? labelParts.join(' | ') : 'Connection';
 
-              return {
-          id: rel.id,
-          source: rel.source_node_id,
-          target: rel.target_node_id,
-          animated: rel.status === 'active',
-          label: 'marker size and color',
-          style: {
-            strokeWidth: 2,
-            stroke: '#FF0072',
-          },
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 20,
-            height: 20,
-            color: '#FF0072',
-          },
-          data: {
+      return {
+        id: rel.id,
+        source: rel.source_node_id,
+        target: rel.target_node_id,
+        animated: rel.status === 'active',
+        label: label,
+        labelStyle: {
+          fontSize: '12px',
+          fontWeight: 'bold',
+          fill: '#FF0072',
+        },
+        labelBgStyle: {
+          fill: 'rgb(223, 251, 253)',
+          fillOpacity: 0.8,
+          stroke: '#FF0072',
+          strokeWidth: 1,
+          rx: 4,
+          ry: 4,
+        },
+        style: {
+          strokeWidth: 2,
+          stroke: '#FF0072',
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 20,
+          height: 20,
+          color: '#FF0072',
+        },
+        data: {
           relationshipId: rel.id,
           relationshipType: rel.relationship_type_id || 'unknown',
           properties: { 
@@ -167,10 +182,12 @@ export const SupplyNetworkFlow: React.FC = () => {
 
   // Update nodes and edges when database data changes
   useEffect(() => {
+    
     setNodes(flowNodes);
   }, [flowNodes]);
 
   useEffect(() => {
+    
     setEdges(flowEdges);
   }, [flowEdges]);
 
@@ -286,7 +303,7 @@ export const SupplyNetworkFlow: React.FC = () => {
           <button
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center"
             onClick={() => {
-              console.log('Supply workbench clicked for node:', contextMenu.id);
+              //console.log('Supply workbench clicked for node:', contextMenu.id);
               setContextMenu(null);
             }}
           >
@@ -295,7 +312,7 @@ export const SupplyNetworkFlow: React.FC = () => {
           <button
             className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors flex items-center"
             onClick={() => {
-              console.log('Parámetros de suministro clicked for node:', contextMenu.id);
+              //console.log('Parámetros de suministro clicked for node:', contextMenu.id);
               setContextMenu(null);
             }}
           >

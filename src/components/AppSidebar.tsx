@@ -9,64 +9,24 @@ interface CompanyConfig {
   company_logo: string;
 }
 const items = [
-  /*{
-  title: "Inicio",
-  url: "/planner-dashboard",
-  icon: Homelucid
-}, */{
+  {
+    title: "Análisis post game",
+    url: "/kpi-dashboard",
+    icon: Target
+  },
+  {
   title: "Pronóstico de Demanda",
   url: "/demand-forecast",
   icon: TrendingUp
-},/* {
-  title: "Retail Forecast",
-  url: "/retail-forecast",
-  icon: BarChart3
-},*/
+},
 {
-  title: "Colaboración Comercial",
+  title: "Análisis del plan comercial",
   url: "/commercial-collaboration",
   icon: Users
 }, {
-  title: "Colaboración en Pronósticos",
+  title: "KAM - Plan comercial",
   url: "/forecast-collaboration",
   icon: Users
-}, {
-  title: "Supply Workbench",
-  url: "/supply-workbench",
-  icon: Warehouse
-}, {
-  title: "Red de Suministro",
-  url: "/supply-network",
-  icon: Network
-}, 
-
-
-/*{
-  title: "Análisis What-If",
-  url: "/what-if-analysis",
-  icon: Brain
-}, {
-  title: "Proyecciones de Inventario",
-  url: "/inventory-projections",
-  icon: Warehouse
-},*/ {
-  title: "Gestión de Compras",
-  url: "/purchase-management",
-  icon: ShoppingCart
-},  {
-  title: "Análisis Sell-Through",
-  url: "/sell-through-analytics",
-  icon: TrendingDown
-}
-, {
-  title: "Dashboard de KPIs",
-  url: "/kpi-dashboard",
-  icon: Target
-},
-{
-  title: "Análisis What-If",
-  url: "/what-if-analysis",
-  icon: Brain
 }
 
 /*, {
@@ -77,6 +37,27 @@ const items = [
 
 // Fulfillment items
 const fulfillmentItems = [
+  , {
+    title: "Red de Suministro",
+    url: "/supply-network",
+    icon: Network
+  }, 
+  
+  
+  {
+    title: "Gestión de Compras",
+    url: "/purchase-management",
+    icon: ShoppingCart
+  },  {
+    title: "Análisis Sell-Through",
+    url: "/sell-through-analytics",
+    icon: TrendingDown
+  },
+  {
+    title: "Análisis What-If",
+    url: "/what-if-analysis",
+    icon: Brain
+  },
   {
     title: 'Revisión de Políticas de Inventario',
     url: '/inventory-policy-review',

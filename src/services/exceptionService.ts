@@ -167,7 +167,7 @@ export class ExceptionService {
       if (!alertsData) return [];
 
       // Debug: Log the raw alerts data
-      console.log('Raw alerts data:', alertsData);
+      //console.log('Raw alerts data:', alertsData);
 
       // Process and enrich the data
       const exceptions: ExceptionDetail[] = await Promise.all(

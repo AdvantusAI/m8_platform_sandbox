@@ -19,21 +19,7 @@ const SupplyNetworkVisualization: React.FC = () => {
       
 
       <Card className="border-border">
-        <CardHeader className="pb-4">
-
-          <div className="flex items-start gap-2 p-3 bg-muted rounded-lg">
-            <Info className="h-4 w-4 text-muted-foreground mt-0.5" />
-            <div className="text-sm text-muted-foreground">
-              <p><strong>Interacciones:</strong></p>
-              <ul className="list-disc list-inside space-y-1 mt-1">
-                <li>Arrastra los nodos para reposicionarlos</li>
-                <li>Conecta nodos arrastrando desde el controlador de un nodo a otro</li>
-                <li>Doble clic en las conexiones para eliminar relaciones</li>
-                <li>Usa la barra de herramientas para añadir nuevos nodos</li>
-              </ul>
-            </div>
-          </div>
-        </CardHeader>
+       
         <CardContent className="p-0">
           <SupplyNetworkFlow />
         </CardContent>

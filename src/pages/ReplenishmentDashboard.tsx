@@ -142,7 +142,7 @@ const ReplenishmentDashboard: React.FC = () => {
     setSelectedProduct('');
     setSelectedLocation('');
     
-    console.log('Filters cleared - selectedProduct:', '', 'selectedLocation:', '');
+    //console.log('Filters cleared - selectedProduct:', '', 'selectedLocation:', '');
   };
 
   useEffect(() => {

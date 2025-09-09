@@ -19,6 +19,10 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { AgGridReact } from 'ag-grid-react';
+import { ColDef } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 interface LowAccuracyProduct {
   product_id: string;
@@ -101,10 +105,10 @@ export default function KPIDashboard() {
 
   const loadLowAccuracyProducts = async () => {
     try {
-      ////console.log('Loading low accuracy products with threshold:', accuracyThreshold);
+      //////console.log('Loading low accuracy products with threshold:', accuracyThreshold);
       
       // First, get all forecast data
-      const { data: forecastData, error: forecastError } = await supabase
+      const { data: forecastData, error: forecastError } = await (supabase as any)
        .schema('m8_schema')
         .from('forecast_interpretability')
         .select('product_id, interpretability_score, confidence_level, created_at')
@@ -114,13 +118,14 @@ export default function KPIDashboard() {
 
       if (forecastError) throw forecastError;
       
-      ////console.log('Forecast data received:', forecastData?.length || 0, 'records');
+      //////console.log('Forecast data received:', forecastData?.length || 0, 'records');
 
       // Get product details separately
       const uniqueProductIds = [...new Set(forecastData?.map(d => d.product_id))];
-      ////console.log('Unique product IDs:', uniqueProductIds.length);
+      //////console.log('Unique product IDs:', uniqueProductIds.length);
       
-      const { data: productData, error: productError } = await supabase
+      const { data: productData, error: productError } = await (supabase as any)
+        .schema('m8_schema')
         .from('products')
         .select('product_id, product_name, category_name')
         .in('product_id', uniqueProductIds);
@@ -129,7 +134,7 @@ export default function KPIDashboard() {
         console.warn('Product data fetch error:', productError);
       }
       
-      ////console.log('Product data received:', productData?.length || 0, 'records');
+      //////console.log('Product data received:', productData?.length || 0, 'records');
 
       // Create product lookup map
       const productLookup = new Map();
@@ -168,7 +173,7 @@ export default function KPIDashboard() {
         const errorPercentage = 100 - avgAccuracy;
         
         // Simple trend calculation (you can make this more sophisticated)
-        const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
+        const trend: 'improving' | 'declining' | 'stable' = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
         
         return {
           product_id: product.product_id,
@@ -187,8 +192,8 @@ export default function KPIDashboard() {
         .filter(product => product.accuracy_score < accuracyThreshold)
         .sort((a, b) => a.accuracy_score - b.accuracy_score);
 
-      ////console.log('All products:', allProductsData.length);
-      ////console.log('Low accuracy products after filtering:', lowAccuracyProducts.length);
+      //////console.log('All products:', allProductsData.length);
+      //////console.log('Low accuracy products after filtering:', lowAccuracyProducts.length);
       
       setAllProducts(allProductsData);
       setLowAccuracyProducts(lowAccuracyProducts);
@@ -199,10 +204,10 @@ export default function KPIDashboard() {
 
   const loadLowAccuracyCustomers = async () => {
     try {
-      ////console.log('Loading low accuracy customers with threshold:', accuracyThreshold);
+      //////console.log('Loading low accuracy customers with threshold:', accuracyThreshold);
       
       // First, get all forecast data for customers
-      const { data: forecastData, error: forecastError } = await supabase
+      const { data: forecastData, error: forecastError } = await (supabase as any)
        .schema('m8_schema')
         .from('forecast_interpretability')
         .select('customer_id, interpretability_score, confidence_level, created_at')
@@ -212,15 +217,15 @@ export default function KPIDashboard() {
 
       if (forecastError) throw forecastError;
       
-      ////console.log('Customer forecast data received:', forecastData?.length || 0, 'records');
+      //////console.log('Customer forecast data received:', forecastData?.length || 0, 'records');
 
       // Get customer details separately
       const uniqueCustomerIds = [...new Set(forecastData?.map(d => d.customer_id))];
-      ////console.log('Unique customer IDs:', uniqueCustomerIds.length);
+      //////console.log('Unique customer IDs:', uniqueCustomerIds.length);
       
-      const { data: customerData, error: customerError } = await supabase
+      const { data: customerData, error: customerError } = await (supabase as any)
         .schema('m8_schema')
-        .from('Customer')
+        .from('customers')
         .select('customer_id, customer_name')
         .in('customer_id', uniqueCustomerIds);
 
@@ -228,7 +233,7 @@ export default function KPIDashboard() {
         console.warn('Customer data fetch error:', customerError);
       }
       
-      ////console.log('Customer data received:', customerData?.length || 0, 'records');
+      //////console.log('Customer data received:', customerData?.length || 0, 'records');
 
       // Create customer lookup map
       const customerLookup = new Map();
@@ -265,7 +270,7 @@ export default function KPIDashboard() {
         const avgAccuracy = customer.accuracy_scores.reduce((sum: number, score: number) => sum + score, 0) / customer.accuracy_scores.length;
         const errorPercentage = 100 - avgAccuracy;
         
-        const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
+        const trend: 'improving' | 'declining' | 'stable' = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
         
         return {
           customer_id: customer.customer_id,
@@ -283,8 +288,8 @@ export default function KPIDashboard() {
         .filter(customer => customer.accuracy_score < accuracyThreshold)
         .sort((a, b) => a.accuracy_score - b.accuracy_score);
 
-      ////console.log('All customers:', allCustomersData.length);
-      ////console.log('Low accuracy customers after filtering:', lowAccuracyCustomers.length);
+      //////console.log('All customers:', allCustomersData.length);
+      //////console.log('Low accuracy customers after filtering:', lowAccuracyCustomers.length);
       
       setAllCustomers(allCustomersData);
       setLowAccuracyCustomers(lowAccuracyCustomers);
@@ -295,10 +300,10 @@ export default function KPIDashboard() {
 
   const loadCustomerProductCombinations = async () => {
     try {
-      ////console.log('Loading customer-product combinations with threshold:', accuracyThreshold);
+      //////console.log('Loading customer-product combinations with threshold:', accuracyThreshold);
       
       // Get forecast data with both customer and product IDs
-      const { data: forecastData, error: forecastError } = await supabase
+      const { data: forecastData, error: forecastError } = await (supabase as any)
        .schema('m8_schema')
         .from('forecast_interpretability')
         .select('customer_id, product_id, interpretability_score, confidence_level, created_at')
@@ -315,12 +320,12 @@ export default function KPIDashboard() {
       
       // Get customer and product details
       const [customerResult, productResult] = await Promise.all([
-        supabase
+        (supabase as any)
           .schema('m8_schema')
-          .from('Customer')
+          .from('customers')
           .select('customer_id, customer_name')
           .in('customer_id', uniqueCustomerIds),
-        supabase
+        (supabase as any)
           .schema('m8_schema')
           .from('products')
           .select('product_id, product_name, category_name')
@@ -379,7 +384,7 @@ export default function KPIDashboard() {
           const avgForecastBias = combination.forecast_bias_values.length > 0 
             ? combination.forecast_bias_values.reduce((sum: number, bias: number) => sum + bias, 0) / combination.forecast_bias_values.length 
             : 0;
-          const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
+          const trend: 'improving' | 'declining' | 'stable' = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
           
           return {
             customer_id: combination.customer_id,
@@ -407,7 +412,7 @@ export default function KPIDashboard() {
   const loadKPISummary = async () => {
     try {
       // Mock summary calculation - adjust based on your data
-      const { data: allData, error } = await supabase
+      const { data: allData, error } = await (supabase as any)
        .schema('m8_schema')
         .from('forecast_interpretability')
         .select('interpretability_score, product_id, customer_id')
@@ -450,6 +455,223 @@ export default function KPIDashboard() {
       default: return <Activity className="h-4 w-4 text-gray-500" />;
     }
   };
+
+  // Column definitions for ag-Grid
+  const productColumns: ColDef[] = [
+    { 
+      field: 'product_id', 
+      headerName: 'Producto ID', 
+      width: 120,
+      cellClass: 'font-mono text-xs'
+    },
+    { 
+      field: 'product_name', 
+      headerName: 'Nombre del Producto', 
+      width: 200,
+      cellClass: 'font-medium'
+    },
+    { 
+      field: 'category_name', 
+      headerName: 'Categoría', 
+      width: 150,
+      cellRenderer: (params: any) => {
+        return `<span class="inline-flex items-center rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600">${params.value}</span>`;
+      }
+    },
+    { 
+      field: 'accuracy_score', 
+      headerName: 'Precisión', 
+      width: 100,
+      cellRenderer: (params: any) => {
+        const score = params.value;
+        const colorClass = score >= 80 ? 'text-green-600 bg-green-50' : score >= 60 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
+        return `<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colorClass}">${score}%</span>`;
+      }
+    },
+    { 
+      field: 'avg_error_percentage', 
+      headerName: 'Error %', 
+      width: 100,
+      cellClass: 'text-red-600 font-medium text-center'
+    },
+    { 
+      field: 'forecast_count', 
+      headerName: 'Pronósticos', 
+      width: 100,
+      cellClass: 'text-center'
+    },
+    { 
+      field: 'trend', 
+      headerName: 'Tendencia', 
+      width: 100,
+      cellRenderer: (params: any) => {
+        const trend = params.value;
+        const icon = trend === 'improving' ? '↗️' : trend === 'declining' ? '↘️' : '➡️';
+        return `<div class="flex items-center justify-center">${icon}</div>`;
+      }
+    },
+    { 
+      field: 'last_forecast_date', 
+      headerName: 'Último Pronóstico', 
+      width: 150,
+      cellRenderer: (params: any) => {
+        return new Date(params.value).toLocaleDateString('es-ES');
+      },
+      cellClass: 'text-xs text-muted-foreground'
+    }
+  ];
+
+  const customerColumns: ColDef[] = [
+    { 
+      field: 'customer_id', 
+      headerName: 'Cliente ID', 
+      width: 120,
+      cellClass: 'font-mono text-xs'
+    },
+    { 
+      field: 'customer_name', 
+      headerName: 'Nombre del Cliente', 
+      width: 200,
+      cellClass: 'font-medium'
+    },
+    { 
+      field: 'accuracy_score', 
+      headerName: 'Precisión', 
+      width: 100,
+      cellRenderer: (params: any) => {
+        const score = params.value;
+        const colorClass = score >= 80 ? 'text-green-600 bg-green-50' : score >= 60 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
+        return `<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colorClass}">${score}%</span>`;
+      }
+    },
+    { 
+      field: 'avg_error_percentage', 
+      headerName: 'Error %', 
+      width: 100,
+      cellClass: 'text-red-600 font-medium text-center'
+    },
+    { 
+      field: 'forecast_count', 
+      headerName: 'Pronósticos', 
+      width: 100,
+      cellClass: 'text-center'
+    },
+    { 
+      field: 'trend', 
+      headerName: 'Tendencia', 
+      width: 100,
+      cellRenderer: (params: any) => {
+        const trend = params.value;
+        const icon = trend === 'improving' ? '↗️' : trend === 'declining' ? '↘️' : '➡️';
+        return `<div class="flex items-center justify-center">${icon}</div>`;
+      }
+    },
+    { 
+      field: 'last_forecast_date', 
+      headerName: 'Último Pronóstico', 
+      width: 150,
+      cellRenderer: (params: any) => {
+        return new Date(params.value).toLocaleDateString('es-ES');
+      },
+      cellClass: 'text-xs text-muted-foreground'
+    }
+  ];
+
+  const combinationColumns: ColDef[] = [
+    { 
+      field: 'customer_id', 
+      headerName: 'Cliente ID', 
+      width: 100,
+      cellClass: 'font-mono text-xs'
+    },
+    { 
+      field: 'customer_name', 
+      headerName: 'Nombre del Cliente', 
+      width: 150,
+      cellClass: 'font-medium'
+    },
+    { 
+      field: 'product_id', 
+      headerName: 'Producto ID', 
+      width: 100,
+      cellClass: 'font-mono text-xs'
+    },
+    { 
+      field: 'product_name', 
+      headerName: 'Nombre del Producto', 
+      width: 150,
+      cellClass: 'font-medium'
+    },
+    { 
+      field: 'category_name', 
+      headerName: 'Categoría', 
+      width: 120,
+      cellRenderer: (params: any) => {
+        return `<span class="inline-flex items-center rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600">${params.value}</span>`;
+      }
+    },
+    { 
+      field: 'accuracy_score', 
+      headerName: 'Precisión', 
+      width: 100,
+      cellRenderer: (params: any) => {
+        const score = params.value;
+        const colorClass = score >= 80 ? 'text-green-600 bg-green-50' : score >= 60 ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
+        return `<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colorClass}">${score}%</span>`;
+      }
+    },
+    { 
+      field: 'avg_error_percentage', 
+      headerName: 'Error %', 
+      width: 100,
+      cellClass: 'text-red-600 font-medium text-center'
+    },
+    { 
+      field: 'forecast_bias', 
+      headerName: 'Sesgo del Pronóstico', 
+      width: 150,
+      cellRenderer: (params: any) => {
+        const bias = params.value;
+        const variant = bias > 0 ? 'destructive' : bias < 0 ? 'secondary' : 'outline';
+        const colorClass = bias > 0 ? 'bg-red-100 text-red-800' : bias < 0 ? 'bg-gray-100 text-gray-800' : 'bg-white text-gray-600 border';
+        return `<span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colorClass}">${bias > 0 ? '+' : ''}${bias}</span>`;
+      }
+    },
+    { 
+      field: 'forecast_count', 
+      headerName: 'Pronósticos', 
+      width: 100,
+      cellClass: 'text-center'
+    },
+    { 
+      field: 'trend', 
+      headerName: 'Tendencia', 
+      width: 100,
+      cellRenderer: (params: any) => {
+        const trend = params.value;
+        const icon = trend === 'improving' ? '↗️' : trend === 'declining' ? '↘️' : '➡️';
+        return `<div class="flex items-center justify-center">${icon}</div>`;
+      }
+    },
+    { 
+      field: 'last_forecast_date', 
+      headerName: 'Último Pronóstico', 
+      width: 150,
+      cellRenderer: (params: any) => {
+        return new Date(params.value).toLocaleDateString('es-ES');
+      },
+      cellClass: 'text-xs text-muted-foreground'
+    },
+    { 
+      field: 'actions', 
+      headerName: 'Acciones', 
+      width: 100,
+      cellRenderer: (params: any) => {
+        const data = params.data;
+        return `<button class="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 h-8 w-8" onclick="window.open('/demand-forecast?customer_id=${data.customer_id}&product_id=${data.product_id}', '_blank')" title="Ver en Pronóstico de Demanda">🔗</button>`;
+      }
+    }
+  ];
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -568,54 +790,26 @@ export default function KPIDashboard() {
                   <p>Cargando datos...</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Producto ID</th>
-                        <th className="text-left p-2">Nombre del Producto</th>
-                        <th className="text-left p-2">Categoría</th>
-                        <th className="text-center p-2">Precisión</th>
-                        <th className="text-center p-2">Error %</th>
-                        <th className="text-center p-2">Pronósticos</th>
-                        <th className="text-center p-2">Tendencia</th>
-                        <th className="text-left p-2">Último Pronóstico</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lowAccuracyProducts.map((product, index) => (
-                        <tr key={index} className="border-b hover:bg-muted/50">
-                          <td className="p-2 font-mono text-xs">{product.product_id}</td>
-                          <td className="p-2 font-medium">{product.product_name}</td>
-                          <td className="p-2">
-                            <Badge variant="outline">{product.category_name}</Badge>
-                          </td>
-                          <td className="p-2 text-center">
-                            <Badge className={getAccuracyColor(product.accuracy_score)}>
-                              {product.accuracy_score}%
-                            </Badge>
-                          </td>
-                          <td className="p-2 text-center text-red-600 font-medium">
-                            {product.avg_error_percentage}%
-                          </td>
-                          <td className="p-2 text-center">{product.forecast_count}</td>
-                          <td className="p-2 text-center">
-                            <div className="flex items-center justify-center">
-                              {getTrendIcon(product.trend)}
-                            </div>
-                          </td>
-                          <td className="p-2 text-xs text-muted-foreground">
-                            {new Date(product.last_forecast_date).toLocaleDateString('es-ES')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {lowAccuracyProducts.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No se encontraron productos con baja precisión
-                    </div>
-                  )}
+                <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
+                  <AgGridReact
+                    rowData={lowAccuracyProducts}
+                    columnDefs={productColumns}
+                    defaultColDef={{
+                      sortable: true,
+                      filter: true,
+                      resizable: true,
+                    }}
+                    pagination={true}
+                    paginationPageSize={20}
+                    suppressRowClickSelection={true}
+                    rowSelection="multiple"
+                    animateRows={true}
+                    noRowsOverlayComponent={() => (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No se encontraron productos con baja precisión
+                      </div>
+                    )}
+                  />
                 </div>
               )}
             </CardContent>
@@ -637,50 +831,26 @@ export default function KPIDashboard() {
                   <p>Cargando datos...</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Cliente ID</th>
-                        <th className="text-left p-2">Nombre del Cliente</th>
-                        <th className="text-center p-2">Precisión</th>
-                        <th className="text-center p-2">Error %</th>
-                        <th className="text-center p-2">Pronósticos</th>
-                        <th className="text-center p-2">Tendencia</th>
-                        <th className="text-left p-2">Último Pronóstico</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {lowAccuracyCustomers.map((customer, index) => (
-                        <tr key={index} className="border-b hover:bg-muted/50">
-                          <td className="p-2 font-mono text-xs">{customer.customer_id}</td>
-                          <td className="p-2 font-medium">{customer.customer_name}</td>
-                          <td className="p-2 text-center">
-                            <Badge className={getAccuracyColor(customer.accuracy_score)}>
-                              {customer.accuracy_score}%
-                            </Badge>
-                          </td>
-                          <td className="p-2 text-center text-red-600 font-medium">
-                            {customer.avg_error_percentage}%
-                          </td>
-                          <td className="p-2 text-center">{customer.forecast_count}</td>
-                          <td className="p-2 text-center">
-                            <div className="flex items-center justify-center">
-                              {getTrendIcon(customer.trend)}
-                            </div>
-                          </td>
-                          <td className="p-2 text-xs text-muted-foreground">
-                            {new Date(customer.last_forecast_date).toLocaleDateString('es-ES')}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {lowAccuracyCustomers.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No se encontraron clientes con baja precisión
-                    </div>
-                  )}
+                <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
+                  <AgGridReact
+                    rowData={lowAccuracyCustomers}
+                    columnDefs={customerColumns}
+                    defaultColDef={{
+                      sortable: true,
+                      filter: true,
+                      resizable: true,
+                    }}
+                    pagination={true}
+                    paginationPageSize={20}
+                    suppressRowClickSelection={true}
+                    rowSelection="multiple"
+                    animateRows={true}
+                    noRowsOverlayComponent={() => (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No se encontraron clientes con baja precisión
+                      </div>
+                    )}
+                  />
                 </div>
               )}
             </CardContent>
@@ -702,79 +872,26 @@ export default function KPIDashboard() {
                   <p>Cargando datos...</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Cliente ID</th>
-                        <th className="text-left p-2">Nombre del Cliente</th>
-                        <th className="text-left p-2">Producto ID</th>
-                        <th className="text-left p-2">Nombre del Producto</th>
-                        <th className="text-left p-2">Categoría</th>
-                        <th className="text-center p-2">Precisión</th>
-                        <th className="text-center p-2">Error %</th>
-                        <th className="text-center p-2">Sesgo del Pronóstico</th>
-                        <th className="text-center p-2">Pronósticos</th>
-                        <th className="text-center p-2">Tendencia</th>
-                        <th className="text-left p-2">Último Pronóstico</th>
-                        <th className="text-center p-2">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {customerProductCombinations.map((combination, index) => (
-                        <tr key={index} className="border-b hover:bg-muted/50">
-                          <td className="p-2 font-mono text-xs">{combination.customer_id}</td>
-                          <td className="p-2 font-medium">{combination.customer_name}</td>
-                          <td className="p-2 font-mono text-xs">{combination.product_id}</td>
-                          <td className="p-2 font-medium">{combination.product_name}</td>
-                          <td className="p-2">
-                            <Badge variant="outline">{combination.category_name}</Badge>
-                          </td>
-                          <td className="p-2 text-center">
-                            <Badge className={getAccuracyColor(combination.accuracy_score)}>
-                              {combination.accuracy_score}%
-                            </Badge>
-                          </td>
-                          <td className="p-2 text-center text-red-600 font-medium">
-                            {combination.avg_error_percentage}%
-                          </td>
-                          <td className="p-2 text-center">
-                            <Badge variant={combination.forecast_bias > 0 ? "destructive" : combination.forecast_bias < 0 ? "secondary" : "outline"}>
-                              {combination.forecast_bias > 0 ? '+' : ''}{combination.forecast_bias}
-                            </Badge>
-                          </td>
-                          <td className="p-2 text-center">{combination.forecast_count}</td>
-                          <td className="p-2 text-center">
-                            <div className="flex items-center justify-center">
-                              {getTrendIcon(combination.trend)}
-                            </div>
-                          </td>
-                          <td className="p-2 text-xs text-muted-foreground">
-                            {new Date(combination.last_forecast_date).toLocaleDateString('es-ES')}
-                          </td>
-                          <td className="p-2 text-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const url = `/demand-forecast?customer_id=${combination.customer_id}&product_id=${combination.product_id}`;
-                                window.open(url, '_blank');
-                              }}
-                              className="h-8 w-8 p-0"
-                              title="Ver en Pronóstico de Demanda"
-                            >
-                              <ExternalLink className="h-3 w-3" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {customerProductCombinations.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No se encontraron combinaciones cliente-producto con baja precisión
-                    </div>
-                  )}
+                <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
+                  <AgGridReact
+                    rowData={customerProductCombinations}
+                    columnDefs={combinationColumns}
+                    defaultColDef={{
+                      sortable: true,
+                      filter: true,
+                      resizable: true,
+                    }}
+                    pagination={true}
+                    paginationPageSize={20}
+                    suppressRowClickSelection={true}
+                    rowSelection="multiple"
+                    animateRows={true}
+                    noRowsOverlayComponent={() => (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No se encontraron combinaciones cliente-producto con baja precisión
+                      </div>
+                    )}
+                  />
                 </div>
               )}
             </CardContent>

@@ -139,7 +139,7 @@ export const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
 
     // For preview, we'll just validate and show a preview dialog
     // In real implementation, this would trigger a quick calculation
-    ////console.log('Preview scenario:', { scenarioName, selectedType, parameters, scope });
+    //////console.log('Preview scenario:', { scenarioName, selectedType, parameters, scope });
   };
 
   // Handle full execution

@@ -106,7 +106,7 @@ export class ServiceLevelScenarioService {
    */
   private async getHistoricalServiceLevels(scope: any) {
     // Return mock data since history_exceptions table doesn't exist
-    ////console.log('Using mock historical service levels data for scope:', scope);
+    //////console.log('Using mock historical service levels data for scope:', scope);
     
     const mockData = [
       {

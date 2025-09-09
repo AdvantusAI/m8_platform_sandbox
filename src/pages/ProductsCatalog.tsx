@@ -434,8 +434,8 @@ export default function ProductsCatalog() {
         (product.subcategory_name && product.subcategory_name.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesNPIFilter = !showNPIOnly || product.is_npi;
-      //console.log('matchesNPIFilter', matchesNPIFilter);
-      //console.log('matchesSearch', matchesSearch);
+      ////console.log('matchesNPIFilter', matchesNPIFilter);
+      ////console.log('matchesSearch', matchesSearch);
       return matchesSearch && matchesNPIFilter;
     });
   }, [products, searchTerm, showNPIOnly]);

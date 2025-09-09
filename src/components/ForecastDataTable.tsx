@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -8,22 +8,28 @@ import { toast } from 'sonner';
 import { useLocations } from '@/hooks/useLocations';
 import { useCustomers } from '@/hooks/useCustomers';
 
+// --- Tipos robustos (aceptan ambos nombres de id) ---
 interface Customer {
-  customer_id: string;
   customer_code: string;
+  customer_id?: string;        // posible nombre
+  customer_node_id?: string;   // posible nombre alterno
 }
 
 interface Location {
-  location_id: string;
   location_code: string;
+  location_id?: string;        // posible nombre
+  location_node_id?: string;   // posible nombre alterno
+  description?: string;
+  type_code?: string;
 }
 
 interface ForecastDataTableProps {
   selectedProductId?: string;
-  selectedLocationId?: string;
-  selectedCustomerId?: string;
+  selectedLocationId?: string;  // código de ubicación (p.ej. "CDMX")
+  selectedCustomerId?: string;  // código de cliente/proveedor (p.ej. "VEND123")
   onDataUpdate?: (data: ForecastData[]) => void;
 }
+
 interface ForecastData {
   postdate: string;
   forecast: number | null;
@@ -36,61 +42,67 @@ interface ForecastData {
   commercial_input: number | null;
   fitted_history?: number | null;
 }
+
 export function ForecastDataTable({
   selectedProductId,
   selectedLocationId,
   selectedCustomerId,
-  onDataUpdate
-}: ForecastDataTableProps) 
-
-{
+  onDataUpdate,
+}: ForecastDataTableProps) {
   const [forecastData, setForecastData] = useState<ForecastData[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingValues, setEditingValues] = useState<{[key: string]: number | null}>({});
-  const [savingValues, setSavingValues] = useState<{[key: string]: boolean}>({});
-  
-  const { locations } = useLocations();
-  const { customers } = useCustomers();
+  const [editingValues, setEditingValues] = useState<Record<string, number | null>>({});
+  const [savingValues, setSavingValues] = useState<Record<string, boolean>>({});
 
+  // Hooks de datos (fallback a arrays vacíos para evitar "undefined.length")
+  const { locations = [] } = useLocations() as { locations: Location[] };
+  const { customers = [] } = useCustomers() as { customers: Customer[] };
 
-  const getLocationId = (locationCode: string): string | undefined => {
-    console.log('Looking for location with code:', locationCode);
-    console.log('Available locations:', locations.map(l => ({ code: l.location_code, id: l.location_id })));
-    const location = locations.find(l => l.location_code === locationCode);
-    console.log('Found location:', location);
-    return location?.location_id;
-  };
+  // Mapas: código -> node_id (compatibles con ambos nombres de id)
+  const locationCodeToNodeId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const l of locations) {
+      const id = l.location_node_id ?? l.location_id;
+      if (l.location_code && id) m.set(l.location_code, id);
+    }
+    return m;
+  }, [locations]);
 
-  const getCustomerId = (customerCode: string): string | undefined => {
-    console.log('Looking for customer with code:', customerCode);
-    console.log('Available customers:', customers.map(c => ({ code: c.customer_code, id: c.customer_node_id })));
-    const customer = customers.find(c => c.customer_code === customerCode);
-    console.log('Found customer:', customer);
-    return customer?.customer_node_id;
-  };
+  const customerCodeToNodeId = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of customers) {
+      const id = c.customer_node_id ?? c.customer_id;
+      if (c.customer_code && id) m.set(c.customer_code, id);
+    }
+    return m;
+  }, [customers]);
+
+  const getLocationNodeIdFromCode = useCallback(
+    (code?: string) => (code ? locationCodeToNodeId.get(code) : undefined),
+    [locationCodeToNodeId]
+  );
+
+  const getCustomerNodeIdFromCode = useCallback(
+    (code?: string) => (code ? customerCodeToNodeId.get(code) : undefined),
+    [customerCodeToNodeId]
+  );
 
   useEffect(() => {
-    // Only fetch data if product is selected (location is now optional)
-    if (selectedProductId) {
+    // Solo intentamos cargar cuando hay producto y catálogos listos
+    if (selectedProductId && locations.length > 0 && customers.length > 0) {
       fetchForecastData();
     } else {
-      // Clear data if product is not selected
+      // si faltan datos clave, limpiamos
       setForecastData([]);
     }
-  }, [selectedProductId, selectedLocationId, selectedCustomerId]);
-
-  
-  useEffect(() => {
-    if (onDataUpdate) {
-      onDataUpdate(forecastData);
-    }
-  }, [forecastData, onDataUpdate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProductId, selectedLocationId, selectedCustomerId, locations, customers]);
 
   const fetchForecastData = async () => {
+    if (!selectedProductId) return;
+
     try {
       setLoading(true);
-     
-      // Use manual aggregation approach since the database aggregation is causing issues
       await fetchAndAggregateManually();
     } catch (error) {
       console.error('Error fetching forecast data:', error);
@@ -100,170 +112,127 @@ export function ForecastDataTable({
   };
 
   const fetchAndAggregateManually = async () => {
-    try {
-      console.log('Starting fetch with filters:', {
-        selectedProductId,
-        selectedLocationId,
-        selectedCustomerId
-      });
+    let query = (supabase as any)
+      .schema('m8_schema')
+      .from('forecast_with_fitted_history')
+      .select(
+        'product_id,location_node_id,customer_node_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history'
+      )
+      .eq('product_id', selectedProductId!)
+      .order('postdate', { ascending: true });
 
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('forecast_with_fitted_history')
-        .select('product_id,location_node_id,customer_node_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history')
-        .eq('product_id', selectedProductId!)
-        .order('postdate');
-      
-      // Apply location filter only if selected
-      if (selectedLocationId) {
-        const locationId = getLocationId(selectedLocationId);
-        console.log('Applying location filter:', { selectedLocationId, locationId });
-        if (locationId) {
-          query = query.eq('location_node_id', locationId);
-        } else {
-          console.warn('Location ID not found for code:', selectedLocationId);
-        }
+    // Filtro de ubicación si hay código y podemos resolver el node_id
+    if (selectedLocationId) {
+      const locNodeId = getLocationNodeIdFromCode(selectedLocationId);
+      if (locNodeId) {
+        query = query.eq('location_node_id', locNodeId);
+      } else {
+        console.warn('Location node_id not found for code:', selectedLocationId);
       }
-      
-      // Apply vendor filter only if selected - use customer_node_id field for vendor filtering
-      if (selectedCustomerId) {
-        console.log('selectedCustomerId', selectedCustomerId);
-        const customerId = getCustomerId(selectedCustomerId);
-        console.log('Applying customer filter:', { selectedCustomerId, customerId });
-        if (customerId) {
-          query = query.eq('customer_node_id', getCustomerId(customerId));
-        } else {
-          console.warn('Customer ID not found for code:', selectedCustomerId);
-        }
-      }
-      
-      console.log('Executing query...');
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching forecast data for manual aggregation:', error);
-        return;
-      }
-      
-      console.log('Raw data received:', data);
-      console.log('Number of records:', data?.length || 0);
-      
-      // Group and aggregate by postdate
-      const aggregatedData = new Map<string, ForecastData>();
-      
-      (data || []).forEach(item => {
-        const postdate = item.postdate;
-        
-        if (!aggregatedData.has(postdate)) {
-          aggregatedData.set(postdate, {
-            postdate,
-            forecast: 0,
-            actual: 0,
-            sales_plan: 0,
-            demand_planner: 0,
-            forecast_ly: 0,
-            upper_bound: 0,
-            lower_bound: 0,
-            commercial_input: 0,
-            fitted_history: 0
-          });
-        }
-        
-        const existing = aggregatedData.get(postdate)!;
-        
-        // Sum the numerical values
-        existing.forecast = (existing.forecast || 0) + (item.forecast || 0);
-        existing.actual = (existing.actual || 0) + (item.actual || 0);
-        existing.sales_plan = (existing.sales_plan || 0) + (item.sales_plan || 0);
-        existing.demand_planner = (existing.demand_planner || 0) + (item.demand_planner || 0);
-        existing.forecast_ly = (existing.forecast_ly || 0) + (item.forecast_ly || 0);
-        existing.commercial_input = (existing.commercial_input || 0) +  (item.commercial_input || 0); 
-        existing.fitted_history = (existing.fitted_history || 0) + (item.fitted_history || 0);
-        
-    
-      });
-      
-      // Convert to array and sort by postdate
-      const result = Array.from(aggregatedData.values()).sort((a, b) => 
-        new Date(a.postdate).getTime() - new Date(b.postdate).getTime()
-      );
-
-      console.log('Aggregated forecast data:', result);
-      console.log('Number of aggregated records:', result.length);
-      setForecastData(result);
-      
-    } catch (error) {
-      console.error('Error in manual aggregation:', error);
     }
+
+    // Filtro de cliente/proveedor si hay código y podemos resolver el node_id
+    if (selectedCustomerId) {
+      const custNodeId = getCustomerNodeIdFromCode(selectedCustomerId);
+      if (custNodeId) {
+        query = query.eq('customer_node_id', custNodeId);
+      } else {
+        // AVISO: mostramos el código, no "undefined"
+        console.warn('Customer node_id not found for code:', selectedCustomerId);
+      }
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching forecast data for manual aggregation:', error);
+      return;
+    }
+
+    // Agrupar por postdate sumando campos numéricos
+    const aggregated = new Map<string, ForecastData>();
+    for (const item of data || []) {
+      const key = item.postdate as string;
+      const base: ForecastData =
+        aggregated.get(key) ?? {
+          postdate: key,
+          forecast: 0,
+          actual: 0,
+          sales_plan: 0,
+          demand_planner: 0,
+          forecast_ly: 0,
+          upper_bound: 0,
+          lower_bound: 0,
+          commercial_input: 0,
+          fitted_history: 0,
+        };
+
+      base.forecast = (base.forecast || 0) + (item.forecast || 0);
+      base.actual = (base.actual || 0) + (item.actual || 0);
+      base.sales_plan = (base.sales_plan || 0) + (item.sales_plan || 0);
+      base.demand_planner = (base.demand_planner || 0) + (item.demand_planner || 0);
+      base.forecast_ly = (base.forecast_ly || 0) + (item.forecast_ly || 0);
+      base.commercial_input = (base.commercial_input || 0) + (item.commercial_input || 0);
+      base.fitted_history = (base.fitted_history || 0) + (item.fitted_history || 0);
+
+      aggregated.set(key, base);
+    }
+
+    const result = Array.from(aggregated.values()).sort(
+      (a, b) => new Date(a.postdate).getTime() - new Date(b.postdate).getTime()
+    );
+    setForecastData(result);
+    onDataUpdate?.(result);
   };
 
   const handleDemandPlannerChange = async (date: string, value: string) => {
-    // Only allow editing if a vendor is selected
-    if (!selectedCustomerId) {
-      return;
-    }
-
-    // Only allow numbers and decimal points
-    if (value !== '' && !/^\d*\.?\d*$/.test(value)) {
-      return;
-    }
+    if (!selectedCustomerId) return; // solo editable si hay proveedor seleccionado
+    if (value !== '' && !/^\d*\.?\d*$/.test(value)) return; // números/decimales
 
     const numericValue = value === '' ? null : parseFloat(value);
     const key = `${date}`;
-    
-    setEditingValues(prev => ({
-      ...prev,
-      [key]: numericValue
-    }));
+    setEditingValues((prev) => ({ ...prev, [key]: numericValue }));
   };
 
   const saveDemandPlannerValue = async (date: string) => {
-    if (!selectedCustomerId || !selectedProductId) {
-      return;
-    }
+    if (!selectedCustomerId || !selectedProductId) return;
 
     const key = `${date}`;
     const newValue = editingValues[key];
-    
-    if (newValue === undefined) {
+    if (newValue === undefined) return;
+
+    const custNodeId = getCustomerNodeIdFromCode(selectedCustomerId);
+    if (!custNodeId) {
+      console.warn('Cannot save: customer node_id not found for code:', selectedCustomerId);
+      toast.error('Proveedor seleccionado inválido.');
       return;
     }
 
-    setSavingValues(prev => ({ ...prev, [key]: true }));
-
+    setSavingValues((prev) => ({ ...prev, [key]: true }));
     try {
-      // Build the update query with filters
       let query = (supabase as any)
         .schema('m8_schema')
         .from('forecast_data')
         .update({ demand_planner: newValue })
         .eq('postdate', date)
         .eq('product_id', selectedProductId)
-        .eq('customer_node_id', getCustomerId(selectedCustomerId));
+        .eq('customer_node_id', custNodeId);
 
-      // Apply location filter if selected
       if (selectedLocationId) {
-        query = query.eq('location_node_id', getLocationId(selectedLocationId));
+        const locNodeId = getLocationNodeIdFromCode(selectedLocationId);
+        if (locNodeId) query = query.eq('location_node_id', locNodeId);
       }
 
       const { error } = await query;
+      if (error) throw error;
 
-      if (error) {
-        throw error;
-      }
+      setForecastData((prev) =>
+        prev.map((item) => (item.postdate === date ? { ...item, demand_planner: newValue } : item))
+      );
 
-      // Update local state to reflect the change
-      setForecastData(prev => prev.map(item => 
-        item.postdate === date 
-          ? { ...item, demand_planner: newValue }
-          : item
-      ));
-
-      // Clear the editing value since it's now saved
-      setEditingValues(prev => {
-        const newState = { ...prev };
-        delete newState[key];
-        return newState;
+      setEditingValues((prev) => {
+        const n = { ...prev };
+        delete n[key];
+        return n;
       });
 
       toast.success('Valor guardado exitosamente');
@@ -271,7 +240,7 @@ export function ForecastDataTable({
       console.error('Error saving demand planner value:', error);
       toast.error('Error al guardar el valor');
     } finally {
-      setSavingValues(prev => ({ ...prev, [key]: false }));
+      setSavingValues((prev) => ({ ...prev, [key]: false }));
     }
   };
 
@@ -284,70 +253,46 @@ export function ForecastDataTable({
 
   const handleBlur = (date: string) => {
     const key = `${date}`;
-    if (editingValues.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(editingValues, key)) {
       saveDemandPlannerValue(date);
     }
   };
 
   const getDemandPlannerValue = (date: string, originalValue: number | null) => {
     const key = `${date}`;
-    return editingValues.hasOwnProperty(key) ? editingValues[key] : originalValue;
+    return Object.prototype.hasOwnProperty.call(editingValues, key)
+      ? editingValues[key]
+      : originalValue;
   };
 
-  const {
-    tableData,
-    uniqueDates
-  } = useMemo(() => {
-    if (!forecastData.length) return {
-      tableData: [],
-      uniqueDates: []
-    };
-    
-    const uniqueDates = [...new Set(forecastData.map(item => item.postdate))].sort();
-    const seriesData = [{
-      series: 'Actual',
-      type: 'actual'
-    }, {
-      series: 'Forecast',
-      type: 'forecast'
-    }, {
-      series: 'Objetivo de ventas',
-      type: 'sales_plan'
-    }, {
-      series: 'Demand Planner',
-      type: 'demand_planner'
-    }, {
-      series: 'Forecast LY',
-      type: 'forecast_ly'
-    }, {
-      series: 'Plan Comercial',
-      type: 'commercial_input'
-    }, {
-      series: 'Historia ajustada',
-      type: 'fitted_history'
-    }
-  
-  ];
-    
-    const tableData = seriesData.map(row => {
-      const rowData = {
-        ...row
+  const { tableData, uniqueDates } = useMemo(() => {
+    if (!forecastData.length)
+      return {
+        tableData: [] as Array<Record<string, any>>, // eslint-disable-line @typescript-eslint/no-explicit-any
+        uniqueDates: [] as string[],
       };
-      uniqueDates.forEach(date => {
-        const dataPoint = forecastData.find(item => item.postdate === date);
-        if (dataPoint) {
-          rowData[date] = dataPoint[row.type as keyof ForecastData];
-        } else {
-          rowData[date] = null;
-        }
+
+    const uniqueDates = [...new Set(forecastData.map((i) => i.postdate))].sort();
+    const seriesData = [
+      { series: 'Actual', type: 'actual' },
+      { series: 'Forecast', type: 'forecast' },
+      { series: 'Objetivo de ventas', type: 'sales_plan' },
+      { series: 'Demand Planner', type: 'demand_planner' },
+      { series: 'Forecast LY', type: 'forecast_ly' },
+      { series: 'Plan Comercial', type: 'commercial_input' },
+      { series: 'Historia ajustada', type: 'fitted_history' },
+    ] as const;
+
+    const tableData = seriesData.map((row) => {
+      const rowData: Record<string, any> = { ...row }; // eslint-disable-line @typescript-eslint/no-explicit-any
+      uniqueDates.forEach((date) => {
+        const d = forecastData.find((it) => it.postdate === date);
+        rowData[date] = d ? (d as any)[row.type] ?? null : null; // eslint-disable-line @typescript-eslint/no-explicit-any
       });
       return rowData;
     });
-    
-    return {
-      tableData,
-      uniqueDates
-    };
+
+    return { tableData, uniqueDates };
   }, [forecastData]);
 
   const formatNumber = (value: number | null) => {
@@ -361,27 +306,15 @@ export function ForecastDataTable({
       return;
     }
 
-    // Create CSV headers
     const headers = ['Serie', ...uniqueDates];
-    
-    // Create CSV rows
-    const csvRows = [headers.join(',')];
-    
-    tableData.forEach(row => {
-      const csvRow = [
-        row.series,
-        ...uniqueDates.map(date => {
-          const value = row[date] as number | null;
-          return value !== null && value !== undefined ? value.toString() : '';
-        })
-      ];
-      csvRows.push(csvRow.join(','));
+    const rows = [headers.join(',')];
+
+    tableData.forEach((row: Record<string, any>) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      const r = [row.series, ...uniqueDates.map((d) => (row[d] ?? '').toString())];
+      rows.push(r.join(','));
     });
 
-    // Create CSV content
-    const csvContent = csvRows.join('\n');
-    
-    // Create and download file
+    const csvContent = rows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
@@ -391,39 +324,34 @@ export function ForecastDataTable({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     toast.success('Archivo CSV descargado exitosamente');
   };
-  
+
   const getYearGroups = () => {
-    const yearGroups: {
-      [year: string]: string[];
-    } = {};
-    uniqueDates.forEach(date => {
-      const year = new Date(date).getFullYear().toString();
-      if (!yearGroups[year]) {
-        yearGroups[year] = [];
-      }
-      yearGroups[year].push(date);
+    const groups: Record<string, string[]> = {};
+    uniqueDates.forEach((d) => {
+      const y = new Date(d).getFullYear().toString();
+      groups[y] = groups[y] || [];
+      groups[y].push(d);
     });
-    return yearGroups;
+    return groups;
   };
-  
+
   if (!selectedProductId) {
-    return <div className="flex items-center justify-center h-64">
+    return (
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="text-lg font-medium text-muted-foreground">
-            Selecciona producto para ver los datos
-          </div>
-          <div className="text-sm text-muted-foreground mt-2">
-            El producto es obligatorio para cargar la información
-          </div>
+          <div className="text-lg font-medium text-muted-foreground">Selecciona producto para ver los datos</div>
+          <div className="text-sm text-muted-foreground mt-2">El producto es obligatorio para cargar la información</div>
         </div>
-      </div>;
+      </div>
+    );
   }
-  
+
   if (loading) {
-    return <div className="flex items-center justify-center h-64">
+    return (
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="text-lg font-medium">Cargando datos de pronóstico...</div>
           <div className="text-sm text-muted-foreground mt-2">
@@ -432,11 +360,13 @@ export function ForecastDataTable({
             {selectedCustomerId && `, Proveedor ${selectedCustomerId}`}
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
-  
+
   if (!forecastData.length) {
-    return <div className="flex items-center justify-center h-64">
+    return (
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="text-lg font-medium text-muted-foreground">No se encontraron datos de pronóstico</div>
           <div className="text-sm text-muted-foreground mt-2">
@@ -445,11 +375,14 @@ export function ForecastDataTable({
             {selectedCustomerId && `, Proveedor ${selectedCustomerId}`}
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
-  
+
   const yearGroups = getYearGroups();
-  return <div className="w-full">
+
+  return (
+    <div className="w-full">
       <div className="mb-4 flex justify-between items-start">
         <div>
           <div className="text-sm text-muted-foreground">
@@ -457,44 +390,39 @@ export function ForecastDataTable({
             {selectedLocationId && ` para ubicación ${selectedLocationId}`}
             {selectedCustomerId ? ` filtrado por proveedor ${selectedCustomerId}` : ' (todos los proveedores)'}
           </div>
-        {!selectedCustomerId && (
-          <div className="text-sm text-orange-600 mt-1">
-            ⚠️ Selecciona un proveedor para editar los valores del Demand Planner
-          </div>
-        )}
+          {!selectedCustomerId && (
+            <div className="text-sm text-orange-600 mt-1">⚠️ Selecciona un proveedor para editar los valores del Demand Planner</div>
+          )}
           {selectedCustomerId && (
-            <div className="text-sm text-blue-600 mt-1">
-              💡 Presiona Enter o haz clic fuera del campo para guardar los cambios
-            </div>
+            <div className="text-sm text-blue-600 mt-1">💡 Presiona Enter o haz clic fuera del campo para guardar los cambios</div>
           )}
         </div>
-        
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={downloadCSV}
-          className="flex items-center gap-2"
-        >
+
+        <Button variant="outline" size="sm" onClick={downloadCSV} className="flex items-center gap-2">
           <Download className="h-4 w-4" />
           Descargar CSV
         </Button>
       </div>
-      
+
       <ScrollArea className="w-full">
         <div className="relative">
           <table className="w-full min-w-fit border-collapse border">
             <thead>
-              {/* Year headers */}
+              {/* Encabezados de año */}
               <tr className="border-b">
-                <th className="text-left py-2 px-3 bg-gray-50 font-medium min-w-[168px] sticky left-0 z-10 border-r">Series</th>
-                {Object.entries(yearGroups).map(([year, dates]) => <th key={year} className="text-center py-2 px-3 bg-gray-50 font-medium border-r" colSpan={dates.length}>
+                <th className="text-left py-2 px-3 bg-gray-50 font-medium min-w-[168px] sticky left-0 z-10 border-r">
+                  Series
+                </th>
+                {Object.entries(yearGroups).map(([year, dates]) => (
+                  <th key={year} className="text-center py-2 px-3 bg-gray-50 font-medium border-r" colSpan={dates.length}>
                     {year}
-                  </th>)}
+                  </th>
+                ))}
               </tr>
-              {/* Date headers */}
+              {/* Encabezados de fecha */}
               <tr className="border-b">
                 <th className="text-left py-2 px-3 bg-gray-50 font-medium sticky left-0 z-10 border-r"></th>
-                {uniqueDates.map(date => (
+                {uniqueDates.map((date) => (
                   <th key={date} className="text-center py-1 px-3 bg-gray-50 text-xs min-w-28 border-r">
                     {date}
                   </th>
@@ -502,27 +430,34 @@ export function ForecastDataTable({
               </tr>
             </thead>
             <tbody>
-              {tableData.map((row, rowIndex) => 
-                <tr key={row.series} className={`border-b hover:bg-muted/50 ${rowIndex === 0  ? 'bg-blue-50' : rowIndex === 3 ? 'bg-orange-50' : rowIndex % 2 === 0 ? 'bg-blue-50' : rowIndex === 5  ? 'bg-green-50' : 'bg-white'}`}>
-                  <td className="font-medium bg-gray-50 sticky left-0 z-10 whitespace-nowrap border-r">
-                    {row.series}
-                  </td>
-                  {uniqueDates.map(date => {
+              {tableData.map((row: Record<string, any>, rowIndex: number) => (
+                <tr
+                  key={row.series}
+                  className={`border-b hover:bg-muted/50 ${
+                    rowIndex === 0
+                      ? 'bg-blue-50'
+                      : rowIndex === 3
+                      ? 'bg-orange-50'
+                      : rowIndex % 2 === 0
+                      ? 'bg-blue-50'
+                      : rowIndex === 5
+                      ? 'bg-green-50'
+                      : 'bg-white'
+                  }`}
+                >
+                  <td className="font-medium bg-gray-50 sticky left-0 z-10 whitespace-nowrap border-r">{row.series}</td>
+                  {uniqueDates.map((date) => {
                     const key = `${date}`;
                     const isSaving = savingValues[key];
-                    
-                    // Check if current cell should be highlighted (row 5 with different value from row 0)
-                    const shouldHighlight = rowIndex === 6 && tableData[0] && 
-                      (row[date] as number) !== (tableData[0][date] as number);
-                    
+
                     return (
-                      <td key={date} className={`py-2 px-4 text-right text-sm min-w-28 border-r ${shouldHighlight ? 'bg-red-200' : ''}`}>
+                      <td key={date} className={`py-2 px-4 text-right text-sm min-w-28 border-r`}>
                         {row.series === 'Demand Planner' ? (
                           selectedCustomerId ? (
                             <div className="relative">
                               <Input
                                 type="text"
-                                value={getDemandPlannerValue(date, row[date] as number) || ''}
+                                value={getDemandPlannerValue(date, row[date] as number) ?? ''}
                                 onChange={(e) => handleDemandPlannerChange(date, e.target.value)}
                                 onKeyPress={(e) => handleKeyPress(e, date)}
                                 onBlur={() => handleBlur(date)}
@@ -548,12 +483,13 @@ export function ForecastDataTable({
                       </td>
                     );
                   })}
-                </tr>)}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
-      
-    </div>;
+    </div>
+  );
 }

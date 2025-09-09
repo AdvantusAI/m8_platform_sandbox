@@ -49,7 +49,7 @@ export function CustomerFilter({
       if (error) throw error;
       
       setClientLevels(data?.client_levels || 1);
-      ////console.log('Client levels:', data?.client_levels);
+      //////console.log('Client levels:', data?.client_levels);
     } catch (error) {
       console.error('Error fetching system config:', error);
       setClientLevels(1);
@@ -59,7 +59,7 @@ export function CustomerFilter({
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      //////console.log('Fetching customers with client levels:', clientLevels);
+      ////////console.log('Fetching customers with client levels:', clientLevels);
       let query = supabase
         .schema('m8_schema')
         .from('Customer')
@@ -72,7 +72,7 @@ export function CustomerFilter({
       const { data, error } = await query.order('customer_name');
       if (error) throw error;
 
-      //////console.log('Customers data:', data);
+      ////////console.log('Customers data:', data);
       
       if (clientLevels === 1) {
         // Flat structure: just customer_id - customer_name

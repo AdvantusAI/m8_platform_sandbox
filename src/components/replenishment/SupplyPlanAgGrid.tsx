@@ -145,9 +145,9 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
    
     if (data.length === 0) return [];
 
-    ////console.log('First row keys:', Object.keys(data[0]));
-    //console.log('Available metrics:', data.map(row => row.metric));
-    //console.log('First row data:', data[0]);
+    //////console.log('First row keys:', Object.keys(data[0]));
+    ////console.log('Available metrics:', data.map(row => row.metric));
+    ////console.log('First row data:', data[0]);
 
     // Get all date columns (excluding metric and other non-date columns)
     // The date columns are in format "2025_09_01", "2025_09_02", etc. (with underscores)
@@ -156,7 +156,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
       (key.includes('date') || key.includes('Date') || /^\d{4}-\d{2}-\d{2}$/.test(key) || /^\d{4}\s\d{2}\s\d{2}$/.test(key) || /^\d{4}_\d{2}_\d{2}$/.test(key))
     );
 
-    //console.log('Date columns found:', dateColumns);
+    ////console.log('Date columns found:', dateColumns);
 
     // Find the rows for Demanda Total, Inventario Proyectado, and Stock de Seguridad
     // Since the data is already transformed, we look for the Spanish names
@@ -164,15 +164,15 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     const inventarioProyectadoRow = data.find(row => row.metric === 'Inventario Proyectado');
     const stockDeSeguridadRow = data.find(row => row.metric === 'Stock de Seguridad');
 
-    //console.log('Demanda Total row found:', !!demandaTotalRow);
-    //console.log('Inventario Proyectado row found:', !!inventarioProyectadoRow);
-    //console.log('Stock de Seguridad row found:', !!stockDeSeguridadRow);
-    //console.log('Demanda Total row metric:', demandaTotalRow?.metric);
-    //console.log('Inventario Proyectado row metric:', inventarioProyectadoRow?.metric);
-    //console.log('Stock de Seguridad row metric:', stockDeSeguridadRow?.metric);
+    ////console.log('Demanda Total row found:', !!demandaTotalRow);
+    ////console.log('Inventario Proyectado row found:', !!inventarioProyectadoRow);
+    ////console.log('Stock de Seguridad row found:', !!stockDeSeguridadRow);
+    ////console.log('Demanda Total row metric:', demandaTotalRow?.metric);
+    ////console.log('Inventario Proyectado row metric:', inventarioProyectadoRow?.metric);
+    ////console.log('Stock de Seguridad row metric:', stockDeSeguridadRow?.metric);
 
     if (!demandaTotalRow || !inventarioProyectadoRow) {
-      //console.log('Missing required rows for chart');
+      ////console.log('Missing required rows for chart');
       return [];
     }
 
@@ -191,8 +191,8 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
       };
     });
 
-    //console.log('Chart data points created:', chartDataPoints.length);
-    //console.log('Sample chart data:', chartDataPoints.slice(0, 3));
+    ////console.log('Chart data points created:', chartDataPoints.length);
+    ////console.log('Sample chart data:', chartDataPoints.slice(0, 3));
 
     return chartDataPoints;
   }, [data]);

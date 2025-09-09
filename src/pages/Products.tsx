@@ -7,7 +7,7 @@ export default function Products() {
 
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);
-    ////console.log('Producto seleccionado:', productId);
+    //////console.log('Producto seleccionado:', productId);
   };
 
   return (

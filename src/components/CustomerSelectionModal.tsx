@@ -45,7 +45,7 @@ export function CustomerSelectionModal({
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      ////console.log('Fetching customers...');
+      //////console.log('Fetching customers...');
       
       if (!user) {
         setCustomers([]);
@@ -61,13 +61,13 @@ export function CustomerSelectionModal({
         .order('description');
 
       if (searchTerm) {
-        query = query.or(`node_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+        query = query.or(`customer_code.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
 
       const { data, error } = await query;
       if (error) throw error;
 
-      //////console.log('Customers data:', data);
+      ////////console.log('Customers data:', data);
       
       const customerNodes: CustomerNode[] = (data || []).map(customer => ({
         customer_id: customer.customer_id,
@@ -99,11 +99,11 @@ export function CustomerSelectionModal({
           onClick={() => handleCustomerClick(customer.customer_code)}
           
         >
-          <ShoppingCart className="h-4 w-4 mr-2 text-blue-500" />
+          <ShoppingCart className="h-4 w-4 mr-2 text-orange-500" />
 
           <span className="flex-1">{customer.description}</span>
                     <div className="ml-2 flex gap-1">
-                    <Badge variant="outline" className="ml-2 text-xs bg-blue-50 text-blue-700 border-blue-200">
+                    <Badge variant="outline" className="ml-2 text-xs bg-orange-50 text-orange-700 border-orange-200">
                      {customer.customer_code}
                     </Badge>
                     </div>

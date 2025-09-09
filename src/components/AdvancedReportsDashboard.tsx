@@ -62,7 +62,7 @@ export function AdvancedReportsDashboard() {
 
       const access_token = loginResponse.data.access_token;
 
-      ////console.log("✅ Logged into Superset:", access_token);
+      //////console.log("✅ Logged into Superset:", access_token);
 
       // Step 2: Generate Guest Token
       const guestTokenBody = {
@@ -95,7 +95,7 @@ export function AdvancedReportsDashboard() {
 
       const guest_token = guestTokenResponse.data.token;
 
-      ////console.log("✅ Guest token received:", guest_token);
+      //////console.log("✅ Guest token received:", guest_token);
 
       // Step 3: Embed the dashboard
       const container = document.getElementById("superset-container");

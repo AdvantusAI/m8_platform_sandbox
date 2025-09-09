@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useLocations } from './useLocations';
-import { useCustomers } from './useCustomers';
+import { useLocations } from '@/hooks/useLocations';
+import { useCustomers } from '@/hooks/useCustomers';
 
 interface Location {
   location_id: string;
@@ -29,29 +29,30 @@ interface InterpretabilityData {
 }
 
 
-export function useInterpretabilityData(productId?: string, locationId?: string, customerId?: string) {
+export function useInterpretabilityData(selectedProductId?: string, selectedLocationId?: string, selectedCustomerId?: string) {
   const [data, setData] = useState<InterpretabilityData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { locations } = useLocations();
   const { customers } = useCustomers();
+  
+
   useEffect(() => {
     fetchData();
-  }, [productId, locationId, customerId]);
+  }, [selectedProductId, selectedLocationId, selectedCustomerId]);
 
 
   const getLocationId = (locationId: string): string | undefined => {
     const location = locations.find(l => l.location_code === locationId);
-    console.log('location', location.location_id);
     return location?.location_id;
   };
 
-  const getCustomerId = (customerId: string): string | undefined => {
-    const customer = customers.find(c => c.customer_code === customerId);
-    console.log('customer', customer.customer_node_id);
+  const getCustomerId = (customerCode: string): string | undefined => {
+    const customer = customers.find(c => c.customer_code === customerCode);
     return customer?.customer_node_id;
   };
+
 
   const fetchData = async () => {
     try {
@@ -64,21 +65,23 @@ export function useInterpretabilityData(productId?: string, locationId?: string,
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (productId) {
-        query = query.eq('product_id', productId);
+      if (selectedProductId) {
+        query = query.eq('product_id', selectedProductId);
       }
       
-      if (locationId) {
-        const actualLocationId = getLocationId(locationId);
+      if (selectedLocationId) {
+        const actualLocationId = getLocationId(selectedLocationId);
         if (actualLocationId) {
           query = query.eq('location_node_id', actualLocationId);
         }
       }
 
       // Apply customer filter if selected
-      if (customerId) {
-       
-        query = query.eq('customer_node_id', getCustomerId(customerId));
+      if (selectedCustomerId) {
+        const actualCustomerId = getCustomerId(selectedCustomerId);   
+        if (actualCustomerId) {
+          query = query.eq('customer_node_id', actualCustomerId);
+        }
       }
 
       const { data: result, error: fetchError } = await query;

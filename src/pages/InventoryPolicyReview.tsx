@@ -213,11 +213,11 @@ const InventoryPolicyReview: React.FC = () => {
   };
 
   const handleApproveRecommendations = () => {
-    console.log('Approve recommendations for:', selectedRows);
+    //console.log('Approve recommendations for:', selectedRows);
   };
 
   const handleDownload = () => {
-    console.log('Download data');
+    //console.log('Download data');
   };
 
   return (

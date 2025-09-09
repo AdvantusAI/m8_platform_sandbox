@@ -42,7 +42,7 @@ export function useCustomers() {
 
   const getCustomerName = (customerId: string): string => {
     const customer = customers.find(c => c.customer_code === customerId);
-    console.log('vhvavcustomer', customer);
+    
     return customer?.description;
   };
 

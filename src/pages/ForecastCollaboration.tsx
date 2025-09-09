@@ -601,7 +601,7 @@ const ForecastCollaboration: React.FC = () => {
 
   // AG Grid event handlers
   const onGridReady = useCallback((params: GridReadyEvent) => {
-    //console.log('Customer grid ready:', params);
+    ////console.log('Customer grid ready:', params);
   }, []);
 
 

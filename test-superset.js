@@ -3,34 +3,34 @@ import axios from 'axios';
 const supersetUrl = 'https://gipsy-bi.apps-m8solutions.com/';
 
 async function testSupersetConnection() {
-  ////console.log('🔍 Testing Superset connection...');
+  //////console.log('🔍 Testing Superset connection...');
   
   try {
     // Test 1: Basic connectivity
     const response = await axios.get(supersetUrl);
-    ////console.log('✅ Main page accessible:', response.status);
-    ////console.log('📄 Content type:', response.headers['content-type']);
-    ////console.log('📄 Content preview:', response.data.substring(0, 500));
+    //////console.log('✅ Main page accessible:', response.status);
+    //////console.log('📄 Content type:', response.headers['content-type']);
+    //////console.log('📄 Content preview:', response.data.substring(0, 500));
     
     // Test 2: Check for Superset-specific content
     if (response.data.includes('superset') || response.data.includes('Superset')) {
-      ////console.log('✅ Superset content detected');
+      //////console.log('✅ Superset content detected');
     } else {
-      ////console.log('⚠️ No Superset content detected');
+      //////console.log('⚠️ No Superset content detected');
     }
     
     // Test 2.5: Look for login form or authentication hints
     if (response.data.includes('login') || response.data.includes('Login')) {
-      ////console.log('✅ Login form detected');
+      //////console.log('✅ Login form detected');
     }
     if (response.data.includes('username') || response.data.includes('password')) {
-      ////console.log('✅ Username/password fields detected');
+      //////console.log('✅ Username/password fields detected');
     }
     
     // Look for CSRF token in the page
     const csrfMatch = response.data.match(/csrf_token['"]?\s*[:=]\s*['"]([^'"]+)['"]/);
     if (csrfMatch) {
-      ////console.log('🔍 Found CSRF token in page:', csrfMatch[1]);
+      //////console.log('🔍 Found CSRF token in page:', csrfMatch[1]);
     }
     
     // Look for any configuration hints
@@ -44,7 +44,7 @@ async function testSupersetConnection() {
     
     for (const hint of configHints) {
       if (response.data.toLowerCase().includes(hint.toLowerCase())) {
-        ////console.log(`🔍 Found potential hint: ${hint}`);
+        //////console.log(`🔍 Found potential hint: ${hint}`);
       }
     }
     
@@ -58,9 +58,9 @@ async function testSupersetConnection() {
     for (const endpoint of apiEndpoints) {
       try {
         const apiResponse = await axios.get(`${supersetUrl}${endpoint}`);
-        ////console.log(`✅ ${endpoint}:`, apiResponse.status);
+        //////console.log(`✅ ${endpoint}:`, apiResponse.status);
       } catch (apiError) {
-        ////console.log(`❌ ${endpoint}:`, apiError.response?.status || apiError.code);
+        //////console.log(`❌ ${endpoint}:`, apiError.response?.status || apiError.code);
       }
     }
     
@@ -85,14 +85,14 @@ async function testSupersetConnection() {
     
     for (const credentials of loginAttempts) {
       try {
-        ////console.log(`🔄 Trying login with ${credentials.username}/${credentials.password} (${credentials.provider})`);
+        //////console.log(`🔄 Trying login with ${credentials.username}/${credentials.password} (${credentials.provider})`);
         const loginResponse = await axios.post(`${supersetUrl}/api/v1/security/login`, credentials, {
           headers: {
             "Content-Type": "application/json"
           }
         });
-        ////console.log(`✅ Login successful with ${credentials.username}:`, loginResponse.status);
-        ////console.log(`🔑 Access token:`, loginResponse.data.access_token ? "Received" : "Not received");
+        //////console.log(`✅ Login successful with ${credentials.username}:`, loginResponse.status);
+        //////console.log(`🔑 Access token:`, loginResponse.data.access_token ? "Received" : "Not received");
         
         if (loginResponse.data.access_token) {
           // Try to get CSRF token with the access token
@@ -103,27 +103,27 @@ async function testSupersetConnection() {
                 "Authorization": `Bearer ${loginResponse.data.access_token}`
               }
             });
-            ////console.log(`✅ CSRF token with auth:`, csrfResponse.status);
-            ////console.log(`📄 CSRF response:`, JSON.stringify(csrfResponse.data, null, 2));
+            //////console.log(`✅ CSRF token with auth:`, csrfResponse.status);
+            //////console.log(`📄 CSRF response:`, JSON.stringify(csrfResponse.data, null, 2));
             csrfToken = csrfResponse.data.result;
           } catch (csrfError) {
-            ////console.log(`❌ CSRF token with auth:`, csrfError.response?.status);
+            //////console.log(`❌ CSRF token with auth:`, csrfError.response?.status);
           }
           
           // Try to get available dashboards first
           try {
-            ////console.log(`🔄 Getting available dashboards...`);
+            //////console.log(`🔄 Getting available dashboards...`);
             const dashboardsResponse = await axios.get(`${supersetUrl}/api/v1/dashboard/`, {
               headers: {
                 "Authorization": `Bearer ${loginResponse.data.access_token}`
               }
             });
-            ////console.log(`✅ Dashboards available:`, dashboardsResponse.status);
-            ////console.log(`📊 Dashboard count:`, dashboardsResponse.data.result?.length || 0);
+            //////console.log(`✅ Dashboards available:`, dashboardsResponse.status);
+            //////console.log(`📊 Dashboard count:`, dashboardsResponse.data.result?.length || 0);
             
             if (dashboardsResponse.data.result && dashboardsResponse.data.result.length > 0) {
               const firstDashboard = dashboardsResponse.data.result[0];
-              ////console.log(`📊 First dashboard:`, firstDashboard.id, firstDashboard.dashboard_title);
+              //////console.log(`📊 First dashboard:`, firstDashboard.id, firstDashboard.dashboard_title);
               
               // Try to get a guest token with a real dashboard ID
               try {
@@ -146,23 +146,23 @@ async function testSupersetConnection() {
                     "Authorization": `Bearer ${loginResponse.data.access_token}`
                   }
                 });
-                ////console.log(`✅ Guest token created with real dashboard:`, guestTokenResponse.status);
-                ////console.log(`🔑 Guest token:`, guestTokenResponse.data.token ? "Received" : "Not received");
+                //////console.log(`✅ Guest token created with real dashboard:`, guestTokenResponse.status);
+                //////console.log(`🔑 Guest token:`, guestTokenResponse.data.token ? "Received" : "Not received");
               } catch (guestTokenError) {
-                ////console.log(`❌ Guest token creation failed:`, guestTokenError.response?.status);
-                ////console.log(`📄 Error details:`, guestTokenError.response?.data);
+                //////console.log(`❌ Guest token creation failed:`, guestTokenError.response?.status);
+                //////console.log(`📄 Error details:`, guestTokenError.response?.data);
               }
             }
           } catch (dashboardsError) {
-            ////console.log(`❌ Failed to get dashboards:`, dashboardsError.response?.status);
+            //////console.log(`❌ Failed to get dashboards:`, dashboardsError.response?.status);
           }
           
           break; // Stop trying if we found working credentials
         }
       } catch (loginError) {
-        ////console.log(`❌ Login failed with ${credentials.username}:`, loginError.response?.status);
+        //////console.log(`❌ Login failed with ${credentials.username}:`, loginError.response?.status);
         if (loginError.response?.data?.message) {
-          ////console.log(`📄 Error message:`, loginError.response.data.message);
+          //////console.log(`📄 Error message:`, loginError.response.data.message);
         }
       }
     }

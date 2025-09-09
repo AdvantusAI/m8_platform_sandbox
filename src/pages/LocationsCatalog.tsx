@@ -78,7 +78,7 @@ const LocationsCatalog = () => {
       setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE));
       
-      ////console.log('Locations fetched:', data?.length, 'Total count:', count, 'Total pages:', Math.ceil((count || 0) / ITEMS_PER_PAGE));
+      //////console.log('Locations fetched:', data?.length, 'Total count:', count, 'Total pages:', Math.ceil((count || 0) / ITEMS_PER_PAGE));
     } catch (error) {
       console.error("Error fetching locations:", error);
       toast.error("Error al cargar las ubicaciones");

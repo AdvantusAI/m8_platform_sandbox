@@ -26,12 +26,12 @@ export default function SupplyWorkbench() {
 
   const handleProductSelect = (productId: string) => {
     setSelectedProductId(productId);
-    ////console.log('Producto seleccionado en Supply Workbench:', productId);
+    //////console.log('Producto seleccionado en Supply Workbench:', productId);
   };
 
   const handleLocationSelect = (locationId: string) => {
     setSelectedLocationId(locationId);
-    ////console.log('Ubicación seleccionada en Supply Workbench:', locationId);
+    //////console.log('Ubicación seleccionada en Supply Workbench:', locationId);
   };
 
   const handleClearFilters = () => {

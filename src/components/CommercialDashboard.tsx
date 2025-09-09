@@ -98,7 +98,7 @@ export function CommercialDashboard() {
       locationId: selectedLocationId,
       customerId: selectedCustomerId
     });
-    ////console.log('Selección realizada en Commercial Dashboard:', selection);
+    //////console.log('Selección realizada en Commercial Dashboard:', selection);
   };
 
   const handleLocationSelect = (locationId: string) => {
@@ -108,7 +108,7 @@ export function CommercialDashboard() {
       locationId,
       customerId: selectedCustomerId
     });
-    ////console.log('Ubicación seleccionada en Commercial Dashboard:', locationId);
+    //////console.log('Ubicación seleccionada en Commercial Dashboard:', locationId);
   };
 
   const handleCustomerSelect = (customerId: string) => {
@@ -118,7 +118,7 @@ export function CommercialDashboard() {
       locationId: selectedLocationId,
       customerId
     });
-    ////console.log('Cliente seleccionado en Commercial Dashboard:', customerId);
+    //////console.log('Cliente seleccionado en Commercial Dashboard:', customerId);
   };
 
   const handleClearFilters = () => {
@@ -130,7 +130,7 @@ export function CommercialDashboard() {
       locationId: '',
       customerId: ''
     });
-    ////console.log('Filtros limpiados en Commercial Dashboard');
+    //////console.log('Filtros limpiados en Commercial Dashboard');
   };
   if (commercialLoading || forecastLoading) {
     return <div className="flex items-center justify-center h-64">

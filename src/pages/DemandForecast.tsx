@@ -144,7 +144,7 @@ export default function DemandForecast() {
       locationId: selectedLocationId,
       customerId: selectedCustomerId
     });
-    ////console.log('Producto seleccionado en Demand Forecast:', productId);
+    //////console.log('Producto seleccionado en Demand Forecast:', productId);
   };
 
   /**
@@ -172,7 +172,7 @@ export default function DemandForecast() {
       locationId: selectedLocationId,
       customerId
     });
-    ////console.log('Cliente seleccionado en Demand Forecast:', customerId);
+    //////console.log('Cliente seleccionado en Demand Forecast:', customerId);
   };
 
   /**
@@ -195,7 +195,7 @@ export default function DemandForecast() {
       locationId: '',
       customerId: ''
     });
-    ////console.log('Filtros limpiados');
+    //////console.log('Filtros limpiados');
   };
 
   // ===== COLLABORATION METRICS CALCULATION =====

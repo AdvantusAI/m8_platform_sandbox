@@ -34,7 +34,7 @@ const Configuracion = () => {
   const fetchConfig = async () => {
     try {
       setLoading(true);
-      ////console.log('Fetching system configuration...');
+      //////console.log('Fetching system configuration...');
       
       const { data, error } = await supabase
         .from("system_config")
@@ -46,7 +46,7 @@ const Configuracion = () => {
         throw error;
       }
 
-      ////console.log('System config data:', data);
+      //////console.log('System config data:', data);
       
       if (data && data.length > 0) {
         const configData = data[0];
@@ -57,7 +57,7 @@ const Configuracion = () => {
           client_levels: configData.client_levels,
         });
       } else {
-        ////console.log('No system configuration found');
+        //////console.log('No system configuration found');
         setConfig(null);
       }
     } catch (error) {
@@ -71,7 +71,7 @@ const Configuracion = () => {
   const handleSubmit = async (data: SystemConfigForm) => {
     try {
       setSaving(true);
-      ////console.log('Saving system configuration:', data);
+      //////console.log('Saving system configuration:', data);
 
       if (config) {
         // Update existing configuration

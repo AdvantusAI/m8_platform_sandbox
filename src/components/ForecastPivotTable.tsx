@@ -96,7 +96,7 @@ export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
       { metric: 'Mi Input' }
     ];
     
-    //////console.log(data);
+    ////////console.log(data);
     // Add date columns to each row
     uniqueDates.forEach(date => {
       const dayData = getDataForDate(date);

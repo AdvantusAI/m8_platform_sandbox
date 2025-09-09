@@ -29,7 +29,7 @@ export function SellThroughAnalyticsDashboard() {
   const { products } = useProducts();
 
   // Debug: Log the raw data
-  //console.log('Raw sellThroughMetrics:', sellThroughMetrics);
+  ////console.log('Raw sellThroughMetrics:', sellThroughMetrics);
 
   useEffect(() => {
     // Only fetch data if at least one filter is selected
@@ -75,11 +75,11 @@ export function SellThroughAnalyticsDashboard() {
     // }
     
     // Debug: Log the filter values being sent
-    //console.log('=== Filter Debug ===');
-    //console.log('selectedProduct:', selectedProduct);
-    //console.log('selectedPartner:', selectedPartner);
-    //console.log('Final filters object:', filters);
-    //console.log('===================');
+    ////console.log('=== Filter Debug ===');
+    ////console.log('selectedProduct:', selectedProduct);
+    ////console.log('selectedPartner:', selectedPartner);
+    ////console.log('Final filters object:', filters);
+    ////console.log('===================');
     
     fetchSellThroughMetrics(filters);
   }, [selectedProduct, selectedPartner, selectedPeriod, fetchSellThroughMetrics, clearSellThroughMetrics]);
@@ -218,9 +218,9 @@ export function SellThroughAnalyticsDashboard() {
     .sort((a, b) => new Date(a.periodMonth).getTime() - new Date(b.periodMonth).getTime());
 
   // Debug: Log the data to see what's happening
-  //console.log('Original sellThroughMetrics:', sellThroughMetrics.length, 'records');
-  //console.log('Aggregated sellThroughChartData:', sellThroughChartData.length, 'months');
-  //console.log('Chart data:', sellThroughChartData);
+  ////console.log('Original sellThroughMetrics:', sellThroughMetrics.length, 'records');
+  ////console.log('Aggregated sellThroughChartData:', sellThroughChartData.length, 'months');
+  ////console.log('Chart data:', sellThroughChartData);
 
   const getPerformanceBadgeVariant = (category: string) => {
     switch (category) {

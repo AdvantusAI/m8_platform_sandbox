@@ -75,7 +75,7 @@ export const useSupplyNetwork = () => {
   // Create relationship mutation
   const createRelationshipMutation = useMutation({
     mutationFn: async (relationshipData: SupplyNetworkRelationshipInsert) => {
-      //console.log('Attempting to create relationship with data:', relationshipData);
+      ////console.log('Attempting to create relationship with data:', relationshipData);
       
       // First, try to log the operation
       try {
@@ -102,7 +102,7 @@ export const useSupplyNetwork = () => {
         throw error;
       }
       
-      //console.log('Relationship created successfully:', data);
+      ////console.log('Relationship created successfully:', data);
       return data;
     },
     onSuccess: () => {
