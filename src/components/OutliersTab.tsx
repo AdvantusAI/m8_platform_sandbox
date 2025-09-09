@@ -149,21 +149,21 @@ export const OutliersTab: React.FC<OutliersTabProps> = ({
                   <TableRow key={outlier.id}>
                     <TableCell>{outlier.postdate}</TableCell>
                     <TableCell>
-                      <Badge variant={getSeverityColor(outlier.severity)}>
-                        {outlier.severity}
+                      <Badge variant={getSeverityColor(outlier.severity || '')}>
+                        {outlier.severity || 'N/A'}
                       </Badge>
                     </TableCell>
                     <TableCell className="font-medium">
-                      {outlier.original_value.toLocaleString()}
+                      {outlier.original_value?.toLocaleString() || 'N/A'}
                     </TableCell>
                     <TableCell>
-                      {outlier.expected_value.toLocaleString()}
+                      {outlier.expected_value?.toLocaleString() || 'N/A'}
                     </TableCell>
                     <TableCell>
-                      {outlier.capped_value.toLocaleString()}
+                      {outlier.capped_value?.toLocaleString() || 'N/A'}
                     </TableCell>
                     <TableCell>
-                      {outlier.percentage_deviation.toFixed(2)}%
+                      {outlier.percentage_deviation?.toFixed(2) || 'N/A'}%
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">
@@ -171,8 +171,8 @@ export const OutliersTab: React.FC<OutliersTabProps> = ({
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <div className="truncate" title={outlier.explanation}>
-                        {outlier.explanation}
+                      <div className="truncate" title={outlier.explanation || ''}>
+                        {outlier.explanation || 'N/A'}
                       </div>
                     </TableCell>
                   </TableRow>

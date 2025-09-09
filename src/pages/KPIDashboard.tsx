@@ -584,7 +584,7 @@ export default function KPIDashboard() {
     { 
       field: 'last_forecast_date', 
       headerName: 'Último Pronóstico', 
-      width: 150,
+      width: 180,
       cellRenderer: (params: any) => {
         return new Date(params.value).toLocaleDateString('es-ES');
       },
@@ -596,49 +596,49 @@ export default function KPIDashboard() {
     { 
       field: 'customer_id', 
       headerName: 'Cliente ID', 
-      width: 100,
+      width: 120,
       cellClass: 'font-mono text-xs'
     },
     { 
       field: 'customer_name', 
       headerName: 'Nombre del Cliente', 
-      width: 150,
+      width: 200,
       cellClass: 'font-medium'
     },
     { 
       field: 'product_id', 
       headerName: 'Producto ID', 
-      width: 100,
+      width: 120,
       cellClass: 'font-mono text-xs'
     },
     { 
       field: 'product_name', 
       headerName: 'Nombre del Producto', 
-      width: 150,
+      width: 200,
       cellClass: 'font-medium'
     },
     { 
       field: 'category_name', 
       headerName: 'Categoría', 
-      width: 120,
+      width: 150,
       cellRenderer: CategoryCellRenderer
     },
     { 
       field: 'accuracy_score', 
       headerName: 'Precisión', 
-      width: 100,
+      width: 120,
       cellRenderer: AccuracyCellRenderer
     },
     { 
       field: 'avg_error_percentage', 
       headerName: 'Error %', 
-      width: 100,
+      width: 120,
       cellClass: 'text-red-600 font-medium text-center'
     },
     { 
       field: 'forecast_bias', 
       headerName: 'Sesgo del Pronóstico', 
-      width: 150,
+      width: 180,
       cellRenderer: (params: any) => {
         const bias = params.value;
         const variant = bias > 0 ? 'destructive' : bias < 0 ? 'secondary' : 'outline';
@@ -649,19 +649,19 @@ export default function KPIDashboard() {
     { 
       field: 'forecast_count', 
       headerName: 'Pronósticos', 
-      width: 100,
+      width: 120,
       cellClass: 'text-center'
     },
     { 
       field: 'trend', 
       headerName: 'Tendencia', 
-      width: 100,
+      width: 120,
       cellRenderer: TrendCellRenderer
     },
     { 
       field: 'last_forecast_date', 
       headerName: 'Último Pronóstico', 
-      width: 150,
+      width: 180,
       cellRenderer: (params: any) => {
         return new Date(params.value).toLocaleDateString('es-ES');
       },
@@ -670,7 +670,7 @@ export default function KPIDashboard() {
     { 
       field: 'actions', 
       headerName: 'Acciones', 
-      width: 100,
+      width: 120,
       cellRenderer: (params: any) => {
         const data = params.data;
         return `<button class="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 h-8 w-8" onclick="window.open('/demand-forecast?customer_id=${data.customer_id}&product_id=${data.product_id}', '_blank')" title="Ver en Pronóstico de Demanda">🔗</button>`;
