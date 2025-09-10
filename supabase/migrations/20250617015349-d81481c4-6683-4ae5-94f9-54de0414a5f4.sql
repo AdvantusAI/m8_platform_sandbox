@@ -29,12 +29,12 @@ ALTER TABLE public.commercial_team_profiles ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.customer_assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     commercial_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    customer_id TEXT NOT NULL,
+    customer_node_id TEXT NOT NULL,
     assignment_type TEXT CHECK (assignment_type IN ('primary', 'secondary', 'support')) DEFAULT 'primary',
     start_date DATE DEFAULT CURRENT_DATE,
     end_date DATE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(commercial_user_id, customer_id)
+    UNIQUE(commercial_user_id, customer_node_id)
 );
 
 -- Enable RLS
@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS public.collaboration_workflows (
     workflow_name TEXT NOT NULL,
     product_id TEXT NOT NULL,
     location_node_id TEXT NOT NULL,
-    customer_id TEXT,
+    customer_node_id TEXT,
     workflow_type TEXT CHECK (workflow_type IN ('monthly_review', 'quarterly_review', 'exception_review', 'new_product')) NOT NULL,
     status TEXT CHECK (status IN ('active', 'pending', 'completed', 'cancelled')) DEFAULT 'active',
     assigned_planner UUID REFERENCES auth.users(id),
@@ -91,7 +91,7 @@ ALTER TABLE public.collaboration_workflows ENABLE ROW LEVEL SECURITY;
 CREATE TABLE IF NOT EXISTS public.market_intelligence (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     commercial_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
-    customer_id TEXT NOT NULL,
+    customer_node_id TEXT NOT NULL,
     product_id TEXT,
     location_node_id TEXT,
     intelligence_type TEXT CHECK (intelligence_type IN ('competitive', 'promotional', 'seasonal', 'economic', 'regulatory')) NOT NULL,
@@ -144,7 +144,7 @@ USING (
             EXISTS (
                 SELECT 1 FROM public.customer_assignments ca
                 WHERE ca.commercial_user_id = auth.uid()
-                AND ca.customer_id = fd.customer_id
+                AND ca.customer_node_id = fd.customer_node_id
             )
             -- Or if this is their comment
             OR user_id = auth.uid()
@@ -169,7 +169,7 @@ USING (
     OR EXISTS (
         SELECT 1 FROM public.customer_assignments ca
         WHERE ca.commercial_user_id = auth.uid()
-        AND ca.customer_id = collaboration_workflows.customer_id
+        AND ca.customer_node_id = collaboration_workflows.customer_node_id
     )
 );
 
@@ -188,8 +188,8 @@ USING (auth.uid() = commercial_user_id);
 
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_customer_assignments_commercial_user ON public.customer_assignments(commercial_user_id);
-CREATE INDEX IF NOT EXISTS idx_customer_assignments_customer ON public.customer_assignments(customer_id);
+CREATE INDEX IF NOT EXISTS idx_customer_assignments_customer ON public.customer_assignments(customer_node_id);
 CREATE INDEX IF NOT EXISTS idx_forecast_collaboration_forecast_id ON public.forecast_collaboration_comments(forecast_data_id);
 CREATE INDEX IF NOT EXISTS idx_collaboration_workflows_assigned ON public.collaboration_workflows(assigned_commercial, assigned_planner);
-CREATE INDEX IF NOT EXISTS idx_market_intelligence_customer ON public.market_intelligence(customer_id, commercial_user_id);
+CREATE INDEX IF NOT EXISTS idx_market_intelligence_customer ON public.market_intelligence(customer_node_id, commercial_user_id);
 CREATE INDEX IF NOT EXISTS idx_forecast_data_collaboration ON public.forecast_data(collaboration_status, commercial_reviewed_at);

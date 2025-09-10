@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 
 interface CustomerNode {
-  customer_id: string;
+  customer_node_id: string;
   customer_code: string;
   description: string;
   status?: string;
@@ -70,7 +70,7 @@ export function CustomerSelectionModal({
       ////////console.log('Customers data:', data);
       
       const customerNodes: CustomerNode[] = (data || []).map(customer => ({
-        customer_id: customer.customer_id,
+        customer_node_id: customer.customer_node_id,
         customer_code: customer.customer_code,
         description: customer.description,
         status: customer.status

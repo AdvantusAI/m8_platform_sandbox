@@ -8,65 +8,109 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Package, Plus, Search, Edit, Trash2, Rocket, Calendar, TrendingUp } from "lucide-react";
+import { Package, Plus, Search, Edit, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AgGridReact } from 'ag-grid-react';
-import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-enterprise';
+import { ColDef } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-quartz.css';
+import { commonAgGridConfig, agGridContainerStyles } from '../lib/ag-grid-config';
 
-import 'ag-grid-enterprise';
-import '../styles/ag-grid-custom.css';
-import { configureAGGridLicense, defaultGridOptions } from '@/lib/ag-grid-config';
 
 interface Product {
   product_id: string;
-  product_name: string;
-  category_name: string | null;
+  product_name: string | null;
   category_id: string | null;
-  subcategory_name: string | null;
+  category_name: string | null;
   subcategory_id: string | null;
-  class_name: string | null;
+  subcategory_name: string | null;
   class_id: string | null;
-  subclass_name: string | null;
+  class_name: string | null;
   subclass_id: string | null;
-  is_npi: boolean | null;
-  npi_status: string | null;
-  npi_launch_date: string | null;
+  subclass_name: string | null;
+  created_at: string;
+  updated_at: string | null;
+  attr_1: string | null;
+  attr_2: string | null;
+  attr_3: string | null;
+  attr_4: string | null;
+  buyer_class: string | null;
+  category_hierarchy: string | null;
+  weight_per_unit: number | null;
+  cube_per_unit: number | null;
+  units_per_case: number | null;
+  units_per_layer: number | null;
+  units_per_pallet: number | null;
+  default_service_level_goal: number | null;
+  default_lead_time_days: number | null;
+  default_minimum_quantity: number | null;
+  default_buying_multiple: number | null;
+  default_purchase_price: number | null;
+  status: string | null;
 }
 
 interface ProductForm {
   product_id: string;
   product_name: string;
-  category_name?: string;
   category_id?: string;
-  subcategory_name?: string;
+  category_name?: string;
   subcategory_id?: string;
-  class_name?: string;
+  subcategory_name?: string;
   class_id?: string;
-  subclass_name?: string;
+  class_name?: string;
   subclass_id?: string;
-  is_npi: boolean;
-  npi_status: string;
-  npi_launch_date: string;
+  subclass_name?: string;
+  attr_1?: string;
+  attr_2?: string;
+  attr_3?: string;
+  attr_4?: string;
+  buyer_class?: string;
+  category_hierarchy?: string;
+  weight_per_unit?: number;
+  cube_per_unit?: number;
+  units_per_case?: number;
+  units_per_layer?: number;
+  units_per_pallet?: number;
+  default_service_level_goal?: number;
+  default_lead_time_days?: number;
+  default_minimum_quantity?: number;
+  default_buying_multiple?: number;
+  default_purchase_price?: number;
+  status?: string;
 }
 
 // Database row type for mapping
 interface ProductRow {
-  id: string;
-  code: string;
-  product_id: string | null;
-  product_name: string;
-  category_name: string | null;
+  product_id: string;
+  product_name: string | null;
   category_id: string | null;
-  subcategory_name: string | null;
+  category_name: string | null;
   subcategory_id: string | null;
-  class_name: string | null;
+  subcategory_name: string | null;
   class_id: string | null;
-  subclass_name: string | null;
+  class_name: string | null;
   subclass_id: string | null;
-  is_npi: boolean | null;
-  npi_status: string | null;
-  npi_launch_date: string | null;
+  subclass_name: string | null;
+  created_at: string;
+  updated_at: string | null;
+  attr_1: string | null;
+  attr_2: string | null;
+  attr_3: string | null;
+  attr_4: string | null;
+  buyer_class: string | null;
+  category_hierarchy: string | null;
+  weight_per_unit: number | null;
+  cube_per_unit: number | null;
+  units_per_case: number | null;
+  units_per_layer: number | null;
+  units_per_pallet: number | null;
+  default_service_level_goal: number | null;
+  default_lead_time_days: number | null;
+  default_minimum_quantity: number | null;
+  default_buying_multiple: number | null;
+  default_purchase_price: number | null;
+  status: string | null;
 }
 
 export default function ProductsCatalog() {
@@ -75,64 +119,42 @@ export default function ProductsCatalog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [showNPIOnly, setShowNPIOnly] = useState(false);
-  const [gridApi, setGridApi] = useState<GridApi | null>(null);
+  const [gridApi, setGridApi] = useState<any>(null);
   const [formData, setFormData] = useState<ProductForm>({
     product_id: "",
     product_name: "",
-    category_name: "",
     category_id: "",
-    subcategory_name: "",
+    category_name: "",
     subcategory_id: "",
-    class_name: "",
+    subcategory_name: "",
     class_id: "",
-    subclass_name: "",
+    class_name: "",
     subclass_id: "",
-    is_npi: false,
-    npi_status: "",
-    npi_launch_date: ""
+    subclass_name: "",
+    attr_1: "",
+    attr_2: "",
+    attr_3: "",
+    attr_4: "",
+    buyer_class: "R",
+    category_hierarchy: "",
+    weight_per_unit: 0,
+    cube_per_unit: 0,
+    units_per_case: 0,
+    units_per_layer: 0,
+    units_per_pallet: 0,
+    default_service_level_goal: 0,
+    default_lead_time_days: 0,
+    default_minimum_quantity: 0,
+    default_buying_multiple: 0,
+    default_purchase_price: 0,
+    status: ""
   });
 
   useEffect(() => {
-    configureAGGridLicense();
+
     fetchProducts();
   }, []);
 
-  const getNPIStatusColor = (status: string | null) => {
-    if (!status) return 'bg-gray-100 text-gray-800';
-    switch (status) {
-      case 'planning':
-        return 'bg-blue-100 text-blue-800';
-      case 'pre_launch':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'launch':
-        return 'bg-green-100 text-green-800';
-      case 'post_launch':
-        return 'bg-purple-100 text-purple-800';
-      case 'discontinued':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getNPIStatusLabel = (status: string | null) => {
-    if (!status) return 'Sin Estado';
-    switch (status) {
-      case 'planning':
-        return 'Planificación';
-      case 'pre_launch':
-        return 'Pre-Lanzamiento';
-      case 'launch':
-        return 'Lanzamiento';
-      case 'post_launch':
-        return 'Post-Lanzamiento';
-      case 'discontinued':
-        return 'Descontinuado';
-      default:
-        return status;
-    }
-  };
 
   const fetchProducts = async () => {
     try {
@@ -147,19 +169,35 @@ export default function ProductsCatalog() {
       
       // Map the data to our interface
       const mappedData: Product[] = (data || []).map((item: ProductRow) => ({
-        product_id: item.product_id || item.code, // Use product_id if available, otherwise use code
-        product_name: item.product_name || '',
-        category_name: item.category_name,
+        product_id: item.product_id,
+        product_name: item.product_name,
         category_id: item.category_id,
-        subcategory_name: item.subcategory_name,
+        category_name: item.category_name,
         subcategory_id: item.subcategory_id,
-        class_name: item.class_name,
+        subcategory_name: item.subcategory_name,
         class_id: item.class_id,
-        subclass_name: item.subclass_name,
+        class_name: item.class_name,
         subclass_id: item.subclass_id,
-        is_npi: item.is_npi || false,
-        npi_status: item.npi_status,
-        npi_launch_date: item.npi_launch_date
+        subclass_name: item.subclass_name,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        attr_1: item.attr_1,
+        attr_2: item.attr_2,
+        attr_3: item.attr_3,
+        attr_4: item.attr_4,
+        buyer_class: item.buyer_class,
+        category_hierarchy: item.category_hierarchy,
+        weight_per_unit: item.weight_per_unit,
+        cube_per_unit: item.cube_per_unit,
+        units_per_case: item.units_per_case,
+        units_per_layer: item.units_per_layer,
+        units_per_pallet: item.units_per_pallet,
+        default_service_level_goal: item.default_service_level_goal,
+        default_lead_time_days: item.default_lead_time_days,
+        default_minimum_quantity: item.default_minimum_quantity,
+        default_buying_multiple: item.default_buying_multiple,
+        default_purchase_price: item.default_purchase_price,
+        status: item.status
       }));
       
       setProducts(mappedData);
@@ -183,17 +221,32 @@ export default function ProductsCatalog() {
       if (editingProduct) {
         const updateData = {
           product_name: formData.product_name,
-          category_name: formData.category_name || null,
           category_id: formData.category_id || null,
-          subcategory_name: formData.subcategory_name || null,
+          category_name: formData.category_name || null,
           subcategory_id: formData.subcategory_id || null,
-          class_name: formData.class_name || null,
+          subcategory_name: formData.subcategory_name || null,
           class_id: formData.class_id || null,
-          subclass_name: formData.subclass_name || null,
+          class_name: formData.class_name || null,
           subclass_id: formData.subclass_id || null,
-          is_npi: formData.is_npi,
-          npi_status: formData.is_npi ? formData.npi_status || null : null,
-          npi_launch_date: formData.is_npi ? formData.npi_launch_date || null : null
+          subclass_name: formData.subclass_name || null,
+          attr_1: formData.attr_1 || null,
+          attr_2: formData.attr_2 || null,
+          attr_3: formData.attr_3 || null,
+          attr_4: formData.attr_4 || null,
+          buyer_class: formData.buyer_class || 'R',
+          category_hierarchy: formData.category_hierarchy || null,
+          weight_per_unit: formData.weight_per_unit || null,
+          cube_per_unit: formData.cube_per_unit || null,
+          units_per_case: formData.units_per_case || null,
+          units_per_layer: formData.units_per_layer || null,
+          units_per_pallet: formData.units_per_pallet || null,
+          default_service_level_goal: formData.default_service_level_goal || null,
+          default_lead_time_days: formData.default_lead_time_days || null,
+          default_minimum_quantity: formData.default_minimum_quantity || null,
+          default_buying_multiple: formData.default_buying_multiple || null,
+          default_purchase_price: formData.default_purchase_price || null,
+          status: formData.status || null,
+          updated_at: new Date().toISOString().split('T')[0]
         };
         
         const { error } = await (supabase as any)
@@ -205,23 +258,34 @@ export default function ProductsCatalog() {
         if (error) throw error;
         toast.success('Producto actualizado exitosamente');
       } else {
-        // Transform formData to match database schema
         const insertData = {
-          id: formData.product_id.substring(0, 10), // Ensure code is max 10 characters//crypto.randomUUID(), // Generate a proper UUID for the id field
-          code: formData.product_id.substring(0, 10), // Ensure code is max 10 characters
           product_id: formData.product_id,
           product_name: formData.product_name,
-          category_name: formData.category_name || null,
           category_id: formData.category_id || null,
-          subcategory_name: formData.subcategory_name || null,
+          category_name: formData.category_name || null,
           subcategory_id: formData.subcategory_id || null,
-          class_name: formData.class_name || null,
+          subcategory_name: formData.subcategory_name || null,
           class_id: formData.class_id || null,
-          subclass_name: formData.subclass_name || null,
+          class_name: formData.class_name || null,
           subclass_id: formData.subclass_id || null,
-          is_npi: formData.is_npi,
-          npi_status: formData.is_npi ? formData.npi_status || null : null,
-          npi_launch_date: formData.is_npi ? formData.npi_launch_date || null : null
+          subclass_name: formData.subclass_name || null,
+          attr_1: formData.attr_1 || null,
+          attr_2: formData.attr_2 || null,
+          attr_3: formData.attr_3 || null,
+          attr_4: formData.attr_4 || null,
+          buyer_class: formData.buyer_class || 'R',
+          category_hierarchy: formData.category_hierarchy || null,
+          weight_per_unit: formData.weight_per_unit || null,
+          cube_per_unit: formData.cube_per_unit || null,
+          units_per_case: formData.units_per_case || null,
+          units_per_layer: formData.units_per_layer || null,
+          units_per_pallet: formData.units_per_pallet || null,
+          default_service_level_goal: formData.default_service_level_goal || null,
+          default_lead_time_days: formData.default_lead_time_days || null,
+          default_minimum_quantity: formData.default_minimum_quantity || null,
+          default_buying_multiple: formData.default_buying_multiple || null,
+          default_purchase_price: formData.default_purchase_price || null,
+          status: formData.status || null
         };
         
         const { error } = await (supabase as any)
@@ -247,18 +311,32 @@ export default function ProductsCatalog() {
     setEditingProduct(product);
     setFormData({
       product_id: product.product_id,
-      product_name: product.product_name,
-      category_name: product.category_name || "",
+      product_name: product.product_name || "",
       category_id: product.category_id || "",
-      subcategory_name: product.subcategory_name || "",
+      category_name: product.category_name || "",
       subcategory_id: product.subcategory_id || "",
-      class_name: product.class_name || "",
+      subcategory_name: product.subcategory_name || "",
       class_id: product.class_id || "",
-      subclass_name: product.subclass_name || "",
+      class_name: product.class_name || "",
       subclass_id: product.subclass_id || "",
-      is_npi: product.is_npi || false,
-      npi_status: product.npi_status || "",
-      npi_launch_date: product.npi_launch_date || ""
+      subclass_name: product.subclass_name || "",
+      attr_1: product.attr_1 || "",
+      attr_2: product.attr_2 || "",
+      attr_3: product.attr_3 || "",
+      attr_4: product.attr_4 || "",
+      buyer_class: product.buyer_class || "R",
+      category_hierarchy: product.category_hierarchy || "",
+      weight_per_unit: product.weight_per_unit || 0,
+      cube_per_unit: product.cube_per_unit || 0,
+      units_per_case: product.units_per_case || 0,
+      units_per_layer: product.units_per_layer || 0,
+      units_per_pallet: product.units_per_pallet || 0,
+      default_service_level_goal: product.default_service_level_goal || 0,
+      default_lead_time_days: product.default_lead_time_days || 0,
+      default_minimum_quantity: product.default_minimum_quantity || 0,
+      default_buying_multiple: product.default_buying_multiple || 0,
+      default_purchase_price: product.default_purchase_price || 0,
+      status: product.status || ""
     });
     setIsDialogOpen(true);
   };
@@ -286,46 +364,35 @@ export default function ProductsCatalog() {
     setFormData({
       product_id: "",
       product_name: "",
-      category_name: "",
       category_id: "",
-      subcategory_name: "",
+      category_name: "",
       subcategory_id: "",
-      class_name: "",
+      subcategory_name: "",
       class_id: "",
-      subclass_name: "",
+      class_name: "",
       subclass_id: "",
-      is_npi: false,
-      npi_status: "",
-      npi_launch_date: ""
+      subclass_name: "",
+      attr_1: "",
+      attr_2: "",
+      attr_3: "",
+      attr_4: "",
+      buyer_class: "R",
+      category_hierarchy: "",
+      weight_per_unit: 0,
+      cube_per_unit: 0,
+      units_per_case: 0,
+      units_per_layer: 0,
+      units_per_pallet: 0,
+      default_service_level_goal: 0,
+      default_lead_time_days: 0,
+      default_minimum_quantity: 0,
+      default_buying_multiple: 0,
+      default_purchase_price: 0,
+      status: ""
     });
   };
 
-  const onGridReady = (params: GridReadyEvent) => {
-    setGridApi(params.api);
-  };
 
-  const NPIStatusBadgeRenderer = (props: { value: string | null }) => {
-    const status = props.value;
-    if (!status) return null;
-    
-    return (
-      <Badge className={getNPIStatusColor(status)}>
-        {getNPIStatusLabel(status)}
-      </Badge>
-    );
-  };
-
-  const NPILaunchDateRenderer = (props: { value: string | null }) => {
-    const date = props.value;
-    if (!date) return '-';
-    
-    return (
-      <div className="flex items-center gap-2">
-        <Calendar className="h-4 w-4 text-muted-foreground" />
-        {new Date(date).toLocaleDateString()}
-      </div>
-    );
-  };
 
   const ActionCellRenderer = (props: { data: Product }) => {
     const product = props.data;
@@ -348,6 +415,20 @@ export default function ProductsCatalog() {
         </Button>
       </div>
     );
+  };
+
+  const defaultColDef = useMemo(() => ({
+    sortable: true,
+    filter: true,
+    resizable: true,
+  }), []);
+
+  const getRowClass = (params: any) => {
+    return params.node.rowIndex % 2 === 0 ? 'ag-row-even' : 'ag-row-odd';
+  };
+
+  const onGridReady = (params: any) => {
+    setGridApi(params.api);
   };
 
   const columnDefs: ColDef[] = useMemo(() => [
@@ -386,31 +467,60 @@ export default function ProductsCatalog() {
       valueFormatter: (params) => params.value || '-'
     },
     {
-      headerName: "NPI",
-      field: "is_npi",
+      headerName: "Clase",
+      field: "class_name",
       sortable: true,
       filter: true,
-      width: 80,
+      width: 120,
       resizable: true,
-      valueFormatter: (params) => params.value ? 'Sí' : 'No'
+      valueFormatter: (params) => params.value || '-'
     },
     {
-      headerName: "Estado NPI",
-      field: "npi_status",
+      headerName: "Subclase",
+      field: "subclass_name",
       sortable: true,
       filter: true,
-      width: 150,
+      width: 120,
       resizable: true,
-      cellRenderer: NPIStatusBadgeRenderer
+      valueFormatter: (params) => params.value || '-'
     },
     {
-      headerName: "Fecha Lanzamiento",
-      field: "npi_launch_date",
+      headerName: "Buyer Class",
+      field: "buyer_class",
       sortable: true,
       filter: true,
-      width: 160,
+      width: 100,
       resizable: true,
-      cellRenderer: NPILaunchDateRenderer
+      valueFormatter: (params) => params.value || '-'
+    },
+    {
+      headerName: "Estado",
+      field: "status",
+      sortable: true,
+      filter: true,
+      width: 100,
+      resizable: true,
+      valueFormatter: (params) => params.value || '-',
+      rowGroup: true,
+      hide: true
+    },
+    {
+      headerName: "Precio Compra",
+      field: "default_purchase_price",
+      sortable: true,
+      filter: true,
+      width: 120,
+      resizable: true,
+      valueFormatter: (params) => params.value ? `$${params.value.toFixed(2)}` : '-'
+    },
+    {
+      headerName: "Lead Time (días)",
+      field: "default_lead_time_days",
+      sortable: true,
+      filter: true,
+      width: 130,
+      resizable: true,
+      valueFormatter: (params) => params.value ? `${params.value} días` : '-'
     },
     {
       headerName: "Acciones",
@@ -424,21 +534,20 @@ export default function ProductsCatalog() {
     }
   ], []);
 
-  // Filter data based on search term and NPI filter
+  // Filter data based on search term
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
       const matchesSearch = !searchTerm || 
         product.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.product_name && product.product_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (product.category_name && product.category_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (product.subcategory_name && product.subcategory_name.toLowerCase().includes(searchTerm.toLowerCase()));
+        (product.subcategory_name && product.subcategory_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.class_name && product.class_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (product.subclass_name && product.subclass_name.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      const matchesNPIFilter = !showNPIOnly || product.is_npi;
-      ////console.log('matchesNPIFilter', matchesNPIFilter);
-      ////console.log('matchesSearch', matchesSearch);
-      return matchesSearch && matchesNPIFilter;
+      return matchesSearch;
     });
-  }, [products, searchTerm, showNPIOnly]);
+  }, [products, searchTerm]);
 
   if (loading) {
     return (
@@ -506,11 +615,30 @@ export default function ProductsCatalog() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <Label htmlFor="category_id">ID Categoría</Label>
+                  <Input
+                    id="category_id"
+                    value={formData.category_id}
+                    onChange={(e) => setFormData({...formData, category_id: e.target.value})}
+                  />
+                </div>
+                <div>
                   <Label htmlFor="category_name">Categoría</Label>
                   <Input
                     id="category_name"
                     value={formData.category_name}
                     onChange={(e) => setFormData({...formData, category_name: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="subcategory_id">ID Subcategoría</Label>
+                  <Input
+                    id="subcategory_id"
+                    value={formData.subcategory_id}
+                    onChange={(e) => setFormData({...formData, subcategory_id: e.target.value})}
                   />
                 </div>
                 <div>
@@ -523,57 +651,93 @@ export default function ProductsCatalog() {
                 </div>
               </div>
 
-              {/* NPI Fields */}
-              <div className="space-y-4 border-t pt-4">
-                <h3 className="font-semibold text-lg flex items-center gap-2">
-                  <Rocket className="h-5 w-5 text-blue-500" />
-                  Configuración NPI
-                </h3>
-                
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="is_npi"
-                    checked={formData.is_npi}
-                    onCheckedChange={(checked) => setFormData({...formData, is_npi: checked as boolean})}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="class_id">ID Clase</Label>
+                  <Input
+                    id="class_id"
+                    value={formData.class_id}
+                    onChange={(e) => setFormData({...formData, class_id: e.target.value})}
                   />
-                  <Label htmlFor="is_npi" className="flex items-center gap-2">
-                    <Rocket className="h-4 w-4 text-blue-500" />
-                    Es producto NPI (New Product Introduction)
-                  </Label>
                 </div>
-                
-                {formData.is_npi && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="npi_status">Estado NPI</Label>
-                      <Select 
-                        value={formData.npi_status} 
-                        onValueChange={(value) => setFormData({...formData, npi_status: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="planning">Planificación</SelectItem>
-                          <SelectItem value="pre_launch">Pre-Lanzamiento</SelectItem>
-                          <SelectItem value="launch">Lanzamiento</SelectItem>
-                          <SelectItem value="post_launch">Post-Lanzamiento</SelectItem>
-                          <SelectItem value="discontinued">Descontinuado</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="npi_launch_date">Fecha de Lanzamiento</Label>
-                      <Input
-                        id="npi_launch_date"
-                        type="date"
-                        value={formData.npi_launch_date}
-                        onChange={(e) => setFormData({...formData, npi_launch_date: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                )}
+                <div>
+                  <Label htmlFor="class_name">Clase</Label>
+                  <Input
+                    id="class_name"
+                    value={formData.class_name}
+                    onChange={(e) => setFormData({...formData, class_name: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="subclass_id">ID Subclase</Label>
+                  <Input
+                    id="subclass_id"
+                    value={formData.subclass_id}
+                    onChange={(e) => setFormData({...formData, subclass_id: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="subclass_name">Subclase</Label>
+                  <Input
+                    id="subclass_name"
+                    value={formData.subclass_name}
+                    onChange={(e) => setFormData({...formData, subclass_name: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="buyer_class">Buyer Class</Label>
+                  <Select 
+                    value={formData.buyer_class} 
+                    onValueChange={(value) => setFormData({...formData, buyer_class: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar buyer class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="R">R - Regular</SelectItem>
+                      <SelectItem value="A">A - A Class</SelectItem>
+                      <SelectItem value="B">B - B Class</SelectItem>
+                      <SelectItem value="C">C - C Class</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="status">Estado</Label>
+                  <Input
+                    id="status"
+                    value={formData.status}
+                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    placeholder="Estado del producto"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="default_purchase_price">Precio de Compra</Label>
+                  <Input
+                    id="default_purchase_price"
+                    type="number"
+                    step="0.01"
+                    value={formData.default_purchase_price}
+                    onChange={(e) => setFormData({...formData, default_purchase_price: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="default_lead_time_days">Lead Time (días)</Label>
+                  <Input
+                    id="default_lead_time_days"
+                    type="number"
+                    value={formData.default_lead_time_days}
+                    onChange={(e) => setFormData({...formData, default_lead_time_days: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
               </div>
 
               <div className="flex justify-end space-x-2">
@@ -606,41 +770,36 @@ export default function ProductsCatalog() {
               />
             </div>
             
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="npi-filter"
-                checked={showNPIOnly}
-                onCheckedChange={(checked) => setShowNPIOnly(checked as boolean)}
-              />
-              <Label htmlFor="npi-filter" className="flex items-center gap-2">
-                <Rocket className="h-4 w-4 text-blue-500" />
-                Mostrar solo productos NPI
-              </Label>
-            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Products Table */}
-      <Card>
-        <CardHeader>
+      <CardHeader>
           <CardTitle>Lista de Productos ({filteredProducts.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="ag-theme-quartz ag-theme-custom" style={{ height: '600px', width: '100%' }}>
+        </CardContent>
+
+        <div className="ag-theme-quartz" style={{ height: '30vh', margin: '0 auto' }}>
             <AgGridReact
               rowData={filteredProducts}
               columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
               onGridReady={onGridReady}
-              {...defaultGridOptions}
               pagination={true}
               paginationPageSize={50}
-              paginationPageSizeSelector={[10, 25, 50, 100, 200]}
-              rowHeight={40}
+              theme="legacy"
+              domLayout="autoHeight"
               getRowId={(params) => params.data.product_id}
+              getRowClass={getRowClass}
+              rowGroupPanelShow="always"
+              groupDisplayType="groupRows"
+              groupDefaultExpanded={-1}
+              suppressRowGroupHidesColumns={true}
             />
           </div>
-        </CardContent>
+      <Card>
       </Card>
     </div>
   );

@@ -16,7 +16,7 @@ interface MarketIntelligenceFormProps {
 export function MarketIntelligenceForm({ assignments, onClose }: MarketIntelligenceFormProps) {
   const { addMarketIntelligence } = useCommercialCollaboration();
   const [formData, setFormData] = useState({
-    customer_id: '',
+    customer_node_id: '',
     product_id: '',
     location_node_id: '',
     intelligence_type: 'competitive',
@@ -56,18 +56,18 @@ export function MarketIntelligenceForm({ assignments, onClose }: MarketIntellige
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="customer_id">Cliente</Label>
+            <Label htmlFor="customer_node_id">Cliente</Label>
             <Select 
-              value={formData.customer_id}
-              onValueChange={(value) => setFormData({ ...formData, customer_id: value })}
+              value={formData.customer_node_id}
+              onValueChange={(value) => setFormData({ ...formData, customer_node_id: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar cliente" />
               </SelectTrigger>
               <SelectContent>
                 {assignments.map((assignment) => (
-                  <SelectItem key={assignment.customer_id} value={assignment.customer_id}>
-                    {assignment.customer_id}
+                  <SelectItem key={assignment.customer_node_id} value={assignment.customer_node_id}>
+                    {assignment.customer_node_id}
                   </SelectItem>
                 ))}
               </SelectContent>

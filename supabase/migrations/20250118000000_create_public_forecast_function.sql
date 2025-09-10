@@ -2,13 +2,13 @@
 CREATE OR REPLACE FUNCTION public.get_aggregated_forecast_data(
   p_product_id TEXT DEFAULT NULL,
   p_location_node_id TEXT DEFAULT NULL,
-  p_customer_id TEXT DEFAULT NULL
+  p_customer_node_id TEXT DEFAULT NULL
 )
 RETURNS TABLE (
   postdate TEXT,
   product_id TEXT,
   location_node_id TEXT,
-  customer_id TEXT,
+  customer_node_id TEXT,
   forecast NUMERIC,
   actual NUMERIC,
   sales_plan NUMERIC,
@@ -27,7 +27,7 @@ BEGIN
     fd.postdate::text,
     COALESCE(p.product_id, fd.product_id)::text as product_id,
     fd.location_node_id::text,
-    fd.customer_id::text,
+    fd.customer_node_id::text,
     SUM(fd.forecast)::numeric as forecast,
     SUM(fd.actual)::numeric as actual,
     SUM(fd.sales_plan)::numeric as sales_plan,
@@ -47,12 +47,12 @@ BEGIN
      (p_product_id LIKE 'SUBCAT_%' AND p.subcategory_id = SUBSTRING(p_product_id FROM 9)) OR
      (p_product_id NOT LIKE 'CAT_%' AND p_product_id NOT LIKE 'SUBCAT_%' AND fd.product_id = p_product_id))
     AND (p_location_node_id IS NULL OR fd.location_node_id = p_location_node_id)
-    AND (p_customer_id IS NULL OR fd.customer_id = p_customer_id)
+    AND (p_customer_node_id IS NULL OR fd.customer_node_id = p_customer_node_id)
   GROUP BY 
     fd.postdate,
     COALESCE(p.product_id, fd.product_id),
     fd.location_node_id,
-    fd.customer_id,
+    fd.customer_node_id,
     p.category_id,
     p.subcategory_id,
     p.category_name,

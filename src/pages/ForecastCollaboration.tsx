@@ -173,13 +173,13 @@ const ForecastCollaboration: React.FC = () => {
     const groupedData: { [key: string]: CustomerData } = {};
     
     rawData.forEach((row: ForecastData) => {
-      // Group by customer_id and product_id combination
-      const customerProductKey = `${row.customer_id}-${row.product_id || 'no-product'}`;
+      // Group by customer_node_id and product_id combination
+      const customerProductKey = `${row.customer_node_id}-${row.product_id || 'no-product'}`;
       
       if (!groupedData[customerProductKey]) {
         groupedData[customerProductKey] = {
-          customer_id: row.customer_id,
-          customer_name: customerNamesMap[row.customer_id] || `Customer ${row.customer_id}`,
+          customer_node_id: row.customer_node_id,
+          customer_name: customerNamesMap[row.customer_node_id] || `Customer ${row.customer_node_id}`,
           product_id: row.product_id || 'no-product',
           months: {}
         };
@@ -273,7 +273,7 @@ const ForecastCollaboration: React.FC = () => {
         query = query.eq('location_node_id', filterLocationId);
       }
       if (filterCustomerId) {
-        query = query.eq('customer_id', filterCustomerId);
+        query = query.eq('customer_node_id', filterCustomerId);
       }
 
       const { data, error } = await query;
@@ -310,7 +310,7 @@ const ForecastCollaboration: React.FC = () => {
   
   const calculateTotal = useCallback((field: string) => {
     const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-      ? customers.filter(customer => customer.customer_id === selectedCustomerId)
+      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
       : customers;
       
     return customersToUse.reduce((total, customer) => {
@@ -376,7 +376,7 @@ const ForecastCollaboration: React.FC = () => {
         .from('commercial_collaboration')
         .upsert({
           product_id: filterProductId,
-          customer_id: customerId,
+          customer_node_id: customerId,
           location_node_id: filterLocationId || null,
           postdate: postdate,
           commercial_input: value
@@ -402,7 +402,7 @@ const ForecastCollaboration: React.FC = () => {
     
           setCustomers(prevCustomers => 
         prevCustomers.map(customer => {
-          if (customer.customer_id === customerId) {
+          if (customer.customer_node_id === customerId) {
             return {
               ...customer,
               months: {
@@ -499,7 +499,7 @@ const ForecastCollaboration: React.FC = () => {
           } else {
             // Individual customer edit - update only that customer
             const updatedCustomers = prevCustomers.map(customer => {
-              if (customer.customer_id === customerId) {
+              if (customer.customer_node_id === customerId) {
                 return {
                   ...customer,
                   months: {
@@ -526,7 +526,7 @@ const ForecastCollaboration: React.FC = () => {
         for (const customer of updatedCustomers) {
           const monthData = customer.months[month];
           if (monthData) {
-            await saveKamForecastToDatabase(customer.customer_id, month, monthData.kam_forecast_correction);
+            await saveKamForecastToDatabase(customer.customer_node_id, month, monthData.kam_forecast_correction);
           }
         }
       } else {
@@ -555,7 +555,7 @@ const ForecastCollaboration: React.FC = () => {
   // AG Grid column definitions
   const customerColumnDefs: ColDef[] = [
     {
-      field: 'customer_id',
+      field: 'customer_node_id',
       headerName: 'ID Cliente',
       width: 120,
       cellStyle: { fontWeight: 'bold' }
@@ -593,7 +593,7 @@ const ForecastCollaboration: React.FC = () => {
       minWidth: 150
     },
     {
-      field: 'customer_id',
+      field: 'customer_node_id',
       headerName: 'ID Cliente',
       width: 120
     }
@@ -616,7 +616,7 @@ const ForecastCollaboration: React.FC = () => {
     
     // Filter by customer if selected
     if (selectedCustomerId && selectedCustomerId !== 'all') {
-      filtered = filtered.filter(customer => customer.customer_id === selectedCustomerId);
+      filtered = filtered.filter(customer => customer.customer_node_id === selectedCustomerId);
     }
     
     return filtered;

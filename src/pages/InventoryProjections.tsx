@@ -102,7 +102,7 @@ export default function InventoryProjections() {
     searchParams.get('location_node_id') || storedFilters.locationId || ''
   );
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
-    searchParams.get('customer_id') || storedFilters.customerId || ''
+    searchParams.get('customer_node_id') || storedFilters.customerId || ''
   );
   const [projectionDays, setProjectionDays] = useState(90);
   const [viewMode, setViewMode] = useState<'daily' | 'monthly'>('monthly');
@@ -137,7 +137,7 @@ export default function InventoryProjections() {
   useEffect(() => {
     const productParam = searchParams.get('product_id');
     const locationParam = searchParams.get('location_node_id');
-    const customerParam = searchParams.get('customer_id');
+    const customerParam = searchParams.get('customer_node_id');
     
     if (productParam && productParam !== selectedProductId) {
       setSelectedProductId(productParam);

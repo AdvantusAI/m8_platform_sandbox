@@ -57,7 +57,7 @@ export function SellThroughAnalyticsDashboard() {
       }
     }
     
-    if (selectedPartner && selectedPartner !== 'all') filters.customer_id = selectedPartner;
+    if (selectedPartner && selectedPartner !== 'all') filters.customer_node_id = selectedPartner;
     
     // Temporarily remove period filters to see all data
     // TODO: Add back period filtering when needed
@@ -105,7 +105,7 @@ export function SellThroughAnalyticsDashboard() {
       }
     }
     
-    if (selectedPartner && selectedPartner !== 'all') filters.customer_id = selectedPartner;
+    if (selectedPartner && selectedPartner !== 'all') filters.customer_node_id = selectedPartner;
     fetchSellThroughMetrics(filters);
   };
 
@@ -460,7 +460,7 @@ export function SellThroughAnalyticsDashboard() {
                 <CardContent>
                   <div className="space-y-4">
                     {sellThroughMetrics.map((metric, index) => {
-                      const partner = partners.find(p => p.id === metric.customer_id);
+                      const partner = partners.find(p => p.id === metric.customer_node_id);
                       const product = products.find(p => p.id === metric.product_id);
                       
                       // Calculate performance category based on sell-through rate
@@ -472,7 +472,7 @@ export function SellThroughAnalyticsDashboard() {
                       else category = 'critical';
                       
                       return (
-                        <div key={`${metric.product_id}_${metric.customer_id}_${metric.period_month}_${index}`} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div key={`${metric.product_id}_${metric.customer_node_id}_${metric.period_month}_${index}`} className="flex items-center justify-between p-4 border rounded-lg">
                           <div className="space-y-1">
                             <div className="font-medium">
                               {partner?.customer_name || 'Unknown Partner'}

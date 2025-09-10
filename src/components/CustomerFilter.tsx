@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 interface CustomerNode {
   id: string;
   name: string;
-  customer_id: string;
+  customer_node_id: string;
   level_1?: string;
   level_1_name?: string;
   children?: CustomerNode[];
@@ -66,7 +66,7 @@ export function CustomerFilter({
         .select('*');
 
       if (searchTerm) {
-        query = query.or(`customer_name.ilike.%${searchTerm}%,customer_id.ilike.%${searchTerm}%,level_1_name.ilike.%${searchTerm}%`);
+        query = query.or(`customer_name.ilike.%${searchTerm}%,customer_node_id.ilike.%${searchTerm}%,level_1_name.ilike.%${searchTerm}%`);
       }
 
       const { data, error } = await query.order('customer_name');
@@ -75,15 +75,15 @@ export function CustomerFilter({
       ////////console.log('Customers data:', data);
       
       if (clientLevels === 1) {
-        // Flat structure: just customer_id - customer_name
+        // Flat structure: just customer_node_id - customer_name
         const customerNodes: CustomerNode[] = (data || []).map(customer => ({
-          id: customer.customer_id || customer.id,
-          name: customer.customer_name ? `${customer.customer_id} - ${customer.customer_name}` : customer.customer_id || 'Sin nombre',
-          customer_id: customer.customer_id || customer.id
+          id: customer.customer_node_id || customer.id,
+          name: customer.customer_name ? `${customer.customer_node_id} - ${customer.customer_name}` : customer.customer_node_id || 'Sin nombre',
+          customer_node_id: customer.customer_node_id || customer.id
         }));
         setCustomers(customerNodes);
       } else {
-        // Hierarchical structure: level_1 - level_1_name > customer_id - customer_name
+        // Hierarchical structure: level_1 - level_1_name > customer_node_id - customer_name
         const hierarchicalCustomers = buildHierarchy(data || []);
         setCustomers(hierarchicalCustomers);
       }
@@ -107,7 +107,7 @@ export function CustomerFilter({
         hierarchyMap.set(level1Id, {
           id: level1Id,
           name: `${level1Key} - ${level1Name}`,
-          customer_id: level1Key,
+          customer_node_id: level1Key,
           level_1: level1Key,
           level_1_name: level1Name,
           children: [],
@@ -118,9 +118,9 @@ export function CustomerFilter({
       // Add customer to level 1
       const level1Node = hierarchyMap.get(level1Id)!;
       const customerNode: CustomerNode = {
-        id: customer.customer_id || customer.id,
-        name: customer.customer_name ? `${customer.customer_id} - ${customer.customer_name}` : customer.customer_id || 'Sin nombre',
-        customer_id: customer.customer_id || customer.id
+        id: customer.customer_node_id || customer.id,
+        name: customer.customer_name ? `${customer.customer_node_id} - ${customer.customer_name}` : customer.customer_node_id || 'Sin nombre',
+        customer_node_id: customer.customer_node_id || customer.id
       };
 
       level1Node.children!.push(customerNode);

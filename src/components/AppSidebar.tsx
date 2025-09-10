@@ -132,6 +132,10 @@ const adminItems = [{
   url: "/locations-catalog",
   icon: Building2
 }, {
+  title: "Red",
+  url: "/red",
+  icon: Network
+}, {
   title: "Gestión de Usuarios",
   url: "/user-management",
   icon: UserPlus

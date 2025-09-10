@@ -5,7 +5,7 @@ import { toast } from "sonner";
 interface CustomerAssignment {
   id: string;
   commercial_user_id: string;
-  customer_id: string;
+  customer_node_id: string;
   assignment_type: string;
   start_date: string;
   end_date?: string;
@@ -15,7 +15,7 @@ interface CustomerAssignment {
 interface ProductAssignment {
   id: string;
   user_id: string;
-  customer_id: string;
+  customer_node_id: string;
   product_id: string;
   assignment_type: string;
   start_date: string;

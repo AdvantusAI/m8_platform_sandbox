@@ -2,14 +2,14 @@
 CREATE TABLE public.user_product_assignments (
   id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  customer_id text NOT NULL,
+  customer_node_id text NOT NULL,
   product_id text NOT NULL,
   assignment_type text DEFAULT 'standard'::text,
   start_date date DEFAULT CURRENT_DATE,
   end_date date,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
-  UNIQUE(user_id, customer_id, product_id)
+  UNIQUE(user_id, customer_node_id, product_id)
 );
 
 -- Enable RLS

@@ -4,7 +4,7 @@ import { toast } from '@/hooks/use-toast';
 
 export interface Customer {
   id: string;
-  customer_id: string;
+  customer_node_id: string;
   customer_name: string;
   customer_logo: string | null;
   level_1: string | null;

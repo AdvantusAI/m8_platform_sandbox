@@ -17,7 +17,7 @@ CREATE TABLE public.commercial_team_profiles (
 CREATE TABLE public.customer_assignments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   commercial_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  customer_id TEXT NOT NULL,
+  customer_node_id TEXT NOT NULL,
   assignment_type TEXT NOT NULL,
   start_date DATE NOT NULL,
   end_date DATE,
@@ -29,7 +29,7 @@ CREATE TABLE public.customer_assignments (
 CREATE TABLE public.market_intelligence (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   commercial_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  customer_id TEXT,
+  customer_node_id TEXT,
   product_id TEXT,
   location_node_id TEXT,
   intelligence_type TEXT NOT NULL,

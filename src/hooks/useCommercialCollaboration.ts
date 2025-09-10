@@ -19,7 +19,7 @@ interface CommercialProfile {
 interface CustomerAssignment {
   id: string;
   commercial_user_id: string;
-  customer_id: string;
+  customer_node_id: string;
   assignment_type: string;
   start_date: string;
   end_date?: string;
@@ -30,7 +30,7 @@ interface CustomerAssignment {
 interface MarketIntelligence {
   id?: string;
   commercial_user_id?: string;
-  customer_id?: string;
+  customer_node_id?: string;
   product_id?: string;
   location_node_id?: string;
   intelligence_type: string;

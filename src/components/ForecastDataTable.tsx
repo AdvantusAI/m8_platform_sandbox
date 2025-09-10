@@ -11,7 +11,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 // --- Tipos robustos (aceptan ambos nombres de id) ---
 interface Customer {
   customer_code: string;
-  customer_id?: string;        // posible nombre
+  customer_node_id?: string;        // posible nombre
   customer_node_id?: string;   // posible nombre alterno
 }
 
@@ -71,7 +71,7 @@ export function ForecastDataTable({
   const customerCodeToNodeId = useMemo(() => {
     const m = new Map<string, string>();
     for (const c of customers) {
-      const id = c.customer_node_id ?? c.customer_id;
+      const id = c.customer_node_id ?? c.customer_node_id;
       if (c.customer_code && id) m.set(c.customer_code, id);
     }
     return m;

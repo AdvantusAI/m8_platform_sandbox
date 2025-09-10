@@ -44,7 +44,7 @@ export interface ScenarioParameters {
 export interface ScenarioScope {
   product_ids?: string[];
   warehouse_ids?: string[];
-  customer_ids?: string[];
+  customer_node_ids?: string[];
   time_horizon_months: number;
 }
 

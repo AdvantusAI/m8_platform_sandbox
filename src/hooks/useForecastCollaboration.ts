@@ -8,7 +8,7 @@ interface ForecastCollaboration {
   postdate: string;
   product_id: string;
   location_node_id: string;
-  customer_id: string;
+  customer_node_id: string;
   forecast: number;
   actual: number;
   sales_plan: number;
@@ -69,7 +69,7 @@ export function useForecastCollaboration(
         postdate: string;
         product_id: string;
         location_node_id: string;
-        customer_id: string;
+        customer_node_id: string;
         forecast: number | null;
         actual: number | null;
         sales_plan: number | null;
@@ -96,7 +96,7 @@ export function useForecastCollaboration(
             postdate,
             product_id,
             location_node_id,
-            customer_id,
+            customer_node_id,
             forecast,
             actual,
             sales_plan,
@@ -122,7 +122,7 @@ export function useForecastCollaboration(
             postdate,
             product_id,
             location_node_id,
-            customer_id,
+            customer_node_id,
             forecast,
             actual,
             sales_plan,
@@ -148,7 +148,7 @@ export function useForecastCollaboration(
             postdate,
             product_id,
             location_node_id,
-            customer_id,
+            customer_node_id,
             forecast,
             actual,
             sales_plan,
@@ -170,7 +170,7 @@ export function useForecastCollaboration(
         forecastData = forecastData.filter(item => item.location_node_id === locationId);
       }
       if (customerId) {
-        forecastData = forecastData.filter(item => item.customer_id === customerId);
+        forecastData = forecastData.filter(item => item.customer_node_id === customerId);
       }
 
      
@@ -180,7 +180,7 @@ export function useForecastCollaboration(
         postdate: string;
         product_id: string;
         location_node_id: string;
-        customer_id: string;
+        customer_node_id: string;
         forecast: number;
         actual: number;
         sales_plan: number;
@@ -197,7 +197,7 @@ export function useForecastCollaboration(
             postdate,
             product_id: item.product_id,
             location_node_id: item.location_node_id,
-            customer_id: item.customer_id,
+            customer_node_id: item.customer_node_id,
             forecast: 0,
             actual: 0,
             sales_plan: 0,
@@ -222,7 +222,7 @@ export function useForecastCollaboration(
         postdate: item.postdate,
         product_id: item.product_id,
         location_node_id: item.location_node_id,
-        customer_id: item.customer_id,
+        customer_node_id: item.customer_node_id,
         forecast: item.forecast,
         actual: item.actual,
         sales_plan: item.sales_plan,

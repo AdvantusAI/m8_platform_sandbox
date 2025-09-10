@@ -2629,7 +2629,7 @@ export type Database = {
     Functions: {
       get_aggregated_forecast_data: {
         Args: {
-          p_customer_id?: string
+          p_customer_node_id?: string
           p_location_node_id?: string
           p_product_id?: string
         }
@@ -2640,7 +2640,7 @@ export type Database = {
           collaboration_status: string
           commercial_input: number
           commercial_notes: string
-          customer_id: string
+          customer_node_id: string
           demand_planner: number
           forecast: number
           location_node_id: string

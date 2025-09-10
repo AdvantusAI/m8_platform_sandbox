@@ -13,7 +13,7 @@ INSERT INTO sell_in_data (id, product_id, location_node_id, channel_partner_id, 
 (gen_random_uuid(), '103247', 'WH001', 'd4e5f6a7-b8c9-4012-d4e5-f6a7b8c90123', '2024-10-28', 550, 12.25, 6737.50, 'INV-2024-104', 'Net 30');
 
 -- Insert sample sell-out data  
-INSERT INTO sell_out_data (id, product_id, location_node_id, channel_partner_id, transaction_date, quantity, unit_price, total_value, end_customer_id, inventory_on_hand) VALUES
+INSERT INTO sell_out_data (id, product_id, location_node_id, channel_partner_id, transaction_date, quantity, unit_price, total_value, end_customer_node_id, inventory_on_hand) VALUES
 (gen_random_uuid(), '103275', 'WH001', 'a1b2c3d4-e5f6-4789-a1b2-c3d4e5f67890', '2024-11-20', 420, 18.99, 7975.80, 'CUST001', 80),
 (gen_random_uuid(), '103276', 'WH001', 'a1b2c3d4-e5f6-4789-a1b2-c3d4e5f67890', '2024-11-22', 280, 19.50, 5460.00, 'CUST002', 20),
 (gen_random_uuid(), '103249', 'WH001', 'b2c3d4e5-f6a7-4890-b2c3-d4e5f6a78901', '2024-11-25', 585, 17.85, 10441.25, 'CUST003', 165),

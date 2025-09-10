@@ -17,7 +17,7 @@ BEGIN
   INNER JOIN m8_schema.products prd 
   ON (ts.product_id::text = prd.product_id)
   INNER JOIN m8_schema.customers cust 
-  ON (ts.customer_id::text = cust.customer_id)
+  ON (ts.customer_node_id::text = cust.customer_node_id)
   WHERE prd.category_id = category_id_param;
 END;
 $$ LANGUAGE plpgsql;

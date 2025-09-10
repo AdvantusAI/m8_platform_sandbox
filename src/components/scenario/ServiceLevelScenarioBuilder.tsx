@@ -26,7 +26,7 @@ export const ServiceLevelScenarioBuilder: React.FC<ServiceLevelScenarioBuilderPr
     scope: {
       product_ids: [] as string[],
       warehouse_ids: [] as string[],
-      customer_ids: [] as string[],
+      customer_node_ids: [] as string[],
       time_horizon_months: 6
     }
   });
@@ -49,7 +49,7 @@ export const ServiceLevelScenarioBuilder: React.FC<ServiceLevelScenarioBuilderPr
         scope: {
           product_ids: formData.scope.product_ids.length > 0 ? formData.scope.product_ids : [],
           warehouse_ids: formData.scope.warehouse_ids.length > 0 ? formData.scope.warehouse_ids : [],
-          customer_ids: formData.scope.customer_ids.length > 0 ? formData.scope.customer_ids : [],
+          customer_node_ids: formData.scope.customer_node_ids.length > 0 ? formData.scope.customer_node_ids : [],
           time_horizon_months: formData.scope.time_horizon_months
         },
         description: formData.description

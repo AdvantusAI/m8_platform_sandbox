@@ -46,7 +46,7 @@ export default function SellThroughAnalytics() {
     searchParams.get('location_node_id') || storedFilters.locationId || ''
   );
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
-    searchParams.get('customer_id') || storedFilters.customerId || ''
+    searchParams.get('customer_node_id') || storedFilters.customerId || ''
   );
   
   // New state for aggregated selection
@@ -78,7 +78,7 @@ export default function SellThroughAnalytics() {
   useEffect(() => {
     const productParam = searchParams.get('product_id');
     const locationParam = searchParams.get('location_node_id');
-    const customerParam = searchParams.get('customer_id');
+    const customerParam = searchParams.get('customer_node_id');
     
     if (productParam && productParam !== selectedProductId) {
       setSelectedProductId(productParam);

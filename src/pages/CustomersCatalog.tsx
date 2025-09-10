@@ -17,7 +17,7 @@ import { configureAGGridLicense, defaultGridOptions } from '@/lib/ag-grid-config
 
 interface Customer {
   id: string;
-  customer_id: string;
+  customer_node_id: string;
   customer_name: string;
   customer_logo: string | null;
   level_1: string | null;
@@ -29,7 +29,7 @@ interface Customer {
 }
 
 interface CustomerForm {
-  customer_id: string;
+  customer_node_id: string;
   customer_name: string;
   customer_logo?: string;
   level_1?: string;
@@ -46,7 +46,7 @@ export default function CustomersCatalog() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [gridApi, setGridApi] = useState<GridApi | null>(null);
   const [formData, setFormData] = useState<CustomerForm>({
-    customer_id: "",
+    customer_node_id: "",
     customer_name: "",
     customer_logo: "",
     level_1: "",
@@ -67,7 +67,7 @@ export default function CustomersCatalog() {
         .schema('m8_schema') // Ensure to use the correct schema if needed
         .from('Customer')
         .select('*')
-        .order('customer_id');
+        .order('customer_node_id');
 
       if (error) throw error;
       
@@ -116,7 +116,7 @@ export default function CustomersCatalog() {
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setFormData({
-      customer_id: customer.customer_id,
+      customer_node_id: customer.customer_node_id,
       customer_name: customer.customer_name,
       customer_logo: customer.customer_logo || "",
       level_1: customer.level_1 || "",
@@ -148,7 +148,7 @@ export default function CustomersCatalog() {
 
   const resetForm = () => {
     setFormData({
-      customer_id: "",
+      customer_node_id: "",
       customer_name: "",
       customer_logo: "",
       level_1: "",
@@ -159,7 +159,7 @@ export default function CustomersCatalog() {
   };
 
   const filteredCustomers = customers.filter(customer =>
-    customer.customer_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    customer.customer_node_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (customer.level_1_name && customer.level_1_name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -194,7 +194,7 @@ export default function CustomersCatalog() {
   const columnDefs: ColDef[] = useMemo(() => [
     {
       headerName: "ID",
-      field: "customer_id",
+      field: "customer_node_id",
       sortable: true,
       filter: true,
       width: 150,
@@ -243,7 +243,7 @@ export default function CustomersCatalog() {
     if (!searchTerm) return customers;
     
     return customers.filter(customer =>
-      customer.customer_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.customer_node_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (customer.level_1_name && customer.level_1_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (customer.level_2_name && customer.level_2_name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -286,11 +286,11 @@ export default function CustomersCatalog() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="customer_id">ID del Cliente</Label>
+                  <Label htmlFor="customer_node_id">ID del Cliente</Label>
                   <Input
-                    id="customer_id"
-                    value={formData.customer_id}
-                    onChange={(e) => setFormData({...formData, customer_id: e.target.value})}
+                    id="customer_node_id"
+                    value={formData.customer_node_id}
+                    onChange={(e) => setFormData({...formData, customer_node_id: e.target.value})}
                     required
                     disabled={!!editingCustomer}
                   />

@@ -64,7 +64,7 @@ export const useSalesVelocityData = () => {
 
   const fetchVelocityData = useCallback(async (filters: {
     product_id?: string;
-    customer_id?: string;
+    customer_node_id?: string;
     location_node_id?: string;
     period_start?: string;
     period_end?: string;
@@ -82,7 +82,7 @@ export const useSalesVelocityData = () => {
         `);
       
       if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
+      if (filters.customer_node_id) query = query.eq('customer_node_id', filters.customer_node_id);
       if (filters.location_node_id) query = query.eq('location_node_id', filters.location_node_id);
       if (filters.period_start) query = query.gte('period_month', filters.period_start);
       if (filters.period_end) query = query.lte('period_month', filters.period_end);
@@ -93,9 +93,9 @@ export const useSalesVelocityData = () => {
 
       // Transform the data to match our interface
       const velocityData: SalesVelocityData[] = data?.map(record => ({
-        id: `${record.product_id}_${record.customer_id}_${record.location_node_id}_${record.period_month}`,
+        id: `${record.product_id}_${record.customer_node_id}_${record.location_node_id}_${record.period_month}`,
         product_id: record.product_id,
-        channel_partner_id: record.customer_id, // Map customer_id to channel_partner_id for compatibility
+        channel_partner_id: record.customer_node_id, // Map customer_node_id to channel_partner_id for compatibility
         location_node_id: record.location_node_id,
         period: record.period_month,
         velocity_units_per_day: record.velocity_units_per_day || 0,
@@ -123,7 +123,7 @@ export const useSalesVelocityData = () => {
 
   const fetchVelocityMetrics = useCallback(async (filters: {
     product_id?: string;
-    customer_id?: string;
+    customer_node_id?: string;
     location_node_id?: string;
     period_start?: string;
     period_end?: string;
@@ -141,7 +141,7 @@ export const useSalesVelocityData = () => {
         `);
       
       if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
+      if (filters.customer_node_id) query = query.eq('customer_node_id', filters.customer_node_id);
       if (filters.location_node_id) query = query.eq('location_node_id', filters.location_node_id);
       if (filters.period_start) query = query.gte('period_month', filters.period_start);
       if (filters.period_end) query = query.lte('period_month', filters.period_end);
@@ -152,9 +152,9 @@ export const useSalesVelocityData = () => {
 
       // Transform the data to match our metrics interface
       const metrics: VelocityMetrics[] = data?.map((record, index) => ({
-        id: `${record.product_id}_${record.customer_id}_${record.location_node_id}_${record.period_month}`,
+        id: `${record.product_id}_${record.customer_node_id}_${record.location_node_id}_${record.period_month}`,
         product_id: record.product_id,
-        channel_partner_id: record.customer_id, // Map customer_id to channel_partner_id for compatibility
+        channel_partner_id: record.customer_node_id, // Map customer_node_id to channel_partner_id for compatibility
         location_node_id: record.location_node_id,
         velocity_units_per_day: record.velocity_units_per_day || 0,
         velocity_units_per_week: record.velocity_units_per_week || 0,

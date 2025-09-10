@@ -57,11 +57,9 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
 
       if (error) throw error;
       
-      console.log('Products data:', data);
       const productsData = data || [];
       setProducts(productsData);
       buildCategoryTree(productsData);
-
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {

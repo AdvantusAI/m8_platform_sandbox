@@ -76,7 +76,7 @@ export function AIScenarioBuilder({
 
       // Add vendor filter if provided - Note: vendor_id may not exist in forecast_data
       if (selectedVendorId && selectedLocationId) {
-        query = query.eq('customer_id', selectedVendorId);
+        query = query.eq('customer_node_id', selectedVendorId);
       }
 
       const { data: forecastData, error } = await query;

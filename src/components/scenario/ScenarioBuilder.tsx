@@ -71,7 +71,7 @@ export const ScenarioBuilder: React.FC<ScenarioBuilderProps> = ({
   const [scope, setScope] = useState<ScenarioScope>(initialScenario?.scope || {
     time_horizon_months: 6,
     product_ids: [],
-    customer_ids: [],
+    customer_node_ids: [],
     warehouse_ids: []
   });
   const [errors, setErrors] = useState<string[]>([]);

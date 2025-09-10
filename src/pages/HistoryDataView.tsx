@@ -3,38 +3,27 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, GridReadyEvent, CellFocusedEvent } from 'ag-grid-community';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-quartz.css';
 import { Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { configureAGGridLicense, defaultGridOptions } from '@/lib/ag-grid-config';
+import { configureAGGridLicense, agGridContainerStyles } from '../lib/ag-grid-config';
 import { useProducts } from '@/hooks/useProducts';
-import '@/styles/ag-grid-custom.css';
+
 
 // Configure AG Grid license
 configureAGGridLicense();
 
 interface HistoryData {
-  id: number;
   product_id: string | null;
   location_node_id: string | null;
-  customer_id: string | null;
-  quantity: number | null;
-  type: string | null;
+  location_name: string | null;
+  customer_node_id: string | null;
+  customer_node: string | null;
   postdate: string | null;
-  normalized_quantity: number | null;
-  event_adjusted_quantity: number | null;
-  is_outlier: boolean | null;
-  outlier_method: string | null;
-  has_event: boolean | null;
-  event_ids: number[] | null;
-  created_at: string;
-  updated_at: string | null;
+  quantity: number | null;
   product_name?: string;
-  location_name?: string;
-  customer_name?: string;
-  customers?: {
-    customer_name: string;
-  } | null;
 }
 
 
@@ -53,19 +42,16 @@ const HistoryDataView: React.FC = () => {
       setLoading(true);
       const { data, error } = await supabase
         .schema('m8_schema')
-        .from('history')
-        .select(`
-          *,
-          customers(customer_name)
-        `)
+        .from('v_sales_transactions')
+        .select('*')
         .order('postdate', { ascending: false });
 
       if (error) throw error;
 
       setInventory((data as unknown as HistoryData[]) || []);
     } catch (error) {
-      console.error('Error fetching inventory:', error);
-      toast.error('Error al cargar el inventario');
+      console.error('Error fetching sales transactions:', error);
+      toast.error('Error al cargar las transacciones de ventas');
     } finally {
       setLoading(false);
     }
@@ -75,20 +61,16 @@ const HistoryDataView: React.FC = () => {
 
   const columnDefs: ColDef[] = [
     { 
-      field: 'id', 
-      headerName: 'ID', 
-      sortable: true, 
-      filter: true, 
-      flex: 0.8, 
-      minWidth: 80
-    },
-    { 
       field: 'product_id', 
       headerName: 'ID Producto', 
       sortable: true, 
       filter: true, 
       flex: 1, 
-      minWidth: 120
+      minWidth: 120,
+      enablePivot: true,
+      rowGroup: true,
+      hide: true,
+      chartDataType: 'category'
     },
     { 
       headerName: 'Producto', 
@@ -103,37 +85,38 @@ const HistoryDataView: React.FC = () => {
       filter: true, 
       flex: 1.5, 
       minWidth: 180,
-      valueGetter: (params) => getProductName(params.data?.product_id || '')
+      valueGetter: (params) => getProductName(params.data?.product_id || ''),
+      chartDataType: 'category'
     },
     { 
-      field: 'customer_id', 
-      headerName: 'ID Cliente', 
+      field: 'location_name',
+      headerName: 'Nombre Ubicación', 
       sortable: true, 
       filter: true, 
-      flex: 1, 
-      minWidth: 120
+      flex: 1.5, 
+      minWidth: 180,
+      valueFormatter: (params) => params.value || 'N/A',
+      cellStyle: {
+        overflow: 'hidden',
+        whiteSpace: 'nowrap',
+        textOverflow: 'ellipsis',
+      },
+      chartDataType: 'category'
     },
     { 
+      field: 'customer_node',
       headerName: 'Nombre Cliente', 
       sortable: true, 
       filter: true, 
       flex: 1.5, 
       minWidth: 180,
-      valueGetter: (params) => params.data?.customers?.customer_name || 'N/A',
-      tooltipField: 'customers.customer_name',
+      valueFormatter: (params) => params.value || 'N/A',
       cellStyle: {
         overflow: 'hidden',
         whiteSpace: 'nowrap',
         textOverflow: 'ellipsis',
-      }
-    },
-    { 
-      field: 'type', 
-      headerName: 'Tipo', 
-      sortable: true, 
-      filter: true, 
-      flex: 1, 
-      minWidth: 100
+      },
+      chartDataType: 'category'
     },
     { 
       field: 'quantity', 
@@ -142,25 +125,20 @@ const HistoryDataView: React.FC = () => {
       filter: true, 
       flex: 1, 
       minWidth: 100,
-      valueFormatter: (params) => params.value != null ? params.value.toLocaleString() : ''
-    },
-    { 
-      field: 'normalized_quantity', 
-      headerName: 'Cant. Normalizada', 
-      sortable: true, 
-      filter: true, 
-      flex: 1.2, 
-      minWidth: 140,
-      valueFormatter: (params) => params.value != null ? params.value.toFixed(2) : ''
-    },
-    { 
-      field: 'event_adjusted_quantity', 
-      headerName: 'Cant. Ajustada', 
-      sortable: true, 
-      filter: true, 
-      flex: 1.2, 
-      minWidth: 140,
-      valueFormatter: (params) => params.value != null ? params.value.toLocaleString() : ''
+      valueFormatter: (params) => params.value != null ? params.value.toLocaleString() : '',
+      aggFunc: 'sum',
+      enableValue: true,
+      cellStyle: { textAlign: 'right' },
+      headerClass: 'ag-right-aligned-header',
+      chartDataType: 'series',
+      cellRenderer: (params: any) => {
+        if (params.node.group) {
+          // This is a group footer row
+          return params.value != null ? params.value.toLocaleString() : '';
+        }
+        // Regular data row
+        return params.value != null ? params.value.toLocaleString() : '';
+      }
     },
     { 
       field: 'postdate', 
@@ -169,7 +147,9 @@ const HistoryDataView: React.FC = () => {
       filter: true, 
       flex: 1.2, 
       minWidth: 120,
-      valueFormatter: (params) => params.value ? new Date(params.value).toLocaleDateString('es-ES') : ''
+      valueFormatter: (params) => params.value ? new Date(params.value).toLocaleDateString('es-ES') : '',
+      enablePivot: true,
+      chartDataType: 'time'
     }
   ];
 
@@ -177,9 +157,11 @@ const HistoryDataView: React.FC = () => {
     if (!searchTerm) return inventory;
     
     return inventory.filter(item =>
-      item.product_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location_node_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.customer_id.toLowerCase().includes(searchTerm.toLowerCase())
+      (item.product_id && item.product_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.location_node_id && item.location_node_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.customer_node_id && item.customer_node_id.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.location_name && item.location_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (item.customer_node && item.customer_node.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [inventory, searchTerm]);
 
@@ -195,8 +177,8 @@ const HistoryDataView: React.FC = () => {
     <div className="space-y-6">
         <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Historial de Datos</h1>
-          <p className="text-muted-foreground">Consulta el historial de transacciones con capacidades de análisis pivot</p>
+          <h1 className="text-3xl font-bold">Transacciones de Ventas</h1>
+          <p className="text-muted-foreground">Consulta las transacciones de ventas con capacidades de análisis pivot</p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
@@ -215,7 +197,7 @@ const HistoryDataView: React.FC = () => {
 
       <Card>
         <CardContent className="p-0">
-          <div className="ag-theme-custom h-[950px] w-full">
+        <div className="ag-theme-quartz" style={{ height: '80vh', margin: '0 auto' }}>
          
 
           
@@ -233,12 +215,17 @@ const HistoryDataView: React.FC = () => {
               suppressRowClickSelection={true}
               enableRangeSelection={true}
               suppressCopyRowsToClipboard={false}
-              enableCharts={false}
+              enableCharts={true}
               enableRangeHandle={true}
               enableFillHandle={true}
+              groupDisplayType="groupRows"
+              groupDefaultExpanded={-1}
+              theme="legacy"
               getRowClass={(params) => {
                 const classes = [];
-                if (params.node.rowIndex % 2 === 0) {
+                if (params.node.group) {
+                  classes.push('ag-row-group');
+                } else if (params.node.rowIndex % 2 === 0) {
                   classes.push('ag-row-even');
                 } else {
                   classes.push('ag-row-odd');
@@ -260,6 +247,7 @@ const HistoryDataView: React.FC = () => {
                 resizable: true,
                 floatingFilter: false,
               }}
+              suppressAggFuncInHeader={false}
               onCellFocused={(params) => {
                 params.api.refreshCells({ force: true });
               }}
@@ -268,6 +256,27 @@ const HistoryDataView: React.FC = () => {
               pivotMode={false}
               suppressRowGroupHidesColumns={true}
               suppressMakeColumnVisibleAfterUnGroup={true}
+              statusBar={{
+                statusPanels: [
+                  { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+                  { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
+                  { statusPanel: 'agSelectedRowCountComponent', align: 'left' },
+                  { statusPanel: 'agAggregationComponent', align: 'right' }
+                ]
+              }}
+              groupIncludeFooter={true}
+              groupIncludeTotalFooter={true}
+              groupDisplayType="groupRows"
+              groupDefaultExpanded={-1}
+              autoGroupColumnDef={{
+                headerName: 'Producto',
+                minWidth: 200,
+                cellRendererParams: {
+                  suppressCount: false,
+                  checkbox: false,
+                },
+                cellStyle: { fontWeight: 'bold' }
+              }}
               sideBar={{
                 toolPanels: [
                   {
@@ -293,12 +302,19 @@ const HistoryDataView: React.FC = () => {
                     iconKey: 'filter',
                     toolPanel: 'agFiltersToolPanel',
                   },
+                  {
+                    id: 'charts',
+                    labelDefault: 'Charts',
+                    labelKey: 'charts',
+                    iconKey: 'chart',
+                    toolPanel: 'agChartsToolPanel',
+                  },
                 ]
               }}
               onGridReady={(params) => {
                 params.api.sizeColumnsToFit();
-                // Clear any existing row groups
-                params.api.setRowGroupColumns([]);
+                // Set the default row group to show subtotals
+                params.api.setRowGroupColumns(['product_id']);
               }}
             />
             </div>

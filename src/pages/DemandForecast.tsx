@@ -90,10 +90,10 @@ export default function DemandForecast() {
     searchParams.get('product_id') || storedFilters.productId || ''
   );
   const [selectedLocationId, setSelectedLocationId] = useState<string>(
-    searchParams.get('location_node_id') || storedFilters.locationId || ''
+    searchParams.get('location_code') || searchParams.get('location_node_id') || storedFilters.locationId || ''
   );
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
-    searchParams.get('customer_id') || storedFilters.customerId || ''
+    searchParams.get('customer_code') || searchParams.get('customer_node_id') || storedFilters.customerId || ''
   );
   
   // Chart data state for forecast visualization
@@ -118,8 +118,8 @@ export default function DemandForecast() {
    */
   useEffect(() => {
     const productParam = searchParams.get('product_id');
-    const locationParam = searchParams.get('location_node_id');
-    const customerParam = searchParams.get('customer_id');
+    const locationParam = searchParams.get('location_code') || searchParams.get('location_node_id');
+    const customerParam = searchParams.get('customer_code') || searchParams.get('customer_node_id');
     
     if (productParam && productParam !== selectedProductId) {
       setSelectedProductId(productParam);

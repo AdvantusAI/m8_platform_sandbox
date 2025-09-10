@@ -36,7 +36,7 @@ interface DashboardMetrics {
 
 interface LowAccuracyForecast {
   product_id: string;
-  customer_id: string;
+  customer_node_id: string;
   mae: number;
   product_name?: string;
   customer_name?: string;
@@ -163,7 +163,7 @@ export default function PlannerDashboard() {
         .from('forecast_results')
         .select(`
           product_id,
-          customer_id,
+          customer_node_id,
           mae,
           products!inner(product_name),
           customers!inner(customer_name)
@@ -180,10 +180,10 @@ export default function PlannerDashboard() {
 
       const mappedData: LowAccuracyForecast[] = (data || []).map((item: any) => ({
         product_id: item.product_id,
-        customer_id: item.customer_id,
+        customer_node_id: item.customer_node_id,
         mae: item.mae,
         product_name: item.products?.product_name || item.product_id,
-        customer_name: item.customers?.customer_name || item.customer_id
+        customer_name: item.customers?.customer_name || item.customer_node_id
       }));
 
       //////console.log('Low accuracy forecasts fetched:', mappedData.length);
@@ -302,9 +302,9 @@ export default function PlannerDashboard() {
             <div className="space-y-3">
               {lowAccuracyForecasts.map((forecast, index) => (
                 <div 
-                  key={`${forecast.product_id}-${forecast.customer_id}`} 
+                  key={`${forecast.product_id}-${forecast.customer_node_id}`} 
                   className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/demand-forecast?product_id=${forecast.product_id}&customer_id=${forecast.customer_id}`)}
+                  onClick={() => navigate(`/demand-forecast?product_id=${forecast.product_id}&customer_node_id=${forecast.customer_node_id}`)}
                 >
                   <div className="flex items-center space-x-4">
                     <div className="flex-shrink-0 w-8 h-8 bg-red-100 text-red-700 rounded-full flex items-center justify-center text-sm font-medium">
@@ -316,7 +316,7 @@ export default function PlannerDashboard() {
                         Cliente: {forecast.customer_name}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        ID: {forecast.product_id} | Customer: {forecast.customer_id}
+                        ID: {forecast.product_id} | Customer: {forecast.customer_node_id}
                       </div>
                     </div>
                   </div>

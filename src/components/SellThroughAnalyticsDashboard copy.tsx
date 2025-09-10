@@ -48,7 +48,7 @@ export function SellThroughAnalyticsDashboard({
   useEffect(() => {
     const filters: any = {};
     if (selectedProductId) filters.product_id = selectedProductId;
-    if (selectedCustomerId) filters.customer_id = selectedCustomerId;
+    if (selectedCustomerId) filters.customer_node_id = selectedCustomerId;
     if (selectedLocationId) filters.location_node_id = selectedLocationId;
     
     // Set period filters based on selection
@@ -74,7 +74,7 @@ export function SellThroughAnalyticsDashboard({
     // Refetch metrics after refresh
     const filters: any = {};
     if (selectedProductId) filters.product_id = selectedProductId;
-    if (selectedCustomerId) filters.customer_id = selectedCustomerId;
+    if (selectedCustomerId) filters.customer_node_id = selectedCustomerId;
     if (selectedLocationId) filters.location_node_id = selectedLocationId;
     fetchSellThroughMetrics(filters);
   };
@@ -338,11 +338,11 @@ export function SellThroughAnalyticsDashboard({
                   </thead>
                   <tbody>
                     {currentData.map((metric, index) => {
-                      const partner = partners.find(p => p.customer_id === metric.customer_id);
+                      const partner = partners.find(p => p.customer_node_id === metric.customer_node_id);
                       const product = products.find(p => p.id === metric.product_id);
                       
                       return (
-                        <tr key={`${metric.product_id}-${metric.customer_id}-${metric.period_month}-${startIndex + index}`} className="hover:bg-gray-50">
+                        <tr key={`${metric.product_id}-${metric.customer_node_id}-${metric.period_month}-${startIndex + index}`} className="hover:bg-gray-50">
                           <td className="border border-gray-200 px-4 py-2 text-sm">
                             {partner?.customer_name || 'Cliente Desconocido'}
                           </td>

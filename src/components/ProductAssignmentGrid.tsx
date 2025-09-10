@@ -75,7 +75,7 @@ export function ProductAssignmentGrid() {
                       {getUserName(assignment.user_id)}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Cliente: {getCustomerName(assignment.customer_id)}
+                      Cliente: {getCustomerName(assignment.customer_node_id)}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       Producto: {getProductName(assignment.product_id)}

@@ -24,7 +24,7 @@ export function AssignmentModal({ isOpen, onClose, assignment, type }: Assignmen
 
   const [formData, setFormData] = useState({
     user_id: '',
-    customer_id: '',
+    customer_node_id: '',
     product_id: '',
     assignment_type: 'standard',
     start_date: new Date().toISOString().split('T')[0],
@@ -37,7 +37,7 @@ export function AssignmentModal({ isOpen, onClose, assignment, type }: Assignmen
     if (assignment) {
       setFormData({
         user_id: type === 'customer' ? assignment.commercial_user_id : assignment.user_id,
-        customer_id: assignment.customer_id || '',
+        customer_node_id: assignment.customer_node_id || '',
         product_id: assignment.product_id || '',
         assignment_type: assignment.assignment_type || 'standard',
         start_date: assignment.start_date?.split('T')[0] || new Date().toISOString().split('T')[0],
@@ -46,7 +46,7 @@ export function AssignmentModal({ isOpen, onClose, assignment, type }: Assignmen
     } else {
       setFormData({
         user_id: '',
-        customer_id: '',
+        customer_node_id: '',
         product_id: '',
         assignment_type: 'standard',
         start_date: new Date().toISOString().split('T')[0],
@@ -63,7 +63,7 @@ export function AssignmentModal({ isOpen, onClose, assignment, type }: Assignmen
       if (type === 'customer') {
         const customerData = {
           commercial_user_id: formData.user_id,
-          customer_id: formData.customer_id,
+          customer_node_id: formData.customer_node_id,
           assignment_type: formData.assignment_type,
           start_date: formData.start_date,
           end_date: formData.end_date || null
@@ -77,7 +77,7 @@ export function AssignmentModal({ isOpen, onClose, assignment, type }: Assignmen
       } else {
         const productData = {
           user_id: formData.user_id,
-          customer_id: formData.customer_id,
+          customer_node_id: formData.customer_node_id,
           product_id: formData.product_id,
           assignment_type: formData.assignment_type,
           start_date: formData.start_date,
@@ -134,14 +134,14 @@ export function AssignmentModal({ isOpen, onClose, assignment, type }: Assignmen
           </div>
 
           <div>
-            <Label htmlFor="customer_id">Cliente</Label>
-            <Select value={formData.customer_id} onValueChange={(value) => handleChange('customer_id', value)}>
+            <Label htmlFor="customer_node_id">Cliente</Label>
+            <Select value={formData.customer_node_id} onValueChange={(value) => handleChange('customer_node_id', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar cliente" />
               </SelectTrigger>
               <SelectContent>
                 {customers.map((customer) => (
-                  <SelectItem key={customer.customer_id} value={customer.customer_id || ''}>
+                  <SelectItem key={customer.customer_node_id} value={customer.customer_node_id || ''}>
                     {customer.customer_name}
                   </SelectItem>
                 ))}

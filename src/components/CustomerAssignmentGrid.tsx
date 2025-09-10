@@ -73,7 +73,7 @@ export function CustomerAssignmentGrid() {
                       {getUserName(assignment.commercial_user_id)}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Cliente: {getCustomerName(assignment.customer_id)}
+                      Cliente: {getCustomerName(assignment.customer_node_id)}
                     </p>
                   </div>
                   <div className="flex space-x-2">

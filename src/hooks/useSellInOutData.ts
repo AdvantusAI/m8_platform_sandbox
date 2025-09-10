@@ -6,7 +6,7 @@ export interface SellInData {
   id: string;
   product_id: string;
   location_node_id: string;
-  channel_partner_id: string; // Maps to customer_id in the view
+  channel_partner_id: string; // Maps to customer_node_id in the view
   transaction_date: string; // Maps to postdate in the view
   quantity: number; // Maps to value in the view
   unit_price: number; // Not available in view, defaults to 0
@@ -26,7 +26,7 @@ export interface SellOutData {
   quantity: number;
   unit_price: number;
   total_value: number;
-  end_customer_id?: string;
+  end_customer_node_id?: string;
   inventory_on_hand?: number;
   transaction_metadata?: any;
 }
@@ -34,7 +34,7 @@ export interface SellOutData {
 export interface SellThroughMetrics {
   product_id: string;
   location_node_id: string;
-  customer_id: string;
+  customer_node_id: string;
   period_month: string;
   sell_in_units: number;
   sell_out_units: number;
@@ -54,7 +54,7 @@ export const useSellInOutData = () => {
   const fetchSellInData = useCallback(async (filters: {
     product_id?: string;
     location_node_id?: string;
-    customer_id?: string;
+    customer_node_id?: string;
     start_date?: string;
     end_date?: string;
   } = {}) => {
@@ -67,7 +67,7 @@ export const useSellInOutData = () => {
       
       if (filters.product_id) query = query.eq('product_id', filters.product_id);
       if (filters.location_node_id) query = query.eq('location_node_id', filters.location_node_id);
-      if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
+      if (filters.customer_node_id) query = query.eq('customer_node_id', filters.customer_node_id);
       if (filters.start_date) query = query.gte('postdate', filters.start_date);
       if (filters.end_date) query = query.lte('postdate', filters.end_date);
 
@@ -77,10 +77,10 @@ export const useSellInOutData = () => {
       
       // Transform the data to match the SellInData interface
       const transformedData = (data || []).map((item: any) => ({
-        id: `${item.product_id}_${item.location_node_id}_${item.customer_id}_${item.postdate}`,
+        id: `${item.product_id}_${item.location_node_id}_${item.customer_node_id}_${item.postdate}`,
         product_id: item.product_id,
         location_node_id: item.location_node_id,
-        channel_partner_id: item.customer_id, // Map customer_id to channel_partner_id for compatibility
+        channel_partner_id: item.customer_node_id, // Map customer_node_id to channel_partner_id for compatibility
         transaction_date: item.postdate,
         quantity: item.quantity,
         unit_price: 0, // Default value since not available in view
@@ -145,7 +145,7 @@ export const useSellInOutData = () => {
     category_id?: string;
     subcategory_id?: string;
     location_node_id?: string;
-    customer_id?: string;
+    customer_node_id?: string;
     period_start?: string;
     period_end?: string;
   } = {}) => {
@@ -176,9 +176,9 @@ export const useSellInOutData = () => {
         query = query.eq('location_node_id', filters.location_node_id);
         ////console.log('Added location_node_id filter:', filters.location_node_id);
       }
-      if (filters.customer_id) {
-        query = query.eq('customer_id', filters.customer_id);
-        ////console.log('Added customer_id filter:', filters.customer_id);
+      if (filters.customer_node_id) {
+        query = query.eq('customer_node_id', filters.customer_node_id);
+        ////console.log('Added customer_node_id filter:', filters.customer_node_id);
       }
       if (filters.period_start) {
         query = query.gte('period_month', filters.period_start);
@@ -226,7 +226,7 @@ export const useSellInOutData = () => {
         .select('id')
         .eq('product_id', data.product_id)
         .eq('location_node_id', data.location_node_id)
-        .eq('customer_id', data.channel_partner_id)
+        .eq('customer_node_id', data.channel_partner_id)
         .single();
 
       if (timeSeriesError && timeSeriesError.code !== 'PGRST116') {
@@ -242,7 +242,7 @@ export const useSellInOutData = () => {
           .insert([{
             product_id: data.product_id,
             location_node_id: data.location_node_id,
-            customer_id: data.channel_partner_id
+            customer_node_id: data.channel_partner_id
           }])
           .select('id')
           .single();

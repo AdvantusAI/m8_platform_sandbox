@@ -57,7 +57,7 @@ export const useScenarios = () => {
           scope: {
             time_horizon_months: 6,
             product_ids: scenario.product_id ? [scenario.product_id] : [],
-            customer_id: scenario.customer_id ? [scenario.customer_id] : [],
+            customer_node_id: scenario.customer_node_id ? [scenario.customer_node_id] : [],
             warehouse_ids: scenario.location_node_id ? [scenario.location_node_id] : []
           },
           description: scenario.description,
@@ -84,9 +84,9 @@ export const useScenarios = () => {
         status: 'draft'
       };
 
-      // Only add customer_id if it exists in the scope
-      if (scenario.scope.customer_ids?.[0]) {
-        insertData.customer_id = scenario.scope.customer_ids[0];
+      // Only add customer_node_id if it exists in the scope
+      if (scenario.scope.customer_node_ids?.[0]) {
+        insertData.customer_node_id = scenario.scope.customer_node_ids[0];
       }
 
       const { data, error } = await supabase
@@ -122,9 +122,9 @@ export const useScenarios = () => {
         updated_at: new Date().toISOString()
       };
 
-      // Only add customer_id if it exists in the scope
-      if (updates.scope?.customer_ids?.[0]) {
-        updateData.customer_id = updates.scope.customer_ids[0];
+      // Only add customer_node_id if it exists in the scope
+      if (updates.scope?.customer_node_ids?.[0]) {
+        updateData.customer_node_id = updates.scope.customer_node_ids[0];
       }
 
       const { data, error } = await supabase
@@ -180,7 +180,7 @@ export const useScenarios = () => {
           scope: {
             product_ids: scenario.product_id ? [scenario.product_id] : [],
             warehouse_ids: scenario.location_node_id ? [scenario.location_node_id] : [],
-            customer_ids: scenario.customer_id ? [scenario.customer_id] : [],
+            customer_node_ids: scenario.customer_node_id ? [scenario.customer_node_id] : [],
             time_horizon_months: 6 // Default
           },
           description: scenario.description

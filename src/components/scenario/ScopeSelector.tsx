@@ -112,22 +112,22 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
     });
   };
 
-  const addToSelection = (type: 'product_ids' | 'customer_ids' | 'warehouse_ids', id: string) => {
+  const addToSelection = (type: 'product_ids' | 'customer_node_ids' | 'warehouse_ids', id: string) => {
     const currentIds = scope[type] || [];
     if (!currentIds.includes(id)) {
       updateScope(type, [...currentIds, id]);
     }
   };
 
-  const removeFromSelection = (type: 'product_ids' | 'customer_ids' | 'warehouse_ids', id: string) => {
+  const removeFromSelection = (type: 'product_ids' | 'customer_node_ids' | 'warehouse_ids', id: string) => {
     const currentIds = scope[type] || [];
     updateScope(type, currentIds.filter(item => item !== id));
   };
 
-  const getSelectedItems = (type: 'product_ids' | 'customer_ids' | 'warehouse_ids') => {
+  const getSelectedItems = (type: 'product_ids' | 'customer_node_ids' | 'warehouse_ids') => {
     const selectedIds = scope[type] || [];
     const options = type === 'product_ids' ? products : 
-                   type === 'customer_ids' ? vendors : locations;
+                   type === 'customer_node_ids' ? vendors : locations;
     
     return selectedIds.map(id => {
       const option = options.find(opt => opt.id === id);
@@ -191,7 +191,7 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
         {/* Vendors */}
         <div className="space-y-2">
           <Label htmlFor="vendors">Proveedores</Label>
-          <Select onValueChange={(value) => addToSelection('customer_ids', value)}>
+          <Select onValueChange={(value) => addToSelection('customer_node_ids', value)}>
             <SelectTrigger>
               <SelectValue placeholder="Añadir proveedores..." />
             </SelectTrigger>
@@ -204,12 +204,12 @@ export const ScopeSelector: React.FC<ScopeSelectorProps> = ({
             </SelectContent>
           </Select>
           <div className="flex flex-wrap gap-2">
-            {getSelectedItems('customer_ids').map((item) => (
+            {getSelectedItems('customer_node_ids').map((item) => (
               <Badge key={item.id} variant="secondary" className="gap-1">
                 {item.name}
                 <X 
                   className="h-3 w-3 cursor-pointer" 
-                  onClick={() => removeFromSelection('customer_ids', item.id)}
+                  onClick={() => removeFromSelection('customer_node_ids', item.id)}
                 />
               </Badge>
             ))}

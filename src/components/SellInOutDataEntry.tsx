@@ -53,7 +53,7 @@ export function SellInOutDataEntry({
     transaction_date: '',
     quantity: '',
     unit_price: '',
-    end_customer_id: '',
+    end_customer_node_id: '',
     inventory_on_hand: '',
   });
 
@@ -130,7 +130,7 @@ export function SellInOutDataEntry({
         transaction_date: '',
         quantity: '',
         unit_price: '',
-        end_customer_id: '',
+        end_customer_node_id: '',
         inventory_on_hand: '',
       });
       setSellOutDate(undefined);
@@ -438,8 +438,8 @@ export function SellInOutDataEntry({
                     <Label htmlFor="sell-out-customer">End Customer ID</Label>
                     <Input
                       id="sell-out-customer"
-                      value={sellOutForm.end_customer_id}
-                      onChange={(e) => setSellOutForm(prev => ({ ...prev, end_customer_id: e.target.value }))}
+                      value={sellOutForm.end_customer_node_id}
+                      onChange={(e) => setSellOutForm(prev => ({ ...prev, end_customer_node_id: e.target.value }))}
                       placeholder="Final customer identifier"
                     />
                   </div>

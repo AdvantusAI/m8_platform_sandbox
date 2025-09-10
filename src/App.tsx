@@ -57,6 +57,7 @@ import ExceptionDashboard from './pages/ExceptionDashboard';
 import PurchaseOrderParametersPage from './pages/PurchaseOrderParametersPage';
 import InventoryPolicyReview from './pages/InventoryPolicyReview';
 import ThemeSettings from './pages/ThemeSettings';
+import Red from './pages/Red';
 
 const queryClient = new QueryClient();
 
@@ -132,6 +133,7 @@ const App = () => {
               <Route path="/historydataview" element={<AdminRoute><HistoryDataView /></AdminRoute>} />
               <Route path="/user-roles" element={<AdminRoute><UserRoles /></AdminRoute>} />
               <Route path="/user-assignments" element={<AdminRoute><UserAssignments /></AdminRoute>} />
+              <Route path="/red" element={<AdminRoute><Red /></AdminRoute>} />
               <Route path="/vendor-assignments" element={<VendorAssignments />} />
               <Route path="/inventory-projections" element={<InventoryProjections />} />
               <Route path="/npi-dashboard" element={<NPIDashboard />} />

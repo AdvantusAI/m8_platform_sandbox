@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.sell_out_data (
     quantity numeric NOT NULL DEFAULT 0,
     unit_price numeric NOT NULL DEFAULT 0,
     total_value numeric NOT NULL DEFAULT 0,
-    end_customer_id text,
+    end_customer_node_id text,
     inventory_on_hand numeric DEFAULT 0,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()

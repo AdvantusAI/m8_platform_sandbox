@@ -15,7 +15,7 @@ interface AIRecommendation {
   status: string;
   product_id: string;
   location_node_id: string;
-  customer_id?: string;
+  customer_node_id?: string;
   vendor_id?: string;
 }
 
@@ -177,7 +177,7 @@ export function useAIRecommendations(productId?: string, locationId?: string, cu
         .order('postdate', { ascending: true });
 
       if (customerId) {
-        query = query.eq('customer_id', customerId);
+        query = query.eq('customer_node_id', customerId);
       }
 
       const { data: forecastData, error: forecastError } = await query;
