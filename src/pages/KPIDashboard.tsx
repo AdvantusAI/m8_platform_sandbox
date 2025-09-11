@@ -30,6 +30,9 @@ import DumbbellChart from '@/components/DumbbellChart';
 import ResponsiblesAnalysisChart from '@/components/ResponsiblesAnalysisChart';
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { useNPIProducts } from "@/hooks/useNPIProducts";
+import { useNPIMilestones } from "@/hooks/useNPIMilestones";
+import { useNPIScenarios } from "@/hooks/useNPIScenarios";
 import NewNPIModal from "@/components/NewNPIModal";
 
 // Add interfaces for data types
