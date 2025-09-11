@@ -30,9 +30,6 @@ import DumbbellChart from '@/components/DumbbellChart';
 import ResponsiblesAnalysisChart from '@/components/ResponsiblesAnalysisChart';
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
-import { useNPIProducts } from "@/hooks/useNPIProducts";
-import { useNPIMilestones } from "@/hooks/useNPIMilestones";
-import { useNPIScenarios } from "@/hooks/useNPIScenarios";
 import NewNPIModal from "@/components/NewNPIModal";
 
 // Add interfaces for data types
@@ -147,9 +144,6 @@ export default function KPIDashboard() {
   const [dumbbellData, setDumbbellData] = useState<DumbbellData[]>([]);
   const [paretoData, setParetoData] = useState<DumbbellData[]>([]);
 
-  const { npiProducts, loading: productsLoading } = useNPIProducts();
-  const { milestones, loading: milestonesLoading } = useNPIMilestones();
-  const { scenarios, loading: scenariosLoading } = useNPIScenarios();
   const [showNewNPIModal, setShowNewNPIModal] = useState(false);
   const [kpiData, setKpiData] = useState<KPIData | null>(null);
   const [kpiLoading, setKpiLoading] = useState(true);
@@ -186,7 +180,6 @@ export default function KPIDashboard() {
 
       // Calculate KPI metrics
       const totalProducts = npiProducts?.length || 0;
-      const activeNPIs = npiProducts?.filter(p => p.npi_status !== 'discontinued').length || 0;
       const completedMilestones = milestones?.filter(m => m.milestone_status === 'completed').length || 0;
       const upcomingDeadlines = milestones?.filter(m => 
         m.milestone_status === 'not_started' && 
@@ -205,7 +198,6 @@ export default function KPIDashboard() {
 
       setKpiData({
         totalProducts,
-        activeNPIs,
         completedMilestones,
         upcomingDeadlines,
         forecastAccuracy,
