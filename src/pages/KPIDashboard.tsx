@@ -28,6 +28,30 @@ import HierarchicalErrorChart from '@/components/HierarchicalErrorChart';
 import HeatmapChart from '@/components/HeatmapChart';
 import DumbbellChart from '@/components/DumbbellChart';
 import ResponsiblesAnalysisChart from '@/components/ResponsiblesAnalysisChart';
+import { useNPIProducts } from "@/hooks/useNPIProducts";
+import { useNPIMilestones } from "@/hooks/useNPIMilestones";
+import { useNPIScenarios } from "@/hooks/useNPIScenarios";
+import { format } from "date-fns";
+import { Link } from "react-router-dom";
+import NewNPIModal from "@/components/NewNPIModal";
+
+// Add interfaces for data types
+interface ForecastData {
+  customer_node_id: string;
+  product_id: string;
+  forecast: number;
+  actual: number;
+  postdate: string;
+}
+
+interface KPIData {
+  totalProducts: number;
+  activeNPIs: number;
+  completedMilestones: number;
+  upcomingDeadlines: number;
+  forecastAccuracy: number;
+  paretoData: any[];
+}
 
 interface LowAccuracyProduct {
   product_id: string;
@@ -123,13 +147,71 @@ export default function KPIDashboard() {
   const [dumbbellData, setDumbbellData] = useState<DumbbellData[]>([]);
   const [paretoData, setParetoData] = useState<DumbbellData[]>([]);
 
+  const { npiProducts, loading: productsLoading } = useNPIProducts();
+  const { milestones, loading: milestonesLoading } = useNPIMilestones();
+  const { scenarios, loading: scenariosLoading } = useNPIScenarios();
+  const [showNewNPIModal, setShowNewNPIModal] = useState(false);
+  const [kpiData, setKpiData] = useState<KPIData | null>(null);
+  const [kpiLoading, setKpiLoading] = useState(true);
+
   useEffect(() => {
     loadKPIData();
   }, [accuracyThreshold]);
 
+  // Load KPI data
+  useEffect(() => {
+    loadKPIData();
+  }, []);
+
   const loadKPIData = async () => {
     setLoading(true);
     try {
+      setKpiLoading(true);
+      
+      // Load forecast data with correct column name
+      const { data: forecastData, error: forecastError } = await supabase
+        .from('forecast_data')
+        .select('customer_node_id, product_id, forecast, actual, postdate')
+        .not('customer_node_id', 'is', null)
+        .not('product_id', 'is', null)
+        .not('forecast', 'is', null)
+        .not('actual', 'is', null)
+        .order('postdate', { ascending: false })
+        .limit(2000);
+
+      if (forecastError) {
+        console.error('Error loading forecast data:', forecastError);
+        return;
+      }
+
+      // Calculate KPI metrics
+      const totalProducts = npiProducts?.length || 0;
+      const activeNPIs = npiProducts?.filter(p => p.npi_status !== 'discontinued').length || 0;
+      const completedMilestones = milestones?.filter(m => m.milestone_status === 'completed').length || 0;
+      const upcomingDeadlines = milestones?.filter(m => 
+        m.milestone_status === 'not_started' && 
+        new Date(m.milestone_date) > new Date()
+      ).length || 0;
+
+      // Calculate forecast accuracy
+      let forecastAccuracy = 0;
+      if (forecastData && forecastData.length > 0) {
+        const accuracySum = forecastData.reduce((sum, item) => {
+          const accuracy = item.actual > 0 ? Math.min(item.forecast / item.actual, item.actual / item.forecast) : 0;
+          return sum + accuracy;
+        }, 0);
+        forecastAccuracy = (accuracySum / forecastData.length) * 100;
+      }
+
+      setKpiData({
+        totalProducts,
+        activeNPIs,
+        completedMilestones,
+        upcomingDeadlines,
+        forecastAccuracy,
+        paretoData: forecastData || []
+      });
+
       await Promise.all([
         loadLowAccuracyProducts(),
         loadLowAccuracyCustomers(),
@@ -148,6 +230,7 @@ export default function KPIDashboard() {
       });
     } finally {
       setLoading(false);
+      setKpiLoading(false);
     }
   };
 
@@ -730,6 +813,16 @@ export default function KPIDashboard() {
     }
   };
 
+  const upcomingMilestones = milestones?.filter(m => 
+    m.milestone_status === 'not_started' && 
+    new Date(m.milestone_date) > new Date()
+  ).slice(0, 5) || [];
+
+  const overdueMilestones = milestones?.filter(m => 
+    m.milestone_status === 'not_started' && 
+    new Date(m.milestone_date) <= new Date()
+  ) || [];
+
   const getAccuracyColor = (score: number) => {
     if (score >= 80) return 'text-green-600 bg-green-50';
     if (score >= 60) return 'text-yellow-600 bg-yellow-50';
@@ -994,6 +1087,17 @@ export default function KPIDashboard() {
       }
     }
   ];
+
+  if (productsLoading || milestonesLoading || scenariosLoading || kpiLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando Panel NPI...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
