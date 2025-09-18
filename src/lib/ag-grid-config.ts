@@ -1,12 +1,12 @@
 import { GridOptions } from 'ag-grid-community';
 import { LicenseManager, ModuleRegistry, AllEnterpriseModule } from 'ag-grid-enterprise';
-import { myTheme } from '../styles/ag-grid-theme-m8.js';
+import { myTheme } from './m8-grid-theme.js';
 
 // Common AG Grid configuration
 export const commonAgGridConfig: Partial<GridOptions> = {
   defaultColDef: {
     sortable: true,
-    filter: true,
+    filter: false,
     resizable: true
   },
   animateRows: true,
@@ -95,13 +95,22 @@ export const defaultGridOptions = {
 
   defaultColDef: {
     sortable: true,
-    filter: true,
+    filter: false,
     resizable: true,
     floatingFilter: false,
-    suppressMenu: false,
+    suppressMenu: true,
   },
   onCellFocused: (params: any) => {
     params.api.refreshCells({ force: true });
+  },
+  statusBar: {
+    statusPanels: [
+      { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+      { statusPanel: 'agFilteredRowCountComponent', align: 'left' },
+      { statusPanel: 'agSelectedRowCountComponent', align: 'left' },
+      { statusPanel: 'rangeSumStatusPanel', align: 'right' },
+      { statusPanel: 'agAggregationComponent', align: 'right' }
+    ]
   }
 };
 

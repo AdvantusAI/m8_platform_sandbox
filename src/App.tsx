@@ -7,6 +7,7 @@ import { MasterLayout } from "@/components/MasterLayout";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { ColorThemeProvider } from "@/hooks/useColorTheme";
 import { configureAGGridLicense } from "@/lib/ag-grid-config";
 import CommercialCollaboration from "./pages/CommercialCollaboration";
 import ForecastCollaboration from "./pages/ForecastCollaboration";
@@ -14,6 +15,7 @@ import { AdminRoute } from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import DemandForecast from "./pages/DemandForecast";
+import DemandWorkbench from "./pages/DemandWorkbench";
 import RetailForecast from "./pages/RetailForecast";
 import Products from "./pages/Products";
 import ProductsCatalog from "./pages/ProductsCatalog";
@@ -58,6 +60,11 @@ import PurchaseOrderParametersPage from './pages/PurchaseOrderParametersPage';
 import InventoryPolicyReview from './pages/InventoryPolicyReview';
 import ThemeSettings from './pages/ThemeSettings';
 import Red from './pages/Red';
+import { LaunchLanding } from "./components/npi/Landing";
+import { LaunchWizard } from "./components/features/launches/pages/Wizard";
+import SupplyPlanning from "./components/features/launches/pages/SupplyPlanning";
+import LaunchedProducts from "./components/features/launches/pages/LaunchedProducts";
+
 
 const queryClient = new QueryClient();
 
@@ -86,14 +93,16 @@ const App = () => {
     return (
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/*" element={<Auth />} />
-              </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
+          <ColorThemeProvider>
+            <TooltipProvider>
+              <Toaster />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/*" element={<Auth />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </ColorThemeProvider>
         </ThemeProvider>
       </QueryClientProvider>
     );
@@ -102,14 +111,16 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <BrowserRouter>
-            <MasterLayout>
-            <Routes>
+        <ColorThemeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <BrowserRouter>
+              <MasterLayout>
+              <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/planner-dashboard" element={<PlannerDashboard />} />
               <Route path="/demand-forecast" element={<DemandForecast />} />
+              <Route path="/demand-workbench" element={<DemandWorkbench />} />
               <Route path="/retail-forecast" element={<RetailForecast />} />
               <Route path="/supply-workbench" element={<SupplyWorkbench />} />
               <Route path="/supply-network" element={<SupplyNetworkVisualization />} />
@@ -156,11 +167,18 @@ const App = () => {
               <Route path="/active-alerts" element={<ActiveAlerts />} />
               <Route path="/theme-settings" element={<ThemeSettings />} />
               <Route path="/ag-data-grids" element={<DataGrids />} />
+              <Route path="/launches" element={<LaunchLanding />} />
+              <Route path="/npi-landing" element={<LaunchLanding />} />
+              <Route path="/launches/new" element={<LaunchWizard />} />
+              <Route path="/launches/:draftId" element={<LaunchWizard />} />
+              <Route path="/supply-planning" element={<SupplyPlanning />} />
+              <Route path="/npi-followup" element={<LaunchedProducts />} />
               {/* Protected Routes */}
-            </Routes>
-            </MasterLayout>
-          </BrowserRouter>
-        </TooltipProvider>
+              </Routes>
+              </MasterLayout>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ColorThemeProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

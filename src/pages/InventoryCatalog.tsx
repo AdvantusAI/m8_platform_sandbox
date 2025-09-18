@@ -328,7 +328,7 @@ const InventoryCatalog: React.FC = () => {
 
       <Card>
         <CardContent className="p-0">
-          <div className="ag-theme-custom h-[600px] w-full">
+          <div className="h-[600px] w-full">
             <AgGridReact
               rowData={filteredInventoryForGrid}
               columnDefs={columnDefs}

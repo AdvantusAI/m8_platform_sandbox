@@ -23,21 +23,27 @@ interface DemandOutlier {
 }
 
 export const useOutliersData = (selectedProductId?: string, selectedCustomerId?: string, selectedLocationId?: string) => {
-  const { locations } = useLocations();
-  const { customers } = useCustomers();
+  const { locations, loading: locationsLoading } = useLocations();
+  const { customers, loading: customersLoading } = useCustomers();
 
-  // Helper function to convert location code to location ID
-  const getLocationId = (locationCode: string): string | undefined => {
-    const location = locations.find(l => l.location_code === locationCode);
-    console.log(location.location_id);
-    return location?.location_id;
+ 
+  // Helper function to convert customer code to customer node ID
+  const getCustomerNodeId = (customerCode: string): string | undefined => {
+    
+    // Try both string and number comparison
+    const customer = customers.find(c => 
+      c.customer_code === customerCode || 
+      c.customer_code === String(customerCode) ||
+      String(c.customer_code) === customerCode
+    );
+    // Use customer_id instead of customer_node_id based on actual data structure
+    return customer?.customer_id || customer?.customer_node_id;
   };
 
-  // Helper function to convert customer code to customer ID
-  const getCustomerId = (customerCode: string): string | undefined => {
-    const customer = customers.find(c => c.customer_code === customerCode);
-    //console.log('customer', customer?.customer_node_id);
-    return customer?.customer_code;
+  // Helper function to convert location code to location node ID
+  const getLocationNodeId = (locationCode: string): string | undefined => {
+    const location = locations.find(l => l.location_code === locationCode);
+    return location?.location_id; // location_id is the node ID
   };
   return useQuery({
     queryKey: ['outliers', selectedProductId, selectedCustomerId, selectedLocationId],
@@ -45,26 +51,43 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
       if (!selectedProductId || !selectedCustomerId) {
         return [];
       }
+      
+      const customerNodeId = getCustomerNodeId(selectedCustomerId);
+      if (!customerNodeId) {
+        console.warn('Customer node ID not found for customer code:', selectedCustomerId);
+        console.warn('Available customer codes:', customers.map(c => c.customer_code));
+        return [];
+      }
 
       const filters: any = {
         product_id: selectedProductId,
-        customer_node_id: getCustomerId(selectedCustomerId)
+        customer_node_id: customerNodeId
       };
     
-
       if (selectedLocationId) {
-        const location = getLocationId(selectedLocationId);
-        filters.location_node_id = getLocationId(location);
+        const locationNodeId = getLocationNodeId(selectedLocationId);
+        if (locationNodeId) {
+          filters.location_node_id = locationNodeId;
+        } else {
+          console.warn('Location node ID not found for location code:', selectedLocationId);
+        }
       }
-      console.log('filters', filters);
+
+
+      
       const { data, error } = await (supabase as any)
        .schema('m8_schema')
         .from('demand_outliers')
         .select('*')
         .match(filters);
 
-      if (error) throw error;
-
+      
+      if (error) {
+        console.error('Error fetching outliers data:', error);
+        throw error;
+      }
+     
+      console.log('Raw outliers data:', data);
       return data?.map((item: any) => ({
         id: String(item.id || ''),
         product_id: item.product_id || '',
@@ -84,6 +107,6 @@ export const useOutliersData = (selectedProductId?: string, selectedCustomerId?:
         percentage_deviation: item.percentage_deviation  || 0
       })) || [];
     },
-    enabled: !!(selectedProductId && selectedCustomerId)
+    enabled: !!(selectedProductId && selectedCustomerId && !customersLoading && !locationsLoading)
   });
 };

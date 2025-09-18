@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, GridReadyEvent, CellFocusedEvent } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
+import { myTheme } from '../styles/ag-grid-theme-m8.js';
 import { Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -197,12 +196,13 @@ const HistoryDataView: React.FC = () => {
 
       <Card>
         <CardContent className="p-0">
-        <div className="ag-theme-quartz" style={{ height: '80vh', margin: '0 auto' }}>
+        <div style={{ height: '80vh', margin: '0 auto' }}>
          
 
           
             <AgGridReact
-            enableBrowserTooltips={true}
+              theme={myTheme}
+              enableBrowserTooltips={true}
               rowData={filteredInventoryForGrid}
               columnDefs={columnDefs}
               pagination={true}
@@ -215,12 +215,11 @@ const HistoryDataView: React.FC = () => {
               suppressRowClickSelection={true}
               enableRangeSelection={true}
               suppressCopyRowsToClipboard={false}
-              enableCharts={true}
+              enableCharts={false}
               enableRangeHandle={true}
               enableFillHandle={true}
               groupDisplayType="groupRows"
               groupDefaultExpanded={-1}
-              theme="legacy"
               getRowClass={(params) => {
                 const classes = [];
                 if (params.node.group) {
@@ -301,13 +300,6 @@ const HistoryDataView: React.FC = () => {
                     labelKey: 'filters',
                     iconKey: 'filter',
                     toolPanel: 'agFiltersToolPanel',
-                  },
-                  {
-                    id: 'charts',
-                    labelDefault: 'Charts',
-                    labelKey: 'charts',
-                    iconKey: 'chart',
-                    toolPanel: 'agChartsToolPanel',
                   },
                 ]
               }}

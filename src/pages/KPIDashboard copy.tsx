@@ -21,8 +21,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { myTheme } from '../styles/ag-grid-theme-m8.js';
 import ParetoErrorChart from '@/components/ParetoErrorChart';
 import HierarchicalErrorChart from '@/components/HierarchicalErrorChart';
 import HeatmapChart from '@/components/HeatmapChart';
@@ -1121,11 +1120,11 @@ export default function KPIDashboard() {
                   <p>Cargando datos...</p>
                 </div>
               ) : (
-                <div className="ag-theme-alpine" style={{ height: '800px', width: '100%' }}>
+                <div style={{ height: '800px', width: '100%' }}>
                   <AgGridReact
                     rowData={lowAccuracyProducts}
                     columnDefs={productColumns}
-                    theme="legacy"
+                    theme={myTheme}
                     defaultColDef={{
                       sortable: true,
                       filter: true,
@@ -1163,11 +1162,11 @@ export default function KPIDashboard() {
                   <p>Cargando datos...</p>
                 </div>
               ) : (
-                <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
+                <div style={{ height: '500px', width: '100%' }}>
                   <AgGridReact
                     rowData={lowAccuracyCustomers}
                     columnDefs={customerColumns}
-                    theme="legacy"
+                    theme={myTheme}
                     defaultColDef={{
                       sortable: true,
                       filter: true,
@@ -1205,7 +1204,7 @@ export default function KPIDashboard() {
                   <p>Cargando datos...</p>
                 </div>
               ) : (
-                <div className="ag-theme-alpine" style={{ height: '500px', width: '100%' }}>
+                <div  style={{ height: '500px', width: '100%' }}>
                   <AgGridReact
                     rowData={customerProductCombinations}
                     columnDefs={combinationColumns}
@@ -1280,7 +1279,7 @@ export default function KPIDashboard() {
                   <p className="text-sm text-muted-foreground">
                     Mostrando {heatmapData.length} pares cliente-producto con precisión inferior al 75%
                   </p>
-                  <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
+                  <div  style={{ height: '600px', width: '100%' }}>
                     <AgGridReact
                       rowData={heatmapData}
                       columnDefs={[
@@ -1313,7 +1312,7 @@ export default function KPIDashboard() {
                           cellClass: 'text-center font-medium text-red-600'
                         }
                       ]}
-                      theme="legacy"
+                      theme={myTheme}
                       defaultColDef={{
                         sortable: true,
                         filter: true,
@@ -1356,7 +1355,7 @@ export default function KPIDashboard() {
                   <p className="text-sm text-muted-foreground">
                     Top {dumbbellData.length} pares cliente-producto con mayor error absoluto (último período)
                   </p>
-                  <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
+                  <div  style={{ height: '600px', width: '100%' }}>
                     <AgGridReact
                       rowData={dumbbellData}
                       columnDefs={[
@@ -1412,7 +1411,7 @@ export default function KPIDashboard() {
                           }
                         }
                       ]}
-                      theme="legacy"
+                      theme={myTheme}
                       defaultColDef={{
                         sortable: true,
                         filter: true,
@@ -1455,7 +1454,7 @@ export default function KPIDashboard() {
                   <p className="text-sm text-muted-foreground">
                     {paretoData.length} pares cliente-producto ordenados por error absoluto total (acumulativo)
                   </p>
-                  <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
+                  <div  style={{ height: '600px', width: '100%' }}>
                     <AgGridReact
                       rowData={paretoData.map((item, index) => {
                         const totalError = paretoData.reduce((sum, p) => sum + p.absolute_error, 0);
@@ -1514,7 +1513,7 @@ export default function KPIDashboard() {
                           }
                         }
                       ]}
-                      theme="legacy"
+                      theme={myTheme}
                       defaultColDef={{
                         sortable: true,
                         filter: true,

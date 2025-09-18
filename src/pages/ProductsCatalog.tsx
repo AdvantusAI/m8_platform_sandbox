@@ -13,9 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-quartz.css';
-import { commonAgGridConfig, agGridContainerStyles } from '../lib/ag-grid-config';
+import { commonAgGridConfig, agGridContainerStyles, defaultGridOptions } from '../lib/ag-grid-config';
 
 
 interface Product {
@@ -418,13 +416,11 @@ export default function ProductsCatalog() {
   };
 
   const defaultColDef = useMemo(() => ({
-    sortable: true,
-    filter: true,
-    resizable: true,
+    ...defaultGridOptions.defaultColDef,
   }), []);
 
   const getRowClass = (params: any) => {
-    return params.node.rowIndex % 2 === 0 ? 'ag-row-even' : 'ag-row-odd';
+    return defaultGridOptions.getRowClass ? defaultGridOptions.getRowClass(params) : '';
   };
 
   const onGridReady = (params: any) => {
@@ -781,15 +777,15 @@ export default function ProductsCatalog() {
         <CardContent>
         </CardContent>
 
-        <div className="ag-theme-quartz" style={{ height: '30vh', margin: '0 auto' }}>
+        <div className={agGridContainerStyles}>
             <AgGridReact
               rowData={filteredProducts}
               columnDefs={columnDefs}
               defaultColDef={defaultColDef}
               onGridReady={onGridReady}
+              {...commonAgGridConfig}
               pagination={true}
               paginationPageSize={50}
-              theme="legacy"
               domLayout="autoHeight"
               getRowId={(params) => params.data.product_id}
               getRowClass={getRowClass}

@@ -12,7 +12,6 @@ import { useCustomers } from '@/hooks/useCustomers';
 interface Customer {
   customer_code: string;
   customer_node_id?: string;        // posible nombre
-  customer_node_id?: string;   // posible nombre alterno
 }
 
 interface Location {
@@ -23,10 +22,16 @@ interface Location {
   type_code?: string;
 }
 
+interface DateRange {
+  from: Date | null;
+  to: Date | null;
+}
+
 interface ForecastDataTableProps {
   selectedProductId?: string;
   selectedLocationId?: string;  // código de ubicación (p.ej. "CDMX")
   selectedCustomerId?: string;  // código de cliente/proveedor (p.ej. "VEND123")
+  selectedDateRange?: DateRange | null;
   onDataUpdate?: (data: ForecastData[]) => void;
 }
 
@@ -47,6 +52,7 @@ export function ForecastDataTable({
   selectedProductId,
   selectedLocationId,
   selectedCustomerId,
+  selectedDateRange,
   onDataUpdate,
 }: ForecastDataTableProps) {
   const [forecastData, setForecastData] = useState<ForecastData[]>([]);
@@ -71,7 +77,7 @@ export function ForecastDataTable({
   const customerCodeToNodeId = useMemo(() => {
     const m = new Map<string, string>();
     for (const c of customers) {
-      const id = c.customer_node_id ?? c.customer_node_id;
+      const id = c.customer_node_id;
       if (c.customer_code && id) m.set(c.customer_code, id);
     }
     return m;
@@ -96,7 +102,7 @@ export function ForecastDataTable({
       setForecastData([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProductId, selectedLocationId, selectedCustomerId, locations, customers]);
+  }, [selectedProductId, selectedLocationId, selectedCustomerId, selectedDateRange, locations, customers]);
 
   const fetchForecastData = async () => {
     if (!selectedProductId) return;
@@ -116,33 +122,33 @@ export function ForecastDataTable({
       .schema('m8_schema')
       .from('forecast_with_fitted_history')
       .select(
-        'product_id,location_node_id,customer_node_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history'
+        'product_id,location_node_id,customer_node_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history, location_code, customer_code'
       )
       .eq('product_id', selectedProductId!)
       .order('postdate', { ascending: true });
 
-    // Filtro de ubicación si hay código y podemos resolver el node_id
+    // Filtro de ubicación usando location_code directamente
     if (selectedLocationId) {
-      const locNodeId = getLocationNodeIdFromCode(selectedLocationId);
-      if (locNodeId) {
-        query = query.eq('location_node_id', locNodeId);
-      } else {
-        console.warn('Location node_id not found for code:', selectedLocationId);
-      }
+      query = query.eq('location_code', selectedLocationId);
     }
 
-    // Filtro de cliente/proveedor si hay código y podemos resolver el node_id
+    // Filtro de cliente usando customer_code directamente
     if (selectedCustomerId) {
-      const custNodeId = getCustomerNodeIdFromCode(selectedCustomerId);
-      if (custNodeId) {
-        query = query.eq('customer_node_id', custNodeId);
-      } else {
-        // AVISO: mostramos el código, no "undefined"
-        console.warn('Customer node_id not found for code:', selectedCustomerId);
-      }
+      query = query.eq('customer_code', selectedCustomerId);
     }
+
+    // Filtro de rango de fechas
+    if (selectedDateRange?.from) {
+      query = query.gte('postdate', selectedDateRange.from.toISOString().split('T')[0]);
+    }
+    if (selectedDateRange?.to) {
+      query = query.lte('postdate', selectedDateRange.to.toISOString().split('T')[0]);
+    }
+
+  
 
     const { data, error } = await query;
+    console.log('Forecast data:', data);
     if (error) {
       console.error('Error fetching forecast data for manual aggregation:', error);
       return;
@@ -274,12 +280,12 @@ export function ForecastDataTable({
 
     const uniqueDates = [...new Set(forecastData.map((i) => i.postdate))].sort();
     const seriesData = [
-      { series: 'Actual', type: 'actual' },
+      { series: 'Historia de ventas', type: 'actual' },
       { series: 'Forecast', type: 'forecast' },
-      { series: 'Objetivo de ventas', type: 'sales_plan' },
+      { series: 'Plan inicial', type: 'sales_plan' },
       { series: 'Demand Planner', type: 'demand_planner' },
-      { series: 'Forecast LY', type: 'forecast_ly' },
-      { series: 'Plan Comercial', type: 'commercial_input' },
+      { series: 'Ventas LY', type: 'forecast_ly' },
+      { series: 'KAM input', type: 'commercial_input' },
       { series: 'Historia ajustada', type: 'fitted_history' },
     ] as const;
 

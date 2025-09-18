@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type Theme = 'blue' | 'green' | 'purple' | 'red' | 'orange' | 'teal' | 'indigo' | 'pink';
+export type Theme = 'blue' | 'black' | 'purple' | 'red' | 'orange' | 'teal' | 'indigo' | 'pink';
 
 interface ThemeContextType {
   theme: Theme;
@@ -20,14 +20,14 @@ const themeConfig = {
     sidebarPrimary: '221 83% 53%',
     sidebarRing: '221 83% 53%'
   },
-  green: {
-    label: 'Green',
-    color: 'hsl(142, 76%, 36%)',
-    primary: '142 76% 36%',
-    accent: '142 76% 36%',
-    ring: '142 76% 36%',
-    sidebarPrimary: '142 76% 36%',
-    sidebarRing: '142 76% 36%'
+  black: {
+    label: 'Black',
+    color: 'hsl(0, 0%, 0%)',
+    primary: '0 0% 0%',
+    accent: '0 0% 0%',
+    ring: '0 0% 0%',
+    sidebarPrimary: '0 0% 0%',
+    sidebarRing: '0 0% 0%'
   },
   purple: {
     label: 'Purple',

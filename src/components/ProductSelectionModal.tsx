@@ -15,12 +15,14 @@ interface Product {
   subcategory_name?: string;
   category_id?: string;
   subcategory_id?: string;
+  family_id?: string;
+  family_name?: string;
 }
 
 interface CategoryNode {
   id: string;
   name: string;
-  type: 'category' | 'subcategory' | 'product';
+  type: 'category' | 'subcategory' | 'family' | 'product';
   children?: CategoryNode[];
   product_id?: string;
 }
@@ -49,10 +51,10 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .schema('m8_schema')
         .from('v_products_w_forecast')
-        .select('product_id, product_name, category_name, subcategory_name, category_id, subcategory_id')
+        .select('product_id, product_name, category_id, category_name,subcategory_id, subcategory_name, category_id, subcategory_id, family_id, family_name')
         .order('product_name');
 
       if (error) throw error;
@@ -71,6 +73,7 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
     const tree: CategoryNode[] = [];
     const categoryMap = new Map<string, CategoryNode>();
     const subcategoryMap = new Map<string, CategoryNode>();
+    const familyMap = new Map<string, CategoryNode>();
 
     productsData.forEach(product => {
       // Create or get category
@@ -101,14 +104,28 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
         categoryNode.children!.push(subcategoryNode);
       }
 
-      // Add product to subcategory
+      // Create or get family
+      const familyKey = `${subcategoryKey}-${product.family_id || product.family_name || 'Sin Familia'}`;
+      let familyNode = familyMap.get(familyKey);
+      if (!familyNode) {
+        familyNode = {
+          id: familyKey,
+          name: product.family_name || 'Sin Familia',
+          type: 'family',
+          children: []
+        };
+        familyMap.set(familyKey, familyNode);
+        subcategoryNode.children!.push(familyNode);
+      }
+
+      // Add product to family
       const productNode: CategoryNode = {
         id: product.product_id,
         name: product.product_name || product.product_id,
         type: 'product',
         product_id: product.product_id
       };
-      subcategoryNode.children!.push(productNode);
+      familyNode.children!.push(productNode);
     });
 
     setCategoryTree(tree);
@@ -196,6 +213,11 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
               Subcategoría
             </Badge>
           )}
+          {node.type === 'family' && (
+            <Badge variant="outline" className="ml-2 text-xs">
+              Familia
+            </Badge>
+          )}
           {node.type === 'product' && (
             <Badge variant="outline" className="ml-2 text-xs">
               {node.product_id}
@@ -229,7 +251,7 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               type="text"
-              placeholder="Buscar por nombre, ID o categoría..."
+              placeholder="Buscar por nombre, ID, categoría, subcategoría o familia..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"

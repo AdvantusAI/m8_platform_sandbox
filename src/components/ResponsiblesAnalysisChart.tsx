@@ -637,11 +637,13 @@ export default function ResponsiblesAnalysisChart({
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-indigo-700 font-medium">Cliente Crítico:</span>
-                                    <div className="text-indigo-800 text-xs">{insights.worstClient.clientName}</div>
+                  <div className="text-indigo-900 font-semibold">{insights.worstClient.client}</div>
+                  <div className="text-indigo-800 text-xs">{insights.worstClient.clientName}</div>
                   <div className="text-indigo-800 text-xs">Error: {insights.worstClient.totalError}</div>
                 </div>
                 <div>
                   <span className="text-indigo-700 font-medium">Cliente Mejor:</span>
+                  <div className="text-indigo-900 font-semibold">{insights.bestClient.client}</div>
                   <div className="text-indigo-800 text-xs">{insights.bestClient.clientName}</div>
                   <div className="text-indigo-800 text-xs">Error: {insights.bestClient.totalError}</div>
                 </div>
@@ -655,7 +657,7 @@ export default function ResponsiblesAnalysisChart({
                 </div>
               </div>
               <div className="mt-3 text-sm text-indigo-800">
-                <strong>Priorización:</strong> Enfocar esfuerzos en {insights.worstClient.clientName} 
+                <strong>Priorización:</strong> Enfocar esfuerzos en {insights.worstClient.client} 
                 ({insights.worstClient.clientName}) - Responsable: {insights.worstClient.responsible} - 
                 que tiene el mayor error acumulado. Los outliers indican casos extremos que requieren atención especial.
               </div>
@@ -747,12 +749,12 @@ export default function ResponsiblesAnalysisChart({
                         .sort((a, b) => b.totalError - a.totalError)
                         .slice(0, 8)
                         .map((client, index) => (
-                          <tr key={client.clientName} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          <tr key={client.client} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="border border-gray-200 px-3 py-2 text-center font-medium text-gray-600">
                               {index + 1}
                             </td>
                             <td className="border border-gray-200 px-3 py-2">
-                              <div className="font-medium text-gray-900">{client.clientName}</div>
+                              <div className="font-medium text-gray-900">{client.client}</div>
                               <div className="text-xs text-gray-500">{client.clientName}</div>
                             </td>
                             <td className="border border-gray-200 px-3 py-2">

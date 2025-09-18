@@ -90,7 +90,7 @@ const ForecastExceptions: React.FC = () => {
             <CardTitle>Listado de Excepciones</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="ag-theme-quartz ag-theme-custom" style={{ height: 600, width: "100%" }}>
+            <div  style={{ height: 600, width: "100%" }}>
               <AgGridReact
                 rowData={rowData}
                 columnDefs={columnDefs}

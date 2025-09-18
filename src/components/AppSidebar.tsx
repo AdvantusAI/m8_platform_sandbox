@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, ChartScatter, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, Rocket, GitBranch, Network, TrendingDown, ArrowLeftRight, UserCheck, Factory, AlertTriangle, Truck, BellRing, Shield } from "lucide-react";
+import { Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, ChartScatter, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, Rocket, GitBranch, Network, TrendingDown, ArrowLeftRight, UserCheck, Factory, AlertTriangle, Truck, BellRing, Shield, ChevronDown, ChevronRight, Wrench } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useState, useEffect } from "react";
@@ -15,6 +15,11 @@ const items = [
     icon: Target
   },
   {
+    title: "Demand Workbench",
+    url: "/demand-workbench",
+    icon: Wrench
+  },
+  {
   title: "Pronóstico de Demanda",
   url: "/demand-forecast",
   icon: TrendingUp
@@ -27,7 +32,11 @@ const items = [
   title: "KAM - Plan comercial",
   url: "/forecast-collaboration",
   icon: Users
-}
+},
+{ title: "NPI Launch", url: "/launches", icon: Rocket },
+{ title: "NPI Supply Planning", url: "/supply-planning", icon: Package },
+{ title: "NPI Follow-up", url: "/npi-followup", icon: TrendingUp },
+
 
 /*, {
   title: "Analítica",
@@ -42,8 +51,6 @@ const fulfillmentItems = [
     url: "/supply-network",
     icon: Network
   }, 
-  
-  
   {
     title: "Gestión de Compras",
     url: "/purchase-management",
@@ -160,7 +167,19 @@ export function AppSidebar() {
     loading
   } = useUserRole();
   const [companyConfig, setCompanyConfig] = useState<CompanyConfig | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState({
+    planificacion: false,
+    fulfillment: false,
+    administracion: false
+  });
   const allItems = isAdministrator ? [...items, ...adminItems] : items;
+
+  const toggleSection = (section: keyof typeof collapsedSections) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
   useEffect(() => {
     const fetchCompanyConfig = async () => {
       try {
@@ -168,8 +187,8 @@ export function AppSidebar() {
           data,
           error
         } = await supabase
-        .schema('m8_schema')
-        .from('company_config').select('company_name, company_logo').limit(1).single();
+        .schema('m8_schema' as any)
+        .from('company_config' as any).select('company_name, company_logo').limit(1).single();
         if (error) {
           console.error('Error fetching company config:', error);
           return;
@@ -222,57 +241,93 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent className="bg-white">
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-600 font-semibold">
-            Planificación
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map(item => <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton onClick={() => navigate(item.url)} isActive={location.pathname === item.url} className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 data-[active=true]:bg-blue-50 data-[active=true]:text-blue-900 data-[active=true]:border-r-2 data-[active=true]:border-blue-600">
-                    <item.icon className="h-4 w-4" />
-                    <span className="font-medium">{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>)}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-600 font-semibold">
-             Fulfillment
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {fulfillmentItems.map(item => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    onClick={() => navigate(item.url)} 
-                    isActive={location.pathname === item.url} 
-                    className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-green-100 data-[active=true]:bg-green-100 data-[active=true]:text-green-900 data-[active=true]:border-r-2 data-[active=true]:border-green-600"
-                  >
-                    <item.icon className="h-4 w-4" />
-                    <span className="font-medium">{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {isAdministrator && <SidebarGroup>
-            <SidebarGroupLabel className="text-gray-600 font-semibold">
-              Administración
+          <div 
+            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md "
+            onClick={() => toggleSection('planificacion')}
+          >
+            <SidebarGroupLabel className="text-gray-600 font-semibold font-medium">
+              Planificación
             </SidebarGroupLabel>
+            {collapsedSections.planificacion ? (
+              <ChevronRight className="h-4 w-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-gray-500" />
+            )}
+          </div>
+          {!collapsedSections.planificacion && (
             <SidebarGroupContent>
               <SidebarMenu>
-                {adminItems.map(item => <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton onClick={() => navigate(item.url)} isActive={location.pathname === item.url} className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-orange-100 data-[active=true]:bg-orange-100 data-[active=true]:text-orange-900 data-[active=true]:border-r-2 data-[active=true]:border-orange-600">
+                {items.map(item => <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton onClick={() => navigate(item.url)} isActive={location.pathname === item.url} className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 data-[active=true]:bg-blue-50 data-[active=true]:text-blue-900 data-[active=true]:border-r-2 data-[active=true]:border-blue-600">
                       <item.icon className="h-4 w-4" />
                       <span className="font-medium">{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>)}
               </SidebarMenu>
             </SidebarGroupContent>
+          )}
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <div 
+            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md"
+            onClick={() => toggleSection('fulfillment')}
+          >
+            <SidebarGroupLabel className="text-gray-600 font-semibold">
+              Fulfillment
+            </SidebarGroupLabel>
+            {collapsedSections.fulfillment ? (
+              <ChevronRight className="h-4 w-4 text-gray-500" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-gray-500" />
+            )}
+          </div>
+          {!collapsedSections.fulfillment && (
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {fulfillmentItems.map(item => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      onClick={() => navigate(item.url)} 
+                      isActive={location.pathname === item.url} 
+                      className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-green-100 data-[active=true]:bg-green-100 data-[active=true]:text-green-900 data-[active=true]:border-r-2 data-[active=true]:border-green-600"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="font-medium">{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          )}
+        </SidebarGroup>
+
+        {isAdministrator && <SidebarGroup>
+            <div 
+              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md"
+              onClick={() => toggleSection('administracion')}
+            >
+              <SidebarGroupLabel className="text-gray-600 font-semibold">
+                Administración
+              </SidebarGroupLabel>
+              {collapsedSections.administracion ? (
+                <ChevronRight className="h-4 w-4 text-gray-500" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-gray-500" />
+              )}
+            </div>
+            {!collapsedSections.administracion && (
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {adminItems.map(item => <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton onClick={() => navigate(item.url)} isActive={location.pathname === item.url} className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-orange-100 data-[active=true]:bg-orange-100 data-[active=true]:text-orange-900 data-[active=true]:border-r-2 data-[active=true]:border-orange-600">
+                        <item.icon className="h-4 w-4" />
+                        <span className="font-medium">{item.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            )}
           </SidebarGroup>}
       </SidebarContent>
     </Sidebar>;

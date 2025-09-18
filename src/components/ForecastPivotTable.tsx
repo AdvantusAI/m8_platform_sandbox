@@ -250,9 +250,6 @@ export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
 
   return (
     <Card>
-      <CardHeader>
-        
-      </CardHeader>
       <CardContent>
         <div className={agGridContainerStyles}>
           <AgGridReact

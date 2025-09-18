@@ -61,7 +61,8 @@ const METRICS = [
   { key: 'total_demand', label: 'Demanda Total' },
   { key: 'planned_arrivals', label: 'Llegadas Planificadas' },
   { key: 'planned_orders', label: 'Órdenes Planificadas' },
-  { key: 'safety_stock', label: 'Stock de Seguridad' }
+  { key: 'safety_stock', label: 'Stock de Seguridad' },
+  { key: 'total_inventory', label: 'Inventario Total' }
 ];
 
 export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProps) {
@@ -70,9 +71,12 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
   const [gridApi, setGridApi] = useState<any>(null);
   const [showColorCustomization, setShowColorCustomization] = useState(false);
   const [chartColors, setChartColors] = useState({
-    inventarioProyectado: '#4285F4',
-    demandaTotal: '#DB4437',
-    stockDeSeguridad: '#FFA500'
+    inventarioProyectado: '#de9590',
+    demandaTotal: '#81b58c',
+    stockDeSeguridad: '#b581b5',
+    inventarioTotal: '#99c0e0',
+
+
   });
 
   const loadData = useCallback(async () => {
@@ -108,7 +112,8 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
              'projected_on_hand': 'Inventario Proyectado',
              'safety_stock': 'Stock de Seguridad',
              'forecast': 'Forecast',
-             'actual': 'Actual'
+             'actual': 'Actual',
+             'total_inventory': 'Inventario Total'
            };
            
            transformedRow.metric = metricMappings[transformedRow.metric] || transformedRow.metric;
@@ -163,6 +168,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     const demandaTotalRow = data.find(row => row.metric === 'Demanda Total');
     const inventarioProyectadoRow = data.find(row => row.metric === 'Inventario Proyectado');
     const stockDeSeguridadRow = data.find(row => row.metric === 'Stock de Seguridad');
+    const inventarioTotalRow = data.find(row => row.metric === 'Inventario Total');
 
     ////console.log('Demanda Total row found:', !!demandaTotalRow);
     ////console.log('Inventario Proyectado row found:', !!inventarioProyectadoRow);
@@ -170,6 +176,9 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     ////console.log('Demanda Total row metric:', demandaTotalRow?.metric);
     ////console.log('Inventario Proyectado row metric:', inventarioProyectadoRow?.metric);
     ////console.log('Stock de Seguridad row metric:', stockDeSeguridadRow?.metric);
+    ////console.log('Inventario Total row found:', !!inventarioTotalRow);
+    ////console.log('Inventario Total row metric:', inventarioTotalRow?.metric);
+
 
     if (!demandaTotalRow || !inventarioProyectadoRow) {
       ////console.log('Missing required rows for chart');
@@ -185,9 +194,10 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
       return {
         date: format(dateObj, 'dd/MM/yyyy', { locale: es }),
         originalDate: dateCol,
-        demandaTotal: demandaTotalRow[dateCol] || 0,
-        inventarioProyectado: inventarioProyectadoRow[dateCol] || 0,
-        stockDeSeguridad: stockDeSeguridadRow ? (stockDeSeguridadRow[dateCol] || 0) : 0
+        demandaTotal: Math.round(demandaTotalRow[dateCol] || 0),
+        inventarioProyectado: Math.round(inventarioProyectadoRow[dateCol] || 0),
+        stockDeSeguridad: Math.round(stockDeSeguridadRow ? (stockDeSeguridadRow[dateCol] || 0) : 0),
+        inventarioTotal: Math.round(inventarioTotalRow ? (inventarioTotalRow[dateCol] || 0) : 0)
       };
     });
 
@@ -255,13 +265,17 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
       } else {
         // Find the corresponding Stock de Seguridad value for this column
         const stockDeSeguridadRow = data.find(row => row.metric === 'Stock de Seguridad');
+        const inventarioTotalRow = data.find(row => row.metric === 'Inventario Total');
         const stockDeSeguridadValue = stockDeSeguridadRow ? stockDeSeguridadRow[field] : null;
         const projectedInventoryValue = params.value;
+        const inventoryTotalValue = inventarioTotalRow ? inventarioTotalRow[field] : null;
         
         // If projected inventory is less than or equal to safety stock, highlight with red
         if (typeof projectedInventoryValue === 'number' && 
             typeof stockDeSeguridadValue === 'number' && 
-            projectedInventoryValue <= stockDeSeguridadValue) {
+            typeof inventoryTotalValue === 'number' &&
+            projectedInventoryValue <= stockDeSeguridadValue &&
+            projectedInventoryValue <= inventoryTotalValue) {
           return {
             ...baseStyle,
             backgroundColor: '#fadede'
@@ -315,6 +329,20 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
           backgroundColor: '#ecfdf5'
         };
       } else if (field === 'safety_stock') {
+        return { 
+          ...baseStyle,
+          color: '#6b7280',
+          fontStyle: 'italic',
+          backgroundColor: '#f9fafb'
+        };
+      } else if (field === 'total_inventory') {
+        return { 
+          ...baseStyle,
+          color: '#6b7280',
+          fontStyle: 'italic',
+          backgroundColor: '#f9fafb'
+        };
+      } else if (field === 'total_inventory') {
         return { 
           ...baseStyle,
           color: '#6b7280',
@@ -403,6 +431,15 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
             }
             return null;
           };
+          if (field === 'total_inventory' && value > 0) {
+            return (
+              <div className="flex items-center justify-end h-full px-2 group">
+                <span className="font-medium tabular-nums">
+                  {formatValue(value || 0)}
+                </span>
+              </div>
+            );
+          }
           
           return (
             <div className="flex items-center justify-end h-full px-2 group">
@@ -453,7 +490,8 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
     setChartColors({
       inventarioProyectado: '#4285F4',
       demandaTotal: '#DB4437',
-      stockDeSeguridad: '#FFA500'
+      stockDeSeguridad: '#FFA500',
+      inventarioTotal: '#FFA500'
     });
   };
 
@@ -623,6 +661,18 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
                     <span className="text-xs text-gray-500">{chartColors.stockDeSeguridad}</span>
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-gray-600">Inventario Total</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={chartColors.inventarioTotal}
+                      onChange={(e) => handleColorChange('inventarioTotal', e.target.value)}
+                      className="w-8 h-8 rounded border border-gray-300 cursor-pointer"
+                    />
+                    <span className="text-xs text-gray-500">{chartColors.inventarioTotal}</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -645,6 +695,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
                     tickLine={false}
                     axisLine={false}
                     label={{ value: 'Cantidad', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+                    tickFormatter={(value) => value.toLocaleString('es-MX')}
                   />
                   <Tooltip 
                     contentStyle={{
@@ -654,6 +705,10 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
                     labelStyle={{ fontWeight: 'bold', color: '#374151' }}
+                    formatter={(value: any, name: string) => [
+                      typeof value === 'number' ? value.toLocaleString('es-MX') : value,
+                      name
+                    ]}
                   />
                   <Legend 
                     verticalAlign="bottom" 
@@ -666,6 +721,13 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
                     fill={chartColors.inventarioProyectado} 
                     radius={[4, 4, 0, 0]}
                     opacity={0.8}
+                  />
+                  <Bar 
+                    dataKey="inventarioTotal" 
+                    name="Inventario Total"
+                    fill={chartColors.inventarioTotal} 
+                    radius={[4, 4, 0, 0]}
+                    opacity={0.6}
                   />
                                      <Line 
                      type="monotone" 
@@ -686,7 +748,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
                      dot={{ fill: chartColors.stockDeSeguridad, strokeWidth: 2, r: 3 }}
                      activeDot={{ r: 5, stroke: chartColors.stockDeSeguridad, strokeWidth: 2, fill: '#fff' }}
                    />
-                </ComposedChart>
+                  </ComposedChart>
               </ResponsiveContainer>
             </div>
           ) : (
@@ -708,7 +770,7 @@ export function SupplyPlanAgGrid({ productId, locationId }: SupplyPlanAgGridProp
         </div>
         
         {/* AG Grid Section */}
-        <div className={`${agGridContainerStyles}`} style={{ height: '18vh',  margin: '0 auto' }}>
+        <div className={`${agGridContainerStyles}`} style={{ height: '20vh',  margin: '0 auto' }}>
           <AgGridReact
             columnDefs={columnDefs}
             rowData={data}

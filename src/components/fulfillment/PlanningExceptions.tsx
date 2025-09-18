@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridReadyEvent, ICellRendererParams, ValueFormatterParams } from 'ag-grid-community';
 
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { myTheme } from '../../styles/ag-grid-theme-m8.js';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -510,8 +510,9 @@ export const PlanningExceptions: React.FC = () => {
       </div>
 
       {/* Data Grid */}
-      <div className="ag-theme-alpine" style={{ height: 'calc(100vh - 450px)', width: '100%' }}>
+      <div style={{ height: 'calc(100vh - 450px)', width: '100%' }}>
         <AgGridReact
+          theme={myTheme}
           rowData={rowData}
           columnDefs={columnDefs}
           defaultColDef={{

@@ -172,6 +172,15 @@ const ForecastCollaboration: React.FC = () => {
   const processForecastData = useCallback((rawData: ForecastData[], customerNamesMap: {[key: string]: string}) => {
     const groupedData: { [key: string]: CustomerData } = {};
     
+    // Pre-define month map for better performance
+    const monthMap: { [key: string]: string } = {
+      '10-24': 'oct-24', '11-24': 'nov-24', '12-24': 'dic-24',
+      '01-25': 'ene-25', '02-25': 'feb-25', '03-25': 'mar-25',
+      '04-25': 'abr-25', '05-25': 'may-25', '06-25': 'jun-25',
+      '07-25': 'jul-25', '08-25': 'ago-25', '09-25': 'sep-25',
+      '10-25': 'oct-25', '11-25': 'nov-25', '12-25': 'dic-25'
+    };
+    
     rawData.forEach((row: ForecastData) => {
       // Group by customer_node_id and product_id combination
       const customerProductKey = `${row.customer_node_id}-${row.product_id || 'no-product'}`;
@@ -191,15 +200,8 @@ const ForecastCollaboration: React.FC = () => {
       const year = date.getFullYear();
       
       const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
-      const monthMap: { [key: string]: string } = {
-        '10-24': 'oct-24', '11-24': 'nov-24', '12-24': 'dic-24',
-        '01-25': 'ene-25', '02-25': 'feb-25', '03-25': 'mar-25',
-        '04-25': 'abr-25', '05-25': 'may-25', '06-25': 'jun-25',
-        '07-25': 'jul-25', '08-25': 'ago-25', '09-25': 'sep-25',
-        '10-25': 'oct-25', '11-25': 'nov-25', '12-25': 'dic-25'
-      };
-      
       const displayMonth = monthMap[monthKey];
+      
       if (displayMonth && groupedData[customerProductKey]) {
         // Initialize month data if it doesn't exist
         if (!groupedData[customerProductKey].months[displayMonth]) {
@@ -215,18 +217,23 @@ const ForecastCollaboration: React.FC = () => {
         }
         
         // Add the values (this allows aggregation if multiple products exist for same customer/month)
-        groupedData[customerProductKey].months[displayMonth].last_year += row.forecast_ly || 0;
-        groupedData[customerProductKey].months[displayMonth].forecast_sales_gap += row.forecast_sales_gap || 0;
-        groupedData[customerProductKey].months[displayMonth].calculated_forecast += row.forecast || 0;
-        groupedData[customerProductKey].months[displayMonth].xamview += row.approved_sm_kam || 0;
-        groupedData[customerProductKey].months[displayMonth].kam_forecast_correction += row.sm_kam_override || 0;
-        groupedData[customerProductKey].months[displayMonth].sales_manager_view += row.forecast_sales_manager || 0;
-        groupedData[customerProductKey].months[displayMonth].effective_forecast += row.commercial_input || row.forecast || 0;
+        const monthData = groupedData[customerProductKey].months[displayMonth];
+        monthData.last_year += row.forecast_ly || 0;
+        monthData.forecast_sales_gap += row.forecast_sales_gap || 0;
+        monthData.calculated_forecast += row.forecast || 0;
+        monthData.xamview += row.approved_sm_kam || 0;
+        monthData.kam_forecast_correction += row.sm_kam_override || 0;
+        monthData.sales_manager_view += row.forecast_sales_manager || 0;
+        monthData.effective_forecast += row.commercial_input || row.forecast || 0;
       }
     });
 
     return Object.values(groupedData);
   }, []);
+
+  // Cache for customer names to avoid repeated database calls
+  const [customerNamesCache, setCustomerNamesCache] = useState<{[key: string]: string}>({});
+  const [customerNamesLoaded, setCustomerNamesLoaded] = useState(false);
 
   const fetchForecastData = useCallback(async (isFilterOperation = false) => {
     try {
@@ -234,36 +241,41 @@ const ForecastCollaboration: React.FC = () => {
         setFilterLoading(true);
       }
       
-      // First, fetch customer names from supply_network_nodes
-      const { data: customersData, error: customersError } = await supabase
-        .schema('m8_schema')
-        .from('supply_network_nodes')
-        .select(`
-          id,
-          node_name,
-          node_type_id,
-          supply_network_node_types!inner(type_code)
-        `)
-        .eq('supply_network_node_types.type_code', 'Customer')
-        .eq('status', 'active');
+      // Only fetch customer names if not already cached
+      let customerNamesMap = customerNamesCache;
+      if (!customerNamesLoaded) {
+        const { data: customersData, error: customersError } = await (supabase as any)
+          .schema('m8_schema')
+          .from('supply_network_nodes')
+          .select(`
+            id,
+            node_name,
+            node_type_id,
+            supply_network_node_types!inner(type_code)
+          `)
+          .eq('supply_network_node_types.type_code', 'Customer')
+          .eq('status', 'active');
 
-      if (customersError) throw customersError;
+        if (customersError) throw customersError;
 
-      const customerNamesMap: {[key: string]: string} = {};
-      
-      customersData?.forEach(customer => {
-        customerNamesMap[customer.id] = customer.node_name;
-      });
-      
-      setCustomerNames(customerNamesMap);
+        customerNamesMap = {};
+        customersData?.forEach(customer => {
+          customerNamesMap[customer.id] = customer.node_name;
+        });
+        
+        setCustomerNames(customerNamesMap);
+        setCustomerNamesCache(customerNamesMap);
+        setCustomerNamesLoaded(true);
+      }
 
       // Then fetch forecast data using the new commercial_collaboration_view
-      let query = supabase
+      let query = (supabase as any)
         .schema('m8_schema')
         .from('commercial_collaboration_view')
         .select('customer_node_id,postdate,forecast_ly,forecast,approved_sm_kam,sm_kam_override,forecast_sales_manager,commercial_input,forecast_sales_gap,product_id,subcategory_id')
         .order('customer_node_id', { ascending: true })
-        .order('postdate', { ascending: true });
+        .order('postdate', { ascending: true })
+        .limit(10000); // Add reasonable limit to prevent excessive data loading
 
       // Apply filters
       if (filterProductId) {
@@ -280,11 +292,15 @@ const ForecastCollaboration: React.FC = () => {
 
       if (error) throw error;
 
+      // Reduced logging for better performance
+      console.log('Loaded records:', data?.length || 0);
+
       // Store raw data for filtering
       setRawForecastData(data || []);
 
       // Process the data using the new function
       const allCustomersData = processForecastData(data || [], customerNamesMap);
+      console.log('Processed customers:', allCustomersData.length);
       setAllCustomers(allCustomersData);
       setCustomers(allCustomersData);
     } catch (err) {
@@ -293,7 +309,7 @@ const ForecastCollaboration: React.FC = () => {
       setLoading(false);
       setFilterLoading(false);
     }
-  }, [processForecastData, filterProductId, filterLocationId, filterCustomerId]);
+  }, [processForecastData, filterProductId, filterLocationId, filterCustomerId, customerNamesCache, customerNamesLoaded]);
 
 
 
@@ -623,24 +639,77 @@ const ForecastCollaboration: React.FC = () => {
   }, [customers, selectedCustomerId]);
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 bg-blue-600 rounded-full animate-pulse"></div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Colaboración en Pronósticos</h1>
+      
+      {/* Loading skeleton for filters */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-32 bg-gray-200 rounded animate-pulse"></div>
           </div>
-        </div>
-        <h3 className="text-lg font-semibold text-gray-700 mb-2">Obteniendo datos de demanda y colaboración</h3>
-        <p className="text-sm text-gray-500">Esto puede tomar unos segundos...</p>
-        <div className="mt-4 flex justify-center space-x-1">
-          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      {/* Loading skeleton for table */}
+      <Card>
+        <CardHeader>
+          <div className="h-6 w-48 bg-gray-200 rounded animate-pulse"></div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-4 w-1/2 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+          <div className="mt-4 text-center">
+            <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-2"></div>
+            <p className="text-sm text-gray-500">Cargando datos de colaboración...</p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
+
+  // Show debug information when no data is found
+  if (!loading && customers.length === 0 && rawForecastData.length === 0) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-6">Colaboración en Pronósticos</h1>
+        
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-700 mb-2">No se encontraron datos</h3>
+              <p className="text-sm text-gray-500 mb-4">
+                No hay datos disponibles en la vista commercial_collaboration_view.
+              </p>
+              <div className="text-left bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">Información de depuración:</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• Filtros aplicados: Producto={filterProductId || 'ninguno'}, Ubicación={filterLocationId || 'ninguna'}, Cliente={filterCustomerId || 'ninguno'}</li>
+                  <li>• Registros en rawForecastData: {rawForecastData.length}</li>
+                  <li>• Clientes procesados: {customers.length}</li>
+                  <li>• Vista consultada: m8_schema.commercial_collaboration_view</li>
+                </ul>
+              </div>
+              <div className="mt-4">
+                <Button 
+                  onClick={() => fetchForecastData()} 
+                  variant="outline"
+                >
+                  Reintentar carga de datos
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   if (error) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">

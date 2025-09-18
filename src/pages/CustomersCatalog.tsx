@@ -391,7 +391,7 @@ export default function CustomersCatalog() {
           <CardTitle>Lista de Clientes ({filteredCustomersForGrid.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="ag-theme-quartz ag-theme-custom" style={{ height: '600px', width: '100%' }}>
+          <div  style={{ height: '600px', width: '100%' }}>
             <AgGridReact
               rowData={filteredCustomersForGrid}
               columnDefs={columnDefs}

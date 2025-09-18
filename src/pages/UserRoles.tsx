@@ -432,7 +432,7 @@ export default function UserRoles() {
           <CardTitle>Usuarios y Roles ({filteredUsersForGrid.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="ag-theme-quartz ag-theme-custom" style={{ height: '600px', width: '100%' }}>
+          <div  style={{ height: '600px', width: '100%' }}>
             <AgGridReact
               rowData={filteredUsersForGrid}
               columnDefs={columnDefs}

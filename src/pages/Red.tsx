@@ -38,8 +38,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, ICellRendererParams } from 'ag-grid-community';
-import 'ag-grid-community/styles/ag-grid.css';
-import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { myTheme } from '../styles/ag-grid-theme-m8.js';
 
 interface SupplyNetworkNode {
   id: string;
@@ -704,11 +703,11 @@ export default function Red() {
                 </Select>
               </div>
 
-              <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
+              <div style={{ height: '600px', width: '100%' }}>
                 <AgGridReact
                   rowData={filteredNodes}
                   columnDefs={nodeColumns}
-                  theme="legacy"
+                  theme={myTheme}
                   defaultColDef={{
                     sortable: true,
                     filter: true,
@@ -745,11 +744,11 @@ export default function Red() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="ag-theme-alpine" style={{ height: '600px', width: '100%' }}>
+              <div style={{ height: '600px', width: '100%' }}>
                 <AgGridReact
                   rowData={relationships}
                   columnDefs={relationshipColumns}
-                  theme="legacy"
+                  theme={myTheme}
                   defaultColDef={{
                     sortable: true,
                     filter: true,

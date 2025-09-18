@@ -4,12 +4,12 @@ import { themeQuartz, iconSetQuartzLight } from 'ag-grid-community';
 export const myTheme = themeQuartz
 .withPart(iconSetQuartzLight)
 .withParams({
-    accentColor: "#FF7200",
+    accentColor: "#53CDDD",
     backgroundColor: "#FFFFFF",
-    borderColor: "#9493914A",
-    borderRadius: 4,
-    browserColorScheme: "inherit",
-    cellTextColor: "#2E3338C7",
+    borderColor: "#00000030",
+    borderRadius: 0,
+    browserColorScheme: "light",
+    cellHorizontalPaddingScale: 0.9,
     chromeBackgroundColor: {
         ref: "backgroundColor"
     },
