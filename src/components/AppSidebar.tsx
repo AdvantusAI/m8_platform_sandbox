@@ -1,5 +1,6 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, ChartScatter, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, Rocket, GitBranch, Network, TrendingDown, ArrowLeftRight, UserCheck, Factory, AlertTriangle, Truck, BellRing, Shield, ChevronDown, ChevronRight, Wrench } from "lucide-react";
+import { ChartSpline , Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, ChartScatter, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, Rocket, GitBranch, Network, TrendingDown, ArrowLeftRight, UserCheck, Factory, AlertTriangle, Truck, BellRing, Shield, ChevronDown, ChevronRight, Wrench, Search, Filter, Maximize2, Plus, Folder, Table } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useState, useEffect } from "react";
@@ -10,90 +11,124 @@ interface CompanyConfig {
 }
 const items = [
   {
-    title: "Análisis post game",
-    url: "/kpi-dashboard",
-    icon: Target
+    title: "Forecasting",
+    url: "/demand-forecast",
+    icon: ChartSpline,
+    type: "table"
   },
   {
-    title: "Demand Workbench",
+    title: "Demand workbench",
     url: "/demand-workbench",
-    icon: Wrench
+    icon: Table,
+    type: "table"
   },
   {
-  title: "Pronóstico de Demanda",
-  url: "/demand-forecast",
-  icon: TrendingUp
-},
-{
-  title: "Análisis del plan comercial",
-  url: "/commercial-collaboration",
-  icon: Users
-}, {
-  title: "KAM - Plan comercial",
-  url: "/forecast-collaboration",
-  icon: Users
-},
-{ title: "NPI Launch", url: "/launches", icon: Rocket },
-{ title: "NPI Supply Planning", url: "/supply-planning", icon: Package },
-{ title: "NPI Follow-up", url: "/npi-followup", icon: TrendingUp },
+    title: "All orders",
+    url: "/kpi-dashboard",
+    icon: Table,
+    type: "table"
+  },
 
+  {
+    title: "All orders & exc...",
+    url: "/commercial-collaboration",
+    icon: Table,
+    type: "table"
+  },
+  {
+    title: "Multiple orders per...",
+    url: "/forecast-collaboration",
+    icon: Folder,
+    type: "folder",
+    children: []
+  },
+  {
+    title: "DC",
+    url: "/launches",
+    icon: Folder,
+    type: "folder",
+    children: []
+  },
+  {
+    title: "Master data and settings",
+    url: "/supply-planning",
+    icon: Folder,
+    type: "folder",
+    children: []
+  },
+  {
+    title: "Replenishment",
+    url: "/npi-followup",
+    icon: Folder,
+    type: "folder",
+    children: []
+  },
+  {
+    title: "Product introductions",
+    url: "/launches",
+    icon: Folder,
+    type: "folder",
+    children: []
+  },
+  {
+    title: "Events",
+    url: "/events",
+    icon: Folder,
+    type: "folder",
+    children: []
+  }
+];
 
-/*, {
-  title: "Analítica",
-  url: "/advanced-reports",
-  icon: BarChart3
-}*/];
-
-// Fulfillment items
-const fulfillmentItems = [
-  , {
-    title: "Red de Suministro",
-    url: "/supply-network",
-    icon: Network
-  }, 
+// Seasonality items
+const seasonalityItems = [
   {
-    title: "Gestión de Compras",
-    url: "/purchase-management",
-    icon: ShoppingCart
-  },  {
-    title: "Análisis Sell-Through",
-    url: "/sell-through-analytics",
-    icon: TrendingDown
+    title: "Product terminations",
+    url: "/product-terminations",
+    icon: Folder,
+    type: "folder",
+    children: []
   },
   {
-    title: "Análisis What-If",
-    url: "/what-if-analysis",
-    icon: Brain
+    title: "Inventory management and...",
+    url: "/inventory-management",
+    icon: Folder,
+    type: "folder",
+    children: []
   },
   {
-    title: 'Revisión de Políticas de Inventario',
-    url: '/inventory-policy-review',
-    icon: Database
+    title: "Season management",
+    url: "/season-management",
+    icon: Folder,
+    type: "folder",
+    children: []
   },
   {
-    title: 'Planificación de Suministro',
-    url: '/replenishment-dashboard',
-    icon: Package
+    title: "Promotions",
+    url: "/promotions",
+    icon: Folder,
+    type: "folder",
+    children: []
   },
   {
-    title: 'Configuración de Alertas',
-    url: '/alert-configuration',
-    icon: BellRing
+    title: "New store opening",
+    url: "/new-store-opening",
+    icon: Folder,
+    type: "folder",
+    children: []
   },
   {
-    title: 'Alertas Activas',
-    url: '/active-alerts',
-    icon: AlertTriangle
+    title: "Markdown optimization",
+    url: "/markdown-optimization",
+    icon: Folder,
+    type: "folder",
+    children: []
   },
   {
-    title: 'Dashboard de Excepciones',
-    url: '/exception-dashboard',
-    icon: Shield
-  },
-  {
-    title: 'Parámetros de Órdenes de Compra',
-    url: '/purchase-order-parameters',
-    icon: Settings
+    title: "Temporary store closure",
+    url: "/temporary-store-closure",
+    icon: Folder,
+    type: "folder",
+    children: []
   }
 ];
 
@@ -168,10 +203,11 @@ export function AppSidebar() {
   } = useUserRole();
   const [companyConfig, setCompanyConfig] = useState<CompanyConfig | null>(null);
   const [collapsedSections, setCollapsedSections] = useState({
-    planificacion: false,
-    fulfillment: false,
-    administracion: false
+    forecasting: true,
+    seasonality: true,
+    administracion: true
   });
+  const [searchTerm, setSearchTerm] = useState("");
   const allItems = isAdministrator ? [...items, ...adminItems] : items;
 
   const toggleSection = (section: keyof typeof collapsedSections) => {
@@ -236,33 +272,44 @@ export function AppSidebar() {
           <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-semibold text-sm">
             M8
           </div>
-          
+        </div>
+        <div className="px-2 pb-2">
         </div>
       </SidebarHeader>
       <SidebarContent className="bg-white">
         <SidebarGroup>
           <div 
-            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md "
-            onClick={() => toggleSection('planificacion')}
+            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md"
+            onClick={() => toggleSection('forecasting')}
           >
-            <SidebarGroupLabel className="text-gray-600 font-semibold font-medium">
-              Planificación
+            <SidebarGroupLabel className="text-gray-600 font-semibold text-sm">
+              Forecasting
             </SidebarGroupLabel>
-            {collapsedSections.planificacion ? (
+            {collapsedSections.forecasting ? (
               <ChevronRight className="h-4 w-4 text-gray-500" />
             ) : (
               <ChevronDown className="h-4 w-4 text-gray-500" />
             )}
           </div>
-          {!collapsedSections.planificacion && (
+          {!collapsedSections.forecasting && (
             <SidebarGroupContent>
               <SidebarMenu>
-                {items.map(item => <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton onClick={() => navigate(item.url)} isActive={location.pathname === item.url} className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-gray-100 data-[active=true]:bg-blue-50 data-[active=true]:text-blue-900 data-[active=true]:border-r-2 data-[active=true]:border-blue-600">
-                      <item.icon className="h-4 w-4" />
-                      <span className="font-medium">{item.title}</span>
+                {items.map(item => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton 
+                      onClick={() => navigate(item.url)} 
+                      isActive={location.pathname === item.url} 
+                      className={`w-full justify-start text-sm hover:bg-gray-50 ${
+                        location.pathname === item.url 
+                          ? 'bg-gray-100 text-gray-900' 
+                          : 'text-gray-700 hover:text-gray-900'
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4 mr-2" />
+                      <span className="font-normal">{item.title}</span>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>)}
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           )}
@@ -270,30 +317,34 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <div 
-            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md"
-            onClick={() => toggleSection('fulfillment')}
+            className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md"
+            onClick={() => toggleSection('seasonality')}
           >
-            <SidebarGroupLabel className="text-gray-600 font-semibold">
-              Fulfillment
+            <SidebarGroupLabel className="text-gray-600 font-semibold text-sm">
+              SEASONALITY
             </SidebarGroupLabel>
-            {collapsedSections.fulfillment ? (
+            {collapsedSections.seasonality ? (
               <ChevronRight className="h-4 w-4 text-gray-500" />
             ) : (
               <ChevronDown className="h-4 w-4 text-gray-500" />
             )}
           </div>
-          {!collapsedSections.fulfillment && (
+          {!collapsedSections.seasonality && (
             <SidebarGroupContent>
               <SidebarMenu>
-                {fulfillmentItems.map(item => (
+                {seasonalityItems.map(item => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
                       onClick={() => navigate(item.url)} 
                       isActive={location.pathname === item.url} 
-                      className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-green-100 data-[active=true]:bg-green-100 data-[active=true]:text-green-900 data-[active=true]:border-r-2 data-[active=true]:border-green-600"
+                      className={`w-full justify-start text-sm hover:bg-gray-50 ${
+                        location.pathname === item.url 
+                          ? 'bg-gray-100 text-gray-900' 
+                          : 'text-gray-700 hover:text-gray-900'
+                      }`}
                     >
-                      <item.icon className="h-4 w-4" />
-                      <span className="font-medium">{item.title}</span>
+                      <item.icon className="h-4 w-4 mr-2" />
+                      <span className="font-normal">{item.title}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
@@ -304,10 +355,10 @@ export function AppSidebar() {
 
         {isAdministrator && <SidebarGroup>
             <div 
-              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-2 py-1 rounded-md"
+              className="flex items-center justify-between cursor-pointer hover:bg-gray-50 px-3 py-2 rounded-md"
               onClick={() => toggleSection('administracion')}
             >
-              <SidebarGroupLabel className="text-gray-600 font-semibold">
+              <SidebarGroupLabel className="text-gray-600 font-semibold text-sm">
                 Administración
               </SidebarGroupLabel>
               {collapsedSections.administracion ? (
@@ -319,12 +370,22 @@ export function AppSidebar() {
             {!collapsedSections.administracion && (
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {adminItems.map(item => <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton onClick={() => navigate(item.url)} isActive={location.pathname === item.url} className="w-full justify-start text-gray-700 hover:text-gray-900 hover:bg-orange-100 data-[active=true]:bg-orange-100 data-[active=true]:text-orange-900 data-[active=true]:border-r-2 data-[active=true]:border-orange-600">
-                        <item.icon className="h-4 w-4" />
-                        <span className="font-medium">{item.title}</span>
+                  {adminItems.map(item => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton 
+                        onClick={() => navigate(item.url)} 
+                        isActive={location.pathname === item.url} 
+                        className={`w-full justify-start text-sm hover:bg-gray-50 ${
+                          location.pathname === item.url 
+                            ? 'bg-gray-100 text-gray-900' 
+                            : 'text-gray-700 hover:text-gray-900'
+                        }`}
+                      >
+                        <item.icon className="h-4 w-4 mr-2" />
+                        <span className="font-normal">{item.title}</span>
                       </SidebarMenuButton>
-                    </SidebarMenuItem>)}
+                    </SidebarMenuItem>
+                  ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             )}
