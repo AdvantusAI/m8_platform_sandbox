@@ -2,9 +2,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { TrendingUp, TrendingDown, BarChart3, AlertTriangle, CheckCircle, Package, BadgeAlert, Target, Activity, Brain, Shield, RefreshCw, Download, Share2, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, BarChart3, AlertTriangle, CheckCircle, Package, BadgeAlert } from "lucide-react";
 import { useLocations } from "@/hooks/useLocations";
 import { useCustomers } from "@/hooks/useCustomers";
 
@@ -60,10 +59,10 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
 
   // Fetch metrics data when component mounts or filters change
   useEffect(() => {
-    if (selectedProductId && selectedLocationId) {
+    if (selectedProductId) {
       fetchMetricsData();
     }
-  }, [selectedProductId, selectedLocationId]);
+  }, [selectedProductId, selectedLocationId, selectedCustomerId]);
   
 
   // Show selection prompt if no product is selected
@@ -108,7 +107,7 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
       if (selectedLocationId) {
         const actualLocationId = getLocationId(selectedLocationId);
         if (actualLocationId) {
-          query = query.eq('location_code', actualLocationId);
+          query = query.eq('location_node_id', actualLocationId);
         }
       }
 
@@ -116,16 +115,13 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
       if (selectedCustomerId) {
         const actualCustomerId = getCustomerId(selectedCustomerId);
         if (actualCustomerId) {
-          query = query.eq('customer_code', actualCustomerId);
+          query = query.eq('customer_node_id', actualCustomerId);
         }
       }
-
-      console.log('query', query);
 
       // Execute query
       const { data: viewData, error: viewError } = await query.limit(1);
 
-     
       // Handle query error
       if (viewError) {
         console.error('Error fetching forecast interpretability view:', viewError);
@@ -177,52 +173,13 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
   // Helper function to get status icon based on value and threshold
   const getStatusIcon = (value: number, threshold: number = 70) => {
     return value >= threshold ? 
-      <TrendingUp className="h-4 w-4 text-emerald-600" /> : 
+      <TrendingUp className="h-4 w-4 text-custom-slate" /> : 
       <TrendingDown className="h-4 w-4 text-red-500" />;
   };
 
   // Helper function to get status color based on value and threshold
   const getStatusColor = (value: number, threshold: number = 70) => {
-    return value >= threshold ? 'text-emerald-600' : 'text-red-500';
-  };
-
-  // Helper function to get performance badge variant
-  const getPerformanceBadge = (value: number) => {
-    if (value >= 85) return { variant: "default" as const, className: "bg-emerald-100 text-emerald-800 border-emerald-200" };
-    if (value >= 70) return { variant: "secondary" as const, className: "bg-blue-100 text-blue-800 border-blue-200" };
-    if (value >= 50) return { variant: "outline" as const, className: "bg-yellow-100 text-yellow-800 border-yellow-200" };
-    return { variant: "destructive" as const, className: "bg-red-100 text-red-800 border-red-200" };
-  };
-
-  // Helper function to get trend indicator
-  const getTrendIndicator = (value: number, previousValue: number = 0) => {
-    const change = value - previousValue;
-    if (change > 0) return { icon: ArrowUp, color: "text-emerald-600", bg: "bg-emerald-50" };
-    if (change < 0) return { icon: ArrowDown, color: "text-red-600", bg: "bg-red-50" };
-    return { icon: Minus, color: "text-gray-600", bg: "bg-gray-50" };
-  };
-
-  // Mock data for trends (in real app, this would come from API)
-  const mockTrends = {
-    forecast_accuracy: 2.3,
-    model_confidence: -1.2,
-    forecast_bias: 0.1,
-    uncertainty_quality: 3.5
-  };
-
-  // Quick actions
-  const handleRefresh = () => {
-    if (selectedProductId && selectedLocationId) {
-      fetchMetricsData();
-    }
-  };
-
-  const handleExport = () => {
-    console.log('Exporting metrics data...');
-  };
-
-  const handleShare = () => {
-    console.log('Sharing metrics dashboard...');
+    return value >= threshold ? 'text-custom-slate' : 'text-red-500';
   };
 
   // Loading state
@@ -255,274 +212,74 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Dashboard de Métricas</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Análisis de rendimiento y calidad del modelo de pronóstico
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-            <Activity className="h-3 w-3 mr-1" />
-            Tiempo Real
-          </Badge>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleRefresh} className="h-8">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleExport} className="h-8">
-              <Download className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleShare} className="h-8">
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Summary Section */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-900">
-                {metricsData?.forecast_accuracy?.toFixed(1) || '0.0'}%
-              </div>
-              <div className="text-sm text-blue-700">Precisión General</div>
-              <div className="flex items-center justify-center gap-1 mt-1">
-                {(() => {
-                  const trend = getTrendIndicator(mockTrends.forecast_accuracy);
-                  const TrendIcon = trend.icon;
-                  return (
-                    <>
-                      <TrendIcon className={`h-3 w-3 ${trend.color}`} />
-                      <span className={`text-xs ${trend.color}`}>
-                        {mockTrends.forecast_accuracy > 0 ? '+' : ''}{mockTrends.forecast_accuracy}%
-                      </span>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-emerald-900">
-                {(metricsData?.model_confidence || 0).toFixed(0)}%
-              </div>
-              <div className="text-sm text-emerald-700">Confianza del Modelo</div>
-              <div className="flex items-center justify-center gap-1 mt-1">
-                {(() => {
-                  const trend = getTrendIndicator(mockTrends.model_confidence);
-                  const TrendIcon = trend.icon;
-                  return (
-                    <>
-                      <TrendIcon className={`h-3 w-3 ${trend.color}`} />
-                      <span className={`text-xs ${trend.color}`}>
-                        {mockTrends.model_confidence > 0 ? '+' : ''}{mockTrends.model_confidence}%
-                      </span>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-900">
-                {metricsData?.model_name || 'N/A'}
-              </div>
-              <div className="text-sm text-purple-700">Modelo Activo</div>
-              <Badge variant="outline" className="mt-1 bg-purple-100 text-purple-800 border-purple-200">
-                {metricsData?.confidence_level || 'N/A'}
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-l-4 border-l-emerald-500 hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Precisión del Pronóstico</p>
                 <div className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-emerald-600" />
-                  <p className="text-sm font-medium text-gray-600">Precisión del Pronóstico</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-3xl font-bold ${getStatusColor(metricsData?.forecast_accuracy || 0)}`}>
+                  <span className={`text-2xl font-bold ${getStatusColor(metricsData?.forecast_accuracy || 0)}`}>
                     {metricsData?.forecast_accuracy?.toFixed(1) || '0.0'}%
                   </span>
                   {getStatusIcon(metricsData?.forecast_accuracy || 0)}
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-gray-500">MAPE promedio</p>
-                  {(() => {
-                    const trend = getTrendIndicator(mockTrends.forecast_accuracy);
-                    const TrendIcon = trend.icon;
-                    return (
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${trend.bg}`}>
-                        <TrendIcon className={`h-3 w-3 ${trend.color}`} />
-                        <span className={`text-xs ${trend.color}`}>
-                          {mockTrends.forecast_accuracy > 0 ? '+' : ''}{mockTrends.forecast_accuracy}%
-                        </span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-              {/* Mini Chart */}
-              <div className="w-16 h-12 bg-emerald-50 rounded-lg p-2">
-                <div className="w-full h-full flex items-end gap-1">
-                  {[0.6, 0.8, 0.7, 0.9, 0.85].map((height, i) => (
-                    <div
-                      key={i}
-                      className="bg-emerald-500 rounded-sm flex-1"
-                      style={{ height: `${height * 100}%` }}
-                    />
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground">MAPE promedio</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Confianza del Modelo</p>
                 <div className="flex items-center gap-2">
-                  <Brain className="h-5 w-5 text-blue-600" />
-                  <p className="text-sm font-medium text-gray-600">Confianza del Modelo</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-3xl font-bold ${getStatusColor(metricsData?.model_confidence || 0)}`}>
+                  <span className={`text-2xl font-bold ${getStatusColor(metricsData?.model_confidence || 0)}`}>
                     {(metricsData?.model_confidence || 0).toFixed(0)}%
                   </span>
                   {getStatusIcon(metricsData?.model_confidence || 0)}
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-gray-500">Score de interpretabilidad</p>
-                  {(() => {
-                    const trend = getTrendIndicator(mockTrends.model_confidence);
-                    const TrendIcon = trend.icon;
-                    return (
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${trend.bg}`}>
-                        <TrendIcon className={`h-3 w-3 ${trend.color}`} />
-                        <span className={`text-xs ${trend.color}`}>
-                          {mockTrends.model_confidence > 0 ? '+' : ''}{mockTrends.model_confidence}%
-                        </span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-              {/* Mini Chart */}
-              <div className="w-16 h-12 bg-blue-50 rounded-lg p-2">
-                <div className="w-full h-full flex items-end gap-1">
-                  {[0.7, 0.6, 0.8, 0.75, 0.9].map((height, i) => (
-                    <div
-                      key={i}
-                      className="bg-blue-500 rounded-sm flex-1"
-                      style={{ height: `${height * 100}%` }}
-                    />
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground">Score de interpretabilidad</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-orange-500 hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Sesgo del Pronóstico</p>
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-orange-600" />
-                  <p className="text-sm font-medium text-gray-600">Sesgo del Pronóstico</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-3xl font-bold ${Math.abs(metricsData?.forecast_bias || 0) < 0.1 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <span className={`text-2xl font-bold ${Math.abs(metricsData?.forecast_bias || 0) < 0.1 ? 'text-custom-slate' : 'text-red-500'}`}>
                     {metricsData?.forecast_bias?.toFixed(2) || '0.00'}
                   </span>
                   {Math.abs(metricsData?.forecast_bias || 0) < 0.1 ? 
-                    <CheckCircle className="h-4 w-4 text-emerald-600" /> : 
+                    <CheckCircle className="h-4 w-4 text-custom-slate" /> : 
                     <AlertTriangle className="h-4 w-4 text-red-500" />
                   }
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-gray-500">Tendencia de sobre/sub estimación</p>
-                  {(() => {
-                    const trend = getTrendIndicator(mockTrends.forecast_bias);
-                    const TrendIcon = trend.icon;
-                    return (
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${trend.bg}`}>
-                        <TrendIcon className={`h-3 w-3 ${trend.color}`} />
-                        <span className={`text-xs ${trend.color}`}>
-                          {mockTrends.forecast_bias > 0 ? '+' : ''}{mockTrends.forecast_bias}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-              {/* Mini Chart */}
-              <div className="w-16 h-12 bg-orange-50 rounded-lg p-2">
-                <div className="w-full h-full flex items-end gap-1">
-                  {[0.3, 0.5, 0.4, 0.6, 0.2].map((height, i) => (
-                    <div
-                      key={i}
-                      className="bg-orange-500 rounded-sm flex-1"
-                      style={{ height: `${height * 100}%` }}
-                    />
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground">Tendencia de sobre/sub estimación</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
+        <Card>
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <div className="space-y-2">
+              <div>
+                <p className="text-sm text-muted-foreground">Calidad de Incertidumbre</p>
                 <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-purple-600" />
-                  <p className="text-sm font-medium text-gray-600">Calidad de Incertidumbre</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`text-3xl font-bold ${getStatusColor((metricsData?.uncertainty_quality || 0) * 100)}`}>
+                  <span className={`text-2xl font-bold ${getStatusColor((metricsData?.uncertainty_quality || 0) * 100)}`}>
                     {((metricsData?.uncertainty_quality || 0) * 100).toFixed(0)}%
                   </span>
                   {getStatusIcon((metricsData?.uncertainty_quality || 0) * 100)}
                 </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-xs text-gray-500">Confiabilidad de intervalos</p>
-                  {(() => {
-                    const trend = getTrendIndicator(mockTrends.uncertainty_quality);
-                    const TrendIcon = trend.icon;
-                    return (
-                      <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${trend.bg}`}>
-                        <TrendIcon className={`h-3 w-3 ${trend.color}`} />
-                        <span className={`text-xs ${trend.color}`}>
-                          {mockTrends.uncertainty_quality > 0 ? '+' : ''}{mockTrends.uncertainty_quality}%
-                        </span>
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-              {/* Mini Chart */}
-              <div className="w-16 h-12 bg-purple-50 rounded-lg p-2">
-                <div className="w-full h-full flex items-end gap-1">
-                  {[0.8, 0.9, 0.85, 0.95, 0.88].map((height, i) => (
-                    <div
-                      key={i}
-                      className="bg-purple-500 rounded-sm flex-1"
-                      style={{ height: `${height * 100}%` }}
-                    />
-                  ))}
-                </div>
+                <p className="text-xs text-muted-foreground">Confiabilidad de intervalos</p>
               </div>
             </div>
           </CardContent>
@@ -531,52 +288,45 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Model Performance */}
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-            <CardTitle className="flex items-center gap-2 text-blue-900">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
               Rendimiento del Modelo
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">MAE (Error Absoluto Medio)</span>
-                  <span className="font-bold text-lg text-gray-900">{metricsData?.mae?.toFixed(2) || '0.00'}</span>
-                </div>
-                <Progress value={Math.min(100 - (metricsData?.mae || 0) * 10, 100)} className="h-3 bg-gray-100">
-                  <div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all rounded-full" 
-                       style={{ width: `${Math.min(100 - (metricsData?.mae || 0) * 10, 100)}%` }} />
-                </Progress>
+          <CardContent className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">MAE (Error Absoluto Medio)</span>
+                <span className="font-semibold">{metricsData?.mae?.toFixed(2) || '0.00'}</span>
               </div>
+              <Progress value={Math.min(100 - (metricsData?.mae || 0) * 10, 100)} className="h-2 bg-slate-200">
+                <div className="h-full bg-gradient-to-r from-custom-slate-600 to-custom-slate-800 transition-all" 
+                     style={{ width: `${Math.min(100 - (metricsData?.mae || 0) * 10, 100)}%` }} />
+              </Progress>
               
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">RMSE (Error Cuadrático Medio)</span>
-                  <span className="font-bold text-lg text-gray-900">{metricsData?.rmse?.toFixed(2) || '0.00'}</span>
-                </div>
-                <Progress value={Math.min(100 - (metricsData?.rmse || 0) * 5, 100)} className="h-3 bg-gray-100">
-                  <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 transition-all rounded-full" 
-                       style={{ width: `${Math.min(100 - (metricsData?.rmse || 0) * 5, 100)}%` }} />
-                </Progress>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">RMSE (Error Cuadrático Medio)</span>
+                <span className="font-semibold">{metricsData?.rmse?.toFixed(2) || '0.00'}</span>
               </div>
+              <Progress value={Math.min(100 - (metricsData?.rmse || 0) * 5, 100)} className="h-2 bg-slate-200">
+                <div className="h-full bg-gradient-to-r from-custom-slate-600 to-custom-slate-800 transition-all" 
+                     style={{ width: `${Math.min(100 - (metricsData?.rmse || 0) * 5, 100)}%` }} />
+              </Progress>
               
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-700">SMAPE (Error Porcentual Simétrico)</span>
-                  <span className="font-bold text-lg text-gray-900">{metricsData?.smape?.toFixed(2) || '0.00'}</span>
-                </div>
-                <Progress value={Math.min(100 - (metricsData?.smape || 0), 100)} className="h-3 bg-gray-100">
-                  <div className="h-full bg-gradient-to-r from-purple-500 to-purple-600 transition-all rounded-full" 
-                       style={{ width: `${Math.min(100 - (metricsData?.smape || 0), 100)}%` }} />
-                </Progress>
+              <div className="flex justify-between items-center">
+                <span className="text-sm">SMAPE (Error Porcentual Simétrico)</span>
+                <span className="font-semibold">{metricsData?.smape?.toFixed(2) || '0.00'}</span>
               </div>
+              <Progress value={Math.min(100 - (metricsData?.smape || 0), 100)} className="h-2 bg-slate-200">
+                <div className="h-full bg-gradient-to-r from-custom-slate-600 to-custom-slate-800 transition-all" 
+                     style={{ width: `${Math.min(100 - (metricsData?.smape || 0), 100)}%` }} />
+              </Progress>
             </div>
             
-            <div className="pt-4 border-t border-gray-100">
-              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                <CheckCircle className="h-3 w-3 mr-1" />
+            <div className="pt-3 border-t">
+              <Badge variant="outline" className="bg-custom-slate-50 text-custom-slate-700 border-custom-slate-200">
                 Aceptable para el negocio
               </Badge>
             </div>
@@ -584,173 +334,157 @@ export function MetricsDashboard({ selectedProductId, selectedLocationId, select
         </Card>
 
         {/* Data Characteristics */}
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b">
-            <CardTitle className="flex items-center gap-2 text-emerald-900">
-              <Activity className="h-5 w-5" />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
               Características de los Datos
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-gray-700">Patrón de Datos</span>
-                  <span className="text-xs text-gray-500">Clasificación</span>
-                </div>
-                <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300">
-                  {metricsData?.data_pattern_type || 'N/A'}
-                </Badge>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm">Patrón de Datos</span>
+                <span className="font-semibold">Clasificación</span>
               </div>
               
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Frecuencia de Ceros</span>
-                    <span className="font-bold text-lg text-gray-900">{((metricsData?.zero_frequency || 0) * 100).toFixed(2)}%</span>
-                  </div>
-                  <Progress value={(metricsData?.zero_frequency || 0) * 100} className="h-3 bg-gray-100">
-                    <div className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all rounded-full" 
-                         style={{ width: `${(metricsData?.zero_frequency || 0) * 100}%` }} />
-                  </Progress>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Volatilidad</span>
-                    <span className="font-bold text-lg text-gray-900">{((metricsData?.volatility_coefficient || 0) * 100).toFixed(2)}%</span>
-                  </div>
-                  <Progress value={(metricsData?.volatility_coefficient || 0) * 100} className="h-3 bg-gray-100">
-                    <div className="h-full bg-gradient-to-r from-orange-500 to-orange-600 transition-all rounded-full" 
-                         style={{ width: `${(metricsData?.volatility_coefficient || 0) * 100}%` }} />
-                  </Progress>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Estacionalidad</span>
-                    <span className="font-bold text-lg text-gray-900">{((metricsData?.seasonality_strength || 0) * 100).toFixed(2)}%</span>
-                  </div>
-                  <Progress value={(metricsData?.seasonality_strength || 0) * 100} className="h-3 bg-gray-100">
-                    <div className="h-full bg-gradient-to-r from-teal-500 to-teal-600 transition-all rounded-full" 
-                         style={{ width: `${(metricsData?.seasonality_strength || 0) * 100}%` }} />
-                  </Progress>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Clima</span>
-                    <span className="font-bold text-lg text-gray-900">{(.25 * 100).toFixed(2)}%</span>
-                  </div>
-                  <Progress value={.25 * 100} className="h-3 bg-gray-100">
-                    <div className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 transition-all rounded-full" 
-                         style={{ width: `${.25 * 100}%` }} />
-                  </Progress>
-                </div>
+              <Badge variant="outline" className="mt-2 bg-slate-100 text-slate-700">{metricsData?.data_pattern_type || 'N/A'}</Badge>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Frecuencia de Ceros</span>
+                <span className="font-semibold">{((metricsData?.zero_frequency || 0) * 100).toFixed(2)}%</span>
               </div>
+              <Progress value={(metricsData?.zero_frequency || 0) * 100} className="h-2 bg-custom-slate-100">
+                <div className="h-full bg-gradient-to-r from-custom-slate-500 to-custom-slate-700 transition-all" 
+                     style={{ width: `${(metricsData?.zero_frequency || 0) * 100}%` }} />
+              </Progress>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Volatilidad</span>
+                <span className="font-semibold">{((metricsData?.volatility_coefficient || 0) * 100).toFixed(2)}%</span>
+              </div>
+              <Progress value={(metricsData?.volatility_coefficient || 0) * 100} className="h-2 bg-custom-slate-100">
+                <div className="h-full bg-gradient-to-r from-custom-slate-500 to-custom-slate-700 transition-all" 
+                     style={{ width: `${(metricsData?.volatility_coefficient || 0) * 100}%` }} />
+              </Progress>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Estacionalidad</span>
+                <span className="font-semibold">{((metricsData?.seasonality_strength || 0) * 100).toFixed(2)}%</span>
+              </div>
+              <Progress value={(metricsData?.seasonality_strength || 0) * 100} className="h-2 bg-custom-slate-100">
+                <div className="h-full bg-gradient-to-r from-custom-slate-500 to-custom-slate-700 transition-all" 
+                     style={{ width: `${(metricsData?.seasonality_strength || 0) * 100}%` }} />
+              </Progress>
+
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Clima</span>
+                <span className="font-semibold">{(.25 * 100).toFixed(2)}%</span>
+              </div>
+              <Progress value={.25 * 100} className="h-2 bg-custom-slate-100">
+                <div className="h-full bg-gradient-to-r from-custom-slate-500 to-custom-slate-700 transition-all" 
+                     style={{ width: `${.25 * 100}%` }} />
+              </Progress>
+
             </div>
           </CardContent>
         </Card>
 
         {/* Model Insights */}
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-orange-50 to-amber-50 border-b">
-            <CardTitle className="flex items-center gap-2 text-orange-900">
-              <Brain className="h-5 w-5" />
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
               Insights del Modelo
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-sm font-medium text-gray-700">Modelo Utilizado</span>
-                </div>
-                <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-200">
-                  {metricsData?.model_name || 'N/A'}
-                </Badge>
+          <CardContent className="space-y-4">
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Modelo Utilizado</span>
               </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-700">Complejidad</span>
-                <p className="text-sm mt-1 text-gray-600">{metricsData?.model_complexity || 'N/A'}</p>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-700">Nivel de Confianza</span>
-                <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
-                  {metricsData?.confidence_level || 'N/A'}
-                </Badge>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-700">Explicación del Pronóstico</span>
-                <p className="text-sm mt-2 text-gray-600 leading-relaxed">
-                  {metricsData?.forecast_explanation || 'No hay explicación disponible'}
-                </p>
-              </div>
+              <Badge variant="secondary" className="bg-slate-100 text-slate-800">{metricsData?.model_name || 'N/A'}</Badge>
+            </div>
+            
+            <div>
+              <span className="text-sm font-medium">Complejidad</span>
+              <p className="text-sm mt-1">{metricsData?.model_complexity || 'N/A'}</p>
+            </div>
+            
+            <div>
+              <span className="text-sm font-medium">Nivel de Confianza</span>
+              <Badge variant="outline" className="ml-2 bg-custom-slate-50 text-custom-slate-700 border-custom-slate-200">
+                {metricsData?.confidence_level || 'N/A'}
+              </Badge>
+            </div>
+            
+            <div>
+              <span className="text-sm font-medium">Explicación del Pronóstico</span>
+              <p className="text-sm mt-1 text-muted-foreground">
+                {metricsData?.forecast_explanation || 'No hay explicación disponible'}
+              </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Recommendations */}
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b">
-            <CardTitle className="flex items-center gap-2 text-purple-900">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
               Recomendaciones
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 space-y-6">
-            <div className="space-y-4">
-              <div>
-                <span className="text-sm font-medium text-gray-700">Factores Principales</span>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {(metricsData?.primary_drivers || []).map((driver, index) => (
-                    <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                      {driver}
-                    </Badge>
-                  ))}
-                  {(!metricsData?.primary_drivers || metricsData.primary_drivers.length === 0) && (
-                    <span className="text-xs text-gray-500">No hay factores principales disponibles</span>
-                  )}
-                </div>
+          <CardContent className="space-y-4">
+            <div>
+              <span className="text-sm font-medium">Factores Principales</span>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {(metricsData?.primary_drivers || []).map((driver, index) => (
+                  <Badge key={index} variant="outline" className="text-xs bg-custom-slate-50 text-custom-slate-700 border-custom-slate-200">
+                    {driver}
+                  </Badge>
+                ))}
+                {(!metricsData?.primary_drivers || metricsData.primary_drivers.length === 0) && (
+                  <span className="text-xs text-muted-foreground">No hay factores principales disponibles</span>
+                )}
               </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-700">Factores de Riesgo</span>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {(metricsData?.risk_factors || []).map((risk, index) => (
-                    <Badge key={index} variant="destructive" className="text-xs bg-red-100 text-red-800 border-red-200">
-                      {risk}
-                    </Badge>
-                  ))}
-                  {(!metricsData?.risk_factors || metricsData.risk_factors.length === 0) && (
-                    <span className="text-xs text-gray-500">No hay factores de riesgo identificados</span>
-                  )}
-                </div>
+            </div>
+            
+            <div>
+              <span className="text-sm font-medium">Factores de Riesgo</span>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {(metricsData?.risk_factors || []).map((risk, index) => (
+                  <Badge key={index} variant="destructive" className="text-xs">
+                    {risk}
+                  </Badge>
+                ))}
+                {(!metricsData?.risk_factors || metricsData.risk_factors.length === 0) && (
+                  <span className="text-xs text-muted-foreground">No hay factores de riesgo identificados</span>
+                )}
               </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-700">Recomendación de Inventario</span>
-                <p className="text-sm mt-2 text-gray-600 leading-relaxed">
-                 {metricsData?.inventory_recommendations || 'No hay recomendaciones de inventario disponibles'}
-                </p>
-              </div>
-              
-              <div>
-                <span className="text-sm font-medium text-gray-700">Acciones Recomendadas</span>
-                <div className="space-y-3 mt-3">
-                  {(metricsData?.recommended_actions || []).map((action, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <CheckCircle className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-gray-700">{action}</span>
-                    </div>
-                  ))}
-                  {(!metricsData?.recommended_actions || metricsData.recommended_actions.length === 0) && (
-                    <span className="text-xs text-gray-500">No hay acciones recomendadas disponibles</span>
-                  )}
-                </div>
+            </div>
+            
+            <div>
+              <span className="text-sm font-medium">Recomendación de Inventario</span>
+              <p className="text-sm mt-1 text-muted-foreground">
+               {metricsData?.inventory_recommendations || 'No hay recomendaciones de inventario disponibles'}
+              </p>
+            </div>
+            
+            <div>
+              <span className="text-sm font-medium">Acciones Recomendadas</span>
+              <div className="space-y-2 mt-2">
+                {(metricsData?.recommended_actions || []).map((action, index) => (
+                  <div key={index} className="flex items-start gap-2">
+                    <CheckCircle className="h-4 w-4 text-custom-slate mt-0.5" />
+                    <span className="text-sm">{action}</span>
+                  </div>
+                ))}
+                {(!metricsData?.recommended_actions || metricsData.recommended_actions.length === 0) && (
+                  <span className="text-xs text-muted-foreground">No hay acciones recomendadas disponibles</span>
+                )}
               </div>
             </div>
           </CardContent>
