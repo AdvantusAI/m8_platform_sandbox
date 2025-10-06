@@ -23,7 +23,7 @@ const items = [
     type: "table"
   },
   {
-    title: "All orders",
+    title: "Post game analisis",
     url: "/kpi-dashboard",
     icon: Table,
     type: "table"
@@ -36,28 +36,28 @@ const items = [
     type: "table"
   },
   {
-    title: "Multiple orders per...",
+    title: "KAM - Forecast colaboración",
     url: "/forecast-collaboration",
     icon: Folder,
     type: "folder",
     children: []
   },
   {
-    title: "DC",
+    title: "NPI Launch",
     url: "/launches",
     icon: Folder,
     type: "folder",
     children: []
   },
   {
-    title: "Master data and settings",
+    title: "NPI Supply Planning",
     url: "/supply-planning",
     icon: Folder,
     type: "folder",
     children: []
   },
   {
-    title: "Replenishment",
+    title: "Seguimiento NPI",
     url: "/npi-followup",
     icon: Folder,
     type: "folder",
