@@ -3,16 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Truck, MapPin, X, Filter } from "lucide-react";
+import { Package, Truck, MapPin, X, Filter, Calendar, Users } from "lucide-react";
 import { ForecastDataTable } from "@/components/ForecastDataTable";
 import { ForecastChart } from "@/components/ForecastChart";
 import { MetricsDashboard } from "@/components/MetricsDashboard";
 import { DynamicUpcomingChallenges } from "@/components/DynamicUpcomingChallenges";
 import { DynamicActionItems } from "@/components/DynamicActionItems";
-import { ProductSelectionModal } from "@/components/ProductSelectionModal";
-import { LocationSelectionModal } from "@/components/LocationSelectionModal";
-import { CustomerSelectionModal } from "@/components/CustomerSelectionModal";
-import { useState, useEffect } from "react";
+import { FilterDropdown, ProductHierarchyItem, LocationItem, CustomerItem, DateRange } from "@/components/filters/FilterDropdown";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useInterpretabilityData } from "@/hooks/useInterpretabilityData";
 import { useProducts } from "@/hooks/useProducts";
@@ -86,95 +84,51 @@ export default function DemandForecast() {
   // Initialize state with localStorage values, fallback to URL params
   const storedFilters = getStoredFilters();
   
-  // Filter state - product is required, location and customer are optional
-  const [selectedProductId, setSelectedProductId] = useState<string>(
-    searchParams.get('product_id') || storedFilters.productId || ''
-  );
-  const [selectedLocationId, setSelectedLocationId] = useState<string>(
-    searchParams.get('location_code') || searchParams.get('location_node_id') || storedFilters.locationId || ''
-  );
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
-    searchParams.get('customer_code') || searchParams.get('customer_node_id') || storedFilters.customerId || ''
-  );
+  // Filter state using FilterDropdown types
+  const [selectedProduct, setSelectedProduct] = useState<ProductHierarchyItem | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerItem | null>(null);
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
   
   // Chart data state for forecast visualization
   const [chartData, setChartData] = useState<ForecastData[]>([]);
   
-  // Modal visibility states
-  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
-  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
-  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
-  
   // ===== HOOKS =====
   // Data hooks for interpretability and name resolution
-  const { data: interpretabilityData } = useInterpretabilityData(selectedProductId, selectedLocationId, selectedCustomerId);
+  const { data: interpretabilityData } = useInterpretabilityData(
+    selectedProduct?.product_id || '', 
+    selectedLocation?.location_code || '', 
+    selectedCustomer?.customer_code || ''
+  );
   const { getProductName } = useProducts();
   const { getLocationName, loading: locationsLoading } = useLocations();
   const { getCustomerName, loading: customersLoading } =  useCustomers();
 
-  // ===== URL PARAMETER SYNC =====
-  /**
-   * Syncs component state with URL parameters when they change
-   * This allows for deep linking and browser navigation
-   */
-  useEffect(() => {
-    const productParam = searchParams.get('product_id');
-    const locationParam = searchParams.get('location_code') || searchParams.get('location_node_id');
-    const customerParam = searchParams.get('customer_code') || searchParams.get('customer_node_id');
-    
-    if (productParam && productParam !== selectedProductId) {
-      setSelectedProductId(productParam);
-    }
-    if (locationParam && locationParam !== selectedLocationId) {
-      setSelectedLocationId(locationParam);
-    }
-    if (customerParam && customerParam !== selectedCustomerId) {
-      setSelectedCustomerId(customerParam);
-    }
-  }, [searchParams, selectedProductId, selectedLocationId, selectedCustomerId]);
-
-  // ===== EVENT HANDLERS =====
-  /**
-   * Handles product selection from modal
-   * @param productId - Selected product ID
-   */
-  const handleProductSelect = (productId: string): void => {
-    setSelectedProductId(productId);
-    saveFiltersToStorage({
-      productId,
-      locationId: selectedLocationId,
-      customerId: selectedCustomerId
-    });
-    //////console.log('Producto seleccionado en Demand Forecast:', productId);
+  // ===== FILTER HANDLERS =====
+  const handleProductFilterChange = (selection: ProductHierarchyItem | null) => {
+    setSelectedProduct(selection);
   };
 
-  /**
-   * Handles location selection from modal
-   * @param locationId - Selected location ID
-   */
-  const handleLocationSelect = (locationId: string): void => {
-    setSelectedLocationId(locationId);
-    saveFiltersToStorage({
-      productId: selectedProductId,
-      locationId,
-      customerId: selectedCustomerId
-    });
+  const handleLocationFilterChange = (location: LocationItem | null) => {
+    setSelectedLocation(location);
   };
 
-  /**
-   * Handles customer selection from modal
-   * @param customerId - Selected customer ID
-   */
-  const handleCustomerSelect = (customerId: string): void => {
-  
-    setSelectedCustomerId(customerId);
-    saveFiltersToStorage({
-      productId: selectedProductId,
-      locationId: selectedLocationId,
-      customerId
-    });
-    //////console.log('Cliente seleccionado en Demand Forecast:', customerId);
+  const handleCustomerFilterChange = (customer: CustomerItem | null) => {
+    setSelectedCustomer(customer);
   };
+
+  const handleDateRangeChange = (dateRange: DateRange | null) => {
+    setSelectedDateRange(dateRange);
+  };
+
+  const handleSearch = useCallback(() => {
+    console.log('Search triggered with filters:', {
+      selectedProduct,
+      selectedLocation,
+      selectedCustomer,
+      selectedDateRange
+    });
+  }, [selectedProduct, selectedLocation, selectedCustomer, selectedDateRange]);
 
   /**
    * Updates chart data when forecast data changes
@@ -182,21 +136,6 @@ export default function DemandForecast() {
    */
   const handleForecastDataUpdate = (data: ForecastData[]): void => {
     setChartData(data);
-  };
-
-  /**
-   * Clears all filters and resets to default state
-   */
-  const handleClearFilters = (): void => {
-    setSelectedProductId('');
-    setSelectedLocationId('');
-    setSelectedCustomerId('');
-    saveFiltersToStorage({
-      productId: '',
-      locationId: '',
-      customerId: ''
-    });
-    //////console.log('Filtros limpiados');
   };
 
   // ===== COLLABORATION METRICS CALCULATION =====
@@ -232,132 +171,59 @@ export default function DemandForecast() {
   return (
     <div className="space-y-6">
       {/* ===== FILTER SECTION ===== */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4">
-              
-              {/* Product Filter - Required */}
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium">Producto:</span>
-                {selectedProductId ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">{selectedProductId}</Badge>
-                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">{getProductName(selectedProductId)}</Badge>
-                  </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">No seleccionado (obligatorio)</span>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsProductModalOpen(true)}
-                  className="ml-2 h-8 w-8"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {/* Location Filter - Optional */}
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium">Ubicación:</span>
-                {selectedLocationId ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">{selectedLocationId}</Badge>
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                      {locationsLoading ? 'Cargando...' : getLocationName(selectedLocationId)}
-                    </Badge>
-                  </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">No seleccionada (opcional)</span>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsLocationModalOpen(true)}
-                  className="ml-2 h-8 w-8"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-                {/* Individual clear button for location */}
-                {selectedLocationId && (
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => {
-                      setSelectedLocationId('');
-                      saveFiltersToStorage({
-                        productId: selectedProductId,
-                        locationId: '',
-                        customerId: selectedCustomerId
-                      });
-                    }}
-                    
-                    className="h-8 w-8"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
+      <div className="space-y-4">
+        <div className="flex justify-start">
+          <FilterDropdown 
+            onProductFilterChange={handleProductFilterChange}
+            onLocationFilterChange={handleLocationFilterChange}
+            onCustomerFilterChange={handleCustomerFilterChange}
+            onDateRangeChange={handleDateRangeChange}
+            onSearch={handleSearch}
+          />
+        </div>
+
+        {/* Selected Filters Display */}
+        {(selectedProduct || selectedLocation || selectedCustomer || selectedDateRange) && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-medium text-muted-foreground">Filtros activos:</span>
                 
-              {/* Customer Filter - Optional */}
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-medium">Cliente:</span>           
-                {selectedCustomerId ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">{selectedCustomerId}</Badge>
-                    <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">{getCustomerName(selectedCustomerId)}</Badge>
+                {selectedProduct && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm">
+                    <Package className="h-3 w-3" />
+                    {selectedProduct.level === 'product' && `${selectedProduct.product_id} - ${selectedProduct.product_name}`}
+                    {selectedProduct.level === 'class' && `${selectedProduct.class_name} (Clase)`}
+                    {selectedProduct.level === 'subcategory' && `${selectedProduct.subcategory_name} (Subcategoría)`}
+                    {selectedProduct.level === 'category' && `${selectedProduct.category_name} (Categoría)`}
                   </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">No seleccionado (opcional)</span>
                 )}
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsCustomerModalOpen(true)}
-                  className="ml-2 h-8 w-8"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-                {/* Individual clear button for customer */}
-                {selectedCustomerId && (
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => {
-                      setSelectedCustomerId('');
-                      saveFiltersToStorage({
-                        productId: selectedProductId,
-                        locationId: selectedLocationId,
-                        customerId: ''
-                      });
-                    }}
-                    className="h-8 w-8"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                
+                {selectedLocation && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-sm">
+                    <Truck className="h-3 w-3" />
+                    {selectedLocation.description} ({selectedLocation.location_code})
+                  </div>
+                )}
+                
+                {selectedCustomer && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded-full text-sm">
+                    <Users className="h-3 w-3" />
+                    {selectedCustomer.description} ({selectedCustomer.customer_code})
+                  </div>
+                )}
+                
+                {selectedDateRange && (
+                  <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm">
+                    <Calendar className="h-3 w-3" />
+                    {selectedDateRange.from?.toLocaleDateString('es-ES')} - {selectedDateRange.to?.toLocaleDateString('es-ES')}
+                  </div>
                 )}
               </div>
-              
-            </div>
-            
-            {/* Global clear all filters button */}
-            {(selectedProductId || selectedLocationId || selectedCustomerId) && (
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={handleClearFilters}
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* ===== TAB INTERFACE ===== */}
       <Tabs defaultValue="plan-demanda" className="w-full">
@@ -375,9 +241,9 @@ export default function DemandForecast() {
               <CardTitle>Gráfico de Pronósticos</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Visualización de datos de pronóstico vs. valores reales
-                {!selectedProductId ? 
+                {!selectedProduct ? 
                   " - Selecciona producto para ver datos" : 
-                  `${selectedLocationId ? ` - Ubicación: ${selectedLocationId}` : ' - Todas las ubicaciones'}${selectedCustomerId ? ` - Cliente: ${selectedCustomerId}` : " - Todos los clientes"}`
+                  `${selectedLocation ? ` - Ubicación: ${selectedLocation.location_code}` : ' - Todas las ubicaciones'}${selectedCustomer ? ` - Cliente: ${selectedCustomer.customer_code}` : " - Todos los clientes"}`
                 }
               </p>
             </CardHeader>
@@ -392,18 +258,18 @@ export default function DemandForecast() {
               <CardTitle>Tabla de Datos de Pronóstico</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Datos detallados con capacidad de edición para Demand Planner
-                {!selectedProductId ? 
+                {!selectedProduct ? 
                   " - Selecciona producto para ver datos" : 
-                  `${selectedLocationId ? ` - Ubicación: ${selectedLocationId}` : ' - Todas las ubicaciones'}${selectedCustomerId ? ` - Cliente: ${selectedCustomerId}` : " - Todos los clientes"}`
+                  `${selectedLocation ? ` - Ubicación: ${selectedLocation.location_code}` : ' - Todas las ubicaciones'}${selectedCustomer ? ` - Cliente: ${selectedCustomer.customer_code}` : " - Todos los clientes"}`
                 }
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
             
               <ForecastDataTable 
-                selectedProductId={selectedProductId}
-                selectedLocationId={selectedLocationId}
-                selectedCustomerId={selectedCustomerId}
+                selectedProductId={selectedProduct?.product_id || ''}
+                selectedLocationId={selectedLocation?.location_code || ''}
+                selectedCustomerId={selectedCustomer?.customer_code || ''}
                 onDataUpdate={handleForecastDataUpdate}
               />
             </CardContent>
@@ -413,43 +279,22 @@ export default function DemandForecast() {
         {/* ===== MÉTRICAS TAB ===== */}
         <TabsContent value="metricas" className="space-y-6 mt-6">
           <MetricsDashboard 
-            selectedProductId={selectedProductId}
-            selectedLocationId={selectedLocationId}
-            selectedCustomerId={selectedCustomerId}
+            selectedProductId={selectedProduct?.product_id || ''}
+            selectedLocationId={selectedLocation?.location_code || ''}
+            selectedCustomerId={selectedCustomer?.customer_code || ''}
           />
         </TabsContent>
 
         {/* ===== OUTLIERS TAB ===== */}
         <TabsContent value="outliers" className="space-y-6 mt-6">
           <OutliersTab 
-            selectedProductId={selectedProductId}
-            selectedCustomerId={selectedCustomerId}
-            selectedLocationId={selectedLocationId}
+            selectedProductId={selectedProduct?.product_id || ''}
+            selectedCustomerId={selectedCustomer?.customer_code || ''}
+            selectedLocationId={selectedLocation?.location_code || ''}
           />
         </TabsContent>
       </Tabs>
 
-      {/* ===== MODALS ===== */}
-      {/* Product Selection Modal */}
-      <ProductSelectionModal
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
-        onSelect={handleProductSelect}
-      />
-
-      {/* Location Selection Modal */}
-      <LocationSelectionModal
-        isOpen={isLocationModalOpen}
-        onClose={() => setIsLocationModalOpen(false)}
-        onSelect={handleLocationSelect}
-      />
-
-      {/* Customer Selection Modal */}
-      <CustomerSelectionModal
-        isOpen={isCustomerModalOpen}
-        onClose={() => setIsCustomerModalOpen(false)}
-        onSelect={handleCustomerSelect}
-      />
     </div>
   );
 }
