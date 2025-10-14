@@ -68,8 +68,9 @@ const ForecastCollaboration: React.FC = () => {
   });
   const [kamApprovals, setKamApprovals] = useState<{[key: string]: {[key: string]: string}}>({});
   const [saving, setSaving] = useState(false);
+  const [queryStartTime, setQueryStartTime] = useState<number | null>(null);
 
-  const months = ['oct-24', 'nov-24', 'dic-24', 'ene-25', 'feb-25', 'mar-25', 'abr-25', 'may-25', 'jun-25', 'jul-25', 'ago-25', 'sep-25', 'oct-25', 'nov-25', 'dic-25'];
+  const months = ['ago-25', 'sep-25', 'oct-25', 'nov-25', 'dic-25', 'ene-26', 'feb-26', 'mar-26', 'abr-26', 'may-26', 'jun-26', 'jul-26'];
   const dataTypes = ['Año pasado (LY)', 'Gap Forecast vs ventas', 'Forecast M8.predict', 'Key Account Manager', 'Kam Forecast', 'Sales manager view', 'Effective Forecast', 'KAM aprobado'];
 
   // ===== HOOKS =====
@@ -174,11 +175,11 @@ const ForecastCollaboration: React.FC = () => {
     
     // Pre-define month map for better performance
     const monthMap: { [key: string]: string } = {
-      '10-24': 'oct-24', '11-24': 'nov-24', '12-24': 'dic-24',
-      '01-25': 'ene-25', '02-25': 'feb-25', '03-25': 'mar-25',
-      '04-25': 'abr-25', '05-25': 'may-25', '06-25': 'jun-25',
-      '07-25': 'jul-25', '08-25': 'ago-25', '09-25': 'sep-25',
-      '10-25': 'oct-25', '11-25': 'nov-25', '12-25': 'dic-25'
+        
+        '01-25': 'ene-25', '02-25': 'feb-25', '03-25': 'mar-25',
+        '04-25': 'abr-25', '05-25': 'may-25', '06-25': 'jun-25',
+        '07-25': 'jul-25', '08-25': 'ago-25', '09-25': 'sep-25',
+        '10-25': 'oct-25', '11-25': 'nov-25', '12-25': 'dic-25','ene-26': 'ene-26', 'feb-26': 'feb-26', 'mar-26': 'mar-26', 'abr-26': 'abr-26', 'may-26': 'may-26', 'jun-26': 'jun-26', 'jul-26': 'jul-26'
     };
     
     rawData.forEach((row: ForecastData) => {
@@ -235,11 +236,17 @@ const ForecastCollaboration: React.FC = () => {
   const [customerNamesCache, setCustomerNamesCache] = useState<{[key: string]: string}>({});
   const [customerNamesLoaded, setCustomerNamesLoaded] = useState(false);
 
-  const fetchForecastData = useCallback(async (isFilterOperation = false) => {
+  const fetchForecastData = useCallback(async (isFilterOperation = false, retryCount = 0) => {
+    const maxRetries = 3;
+    const timeoutMs = 30000; // 30 seconds timeout
+    
     try {
       if (isFilterOperation) {
         setFilterLoading(true);
       }
+      
+      // Track query start time for timeout warnings
+      setQueryStartTime(Date.now());
       
       // Only fetch customer names if not already cached
       let customerNamesMap = customerNamesCache;
@@ -268,29 +275,54 @@ const ForecastCollaboration: React.FC = () => {
         setCustomerNamesLoaded(true);
       }
 
-      // Then fetch forecast data using the new commercial_collaboration_view
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout - the request took too long to complete')), timeoutMs);
+      });
+
+      // Build the query with better optimization
       let query = (supabase as any)
         .schema('m8_schema')
         .from('commercial_collaboration_view')
-        .select('customer_node_id,postdate,forecast_ly,forecast,approved_sm_kam,sm_kam_override,forecast_sales_manager,commercial_input,forecast_sales_gap,product_id,subcategory_id')
-        .order('customer_node_id', { ascending: true })
-        .order('postdate', { ascending: true })
-        .limit(10000); // Add reasonable limit to prevent excessive data loading
+        .select('*')
+        .limit(5000); // Reduced limit for better performance
 
-      // Apply filters
+      // Apply filters in order of selectivity (most selective first)
+      if (filterCustomerId) {
+        query = query.eq('customer_node_id', filterCustomerId);
+      }
       if (filterProductId) {
         query = query.eq('product_id', filterProductId);
       }
       if (filterLocationId) {
         query = query.eq('location_node_id', filterLocationId);
       }
-      if (filterCustomerId) {
-        query = query.eq('customer_node_id', filterCustomerId);
+
+      // Add ordering only if we have specific filters to improve performance
+      if (filterCustomerId || filterProductId || filterLocationId) {
+        query = query.order('postdate', { ascending: true });
       }
 
-      const { data, error } = await query;
+      // Race between the query and timeout
+      const { data, error } = await Promise.race([
+        query,
+        timeoutPromise
+      ]) as any;
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific timeout errors
+        if (error.code === '57014' || error.message.includes('timeout')) {
+          if (retryCount < maxRetries) {
+            console.warn(`Query timeout, retrying... (attempt ${retryCount + 1}/${maxRetries})`);
+            // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+            return fetchForecastData(isFilterOperation, retryCount + 1);
+          } else {
+            throw new Error('Query timeout after multiple retries. The data is too large or the database is under heavy load. Please try with more specific filters.');
+          }
+        }
+        throw error;
+      }
 
       // Reduced logging for better performance
       console.log('Loaded records:', data?.length || 0);
@@ -303,11 +335,17 @@ const ForecastCollaboration: React.FC = () => {
       console.log('Processed customers:', allCustomersData.length);
       setAllCustomers(allCustomersData);
       setCustomers(allCustomersData);
+      
+      // Clear any previous errors on successful load
+      setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      console.error('Forecast data fetch error:', err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
       setFilterLoading(false);
+      setQueryStartTime(null);
     }
   }, [processForecastData, filterProductId, filterLocationId, filterCustomerId, customerNamesCache, customerNamesLoaded]);
 
@@ -712,7 +750,7 @@ const ForecastCollaboration: React.FC = () => {
   }
   if (error) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
+      <div className="text-center max-w-md mx-auto p-6">
         <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -720,12 +758,40 @@ const ForecastCollaboration: React.FC = () => {
         </div>
         <h3 className="text-lg font-semibold text-gray-700 mb-2">Error al cargar los datos</h3>
         <p className="text-sm text-red-600 mb-4">{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Intentar de nuevo
-        </button>
+        
+        {/* Show specific guidance for timeout errors */}
+        {error.includes('timeout') && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-left">
+            <h4 className="font-medium text-yellow-800 mb-2">💡 Sugerencias para resolver el problema:</h4>
+            <ul className="text-sm text-yellow-700 space-y-1">
+              <li>• Aplica filtros más específicos (Producto, Ubicación, Cliente)</li>
+              <li>• Intenta cargar menos datos a la vez</li>
+              <li>• Verifica tu conexión a internet</li>
+              <li>• El servidor puede estar experimentando alta carga</li>
+            </ul>
+          </div>
+        )}
+        
+        <div className="flex flex-col sm:flex-row gap-2 justify-center">
+          <button 
+            onClick={() => {
+              setError(null);
+              fetchForecastData();
+            }} 
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Intentar de nuevo
+          </button>
+          <button 
+            onClick={() => {
+              setError(null);
+              handleClearFilters();
+            }} 
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Limpiar filtros y reintentar
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1013,6 +1079,12 @@ const ForecastCollaboration: React.FC = () => {
               <div className="flex items-center space-x-2 text-sm text-blue-600">
                 <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
                 <span>Guardando...</span>
+              </div>
+            )}
+            {queryStartTime && Date.now() - queryStartTime > 10000 && (
+              <div className="flex items-center space-x-2 text-sm text-yellow-600">
+                <div className="w-4 h-4 border-2 border-yellow-200 border-t-yellow-600 rounded-full animate-spin"></div>
+                <span>Consulta tomando más tiempo del esperado... Considera aplicar filtros más específicos.</span>
               </div>
             )}
           </div>

@@ -267,7 +267,7 @@ export function AppSidebar() {
           // Show fallback
           const fallback = e.currentTarget.nextElementSibling as HTMLElement;
           if (fallback) fallback.style.display = 'flex';
-        }} className="h-9w-9 object-contain rounded-lg" /> : <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-semibold text-sm">
+        }} className="h-8 w-8 object-contain rounded-lg" /> : <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-semibold text-sm">
               M8
             </div>}
           <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-semibold text-sm">
