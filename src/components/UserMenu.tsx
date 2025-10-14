@@ -20,11 +20,22 @@ export function UserMenu() {
   const { role, isAdministrator } = useUserRole();
 
   const handleSignOut = async () => {
-    const { error } = await signOut();
-    if (error) {
-      toast.error('Error al cerrar sesión');
-    } else {
-      toast.success('Sesión cerrada exitosamente');
+    try {
+      const { error } = await signOut();
+      if (error) {
+        // Check if it's the specific session_id error
+        if (error.message?.includes('session_id claim in JWT does not exist')) {
+          // This is actually a successful logout - session was already invalidated
+          toast.success('Sesión cerrada exitosamente');
+        } else {
+          toast.error('Error al cerrar sesión: ' + error.message);
+        }
+      } else {
+        toast.success('Sesión cerrada exitosamente');
+      }
+    } catch (err) {
+      console.error('Unexpected error during logout:', err);
+      toast.error('Error inesperado al cerrar sesión');
     }
   };
 

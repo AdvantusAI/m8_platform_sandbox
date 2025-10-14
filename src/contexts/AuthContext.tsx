@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { validateSessionToken, getSessionIdFromToken } from '@/utils/sessionUtils';
 
 
 interface AuthContextType {
@@ -74,8 +75,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    try {
+      // Get current session before clearing it
+      const currentSession = session;
+      
+      // Clear local session state first to prevent issues
+      setSession(null);
+      setUser(null);
+      
+      // If we have a session, validate the token before attempting logout
+      if (currentSession?.access_token) {
+        const sessionId = getSessionIdFromToken(currentSession.access_token);
+        const isValidToken = validateSessionToken(currentSession.access_token);
+        
+        if (!isValidToken || !sessionId) {
+          // Token is invalid or missing session_id, consider logout successful
+          console.log('Token invalid or missing session_id, logout successful');
+          return { error: null };
+        }
+      }
+      
+      // Attempt to sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      // If there's an error related to session_id not existing, 
+      // it's likely because the session was already invalidated
+      if (error && error.message?.includes('session_id claim in JWT does not exist')) {
+        // This is actually a successful logout scenario - the session is already gone
+        console.log('Session already invalidated, logout successful');
+        return { error: null };
+      }
+      
+      return { error };
+    } catch (err) {
+      // Handle any unexpected errors during logout
+      console.error('Unexpected error during logout:', err);
+      return { error: err };
+    }
   };
 
   const value = {

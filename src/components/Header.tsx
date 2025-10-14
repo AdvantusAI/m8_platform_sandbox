@@ -5,9 +5,11 @@ import { UserMenu } from "@/components/UserMenu";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { supabase } from "@/integrations/supabase/client";
 import { Clock } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export function Header() {
   const [systemDate, setSystemDate] = useState<string>("");
+  const { theme } = useTheme();
 
   useEffect(() => {
     fetchSystemDate();
@@ -49,7 +51,7 @@ export function Header() {
   };
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 bg-white ml-0">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-4 ml-0" style={{ backgroundColor: `hsl(var(--primary) / 0.3)` }}>
       <div className="flex items-center gap-2">
         <SidebarTrigger />
         <h1 className="text-lg font-semibold text-gray-900">M8 Platform</h1>

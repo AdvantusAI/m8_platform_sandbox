@@ -1,5 +1,5 @@
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader } from "@/components/ui/sidebar";
-import { ChartSpline , Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package, ShoppingCart, ChartScatter, FileText, Calendar, Bell, Building2, Tag, UserPlus, Activity, Brain, Warehouse, Rocket, GitBranch, Network, TrendingDown, ArrowLeftRight, UserCheck, Factory, AlertTriangle, Truck, BellRing, Shield, ChevronDown, ChevronRight, Wrench, Search, Filter, Maximize2, Plus, Folder, Table } from "lucide-react";
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader,  } from "@/components/ui/sidebar";
+import { Repeat2, Folder, Table, ChartSpline, Tag, ChartScatter, Users, Package, Building2, Network, UserPlus, UserCheck, ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -11,23 +11,24 @@ interface CompanyConfig {
 }
 const items = [
   {
+    title: "Post game analisis",
+    url: "/kpi-dashboard",
+    icon: Repeat2 ,
+    type: "table"
+  },
+  {
     title: "Forecasting",
     url: "/demand-forecast",
     icon: ChartSpline,
     type: "table"
   },
-  {
+  /*{
     title: "Demand workbench",
     url: "/demand-workbench",
     icon: Table,
     type: "table"
-  },
-  {
-    title: "Post game analisis",
-    url: "/kpi-dashboard",
-    icon: Table,
-    type: "table"
-  },
+  },*/
+
 
   {
     title: "All orders & exc...",
@@ -82,8 +83,8 @@ const items = [
 // Seasonality items
 const seasonalityItems = [
   {
-    title: "Product terminations",
-    url: "/product-terminations",
+    title: "Red de suministro",
+    url: "/supply-network",
     icon: Folder,
     type: "folder",
     children: []
@@ -256,8 +257,8 @@ export function AppSidebar() {
       </Sidebar>;
   }
   return <Sidebar className="border-r border-gray-200 bg-white">
-      <SidebarHeader className="border-b border-gray-200" style={{
-      backgroundColor: '#f3f4f6'
+      <SidebarHeader className="border-b border-gray-200 bg-white" style={{
+      backgroundColor: '#ffffff' 
     }}>
         <div className="flex items-center gap-2 px-2">
           {companyConfig?.company_logo ? <img src={companyConfig.company_logo} alt={companyConfig.company_name || 'Company Logo'} onError={e => {
@@ -266,7 +267,7 @@ export function AppSidebar() {
           // Show fallback
           const fallback = e.currentTarget.nextElementSibling as HTMLElement;
           if (fallback) fallback.style.display = 'flex';
-        }} className="h-10w-10 object-contain rounded-lg" /> : <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-semibold text-sm">
+        }} className="h-9w-9 object-contain rounded-lg" /> : <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-semibold text-sm">
               M8
             </div>}
           <div className="hidden h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white font-semibold text-sm">
@@ -299,10 +300,10 @@ export function AppSidebar() {
                     <SidebarMenuButton 
                       onClick={() => navigate(item.url)} 
                       isActive={location.pathname === item.url} 
-                      className={`w-full justify-start text-sm hover:bg-gray-50 ${
+                      className={`w-full justify-start text-sm hover:bg-blue-50 transition-colors duration-200 ${
                         location.pathname === item.url 
-                          ? 'bg-gray-100 text-gray-900' 
-                          : 'text-gray-700 hover:text-gray-900'
+                          ? 'bg-blue-100 text-blue-900' 
+                          : 'text-gray-700 hover:text-blue-700'
                       }`}
                     >
                       <item.icon className="h-4 w-4 mr-2" />
@@ -321,7 +322,7 @@ export function AppSidebar() {
             onClick={() => toggleSection('seasonality')}
           >
             <SidebarGroupLabel className="text-gray-600 font-semibold text-sm">
-              SEASONALITY
+              Fulfillment
             </SidebarGroupLabel>
             {collapsedSections.seasonality ? (
               <ChevronRight className="h-4 w-4 text-gray-500" />
@@ -336,11 +337,10 @@ export function AppSidebar() {
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton 
                       onClick={() => navigate(item.url)} 
-                      isActive={location.pathname === item.url} 
-                      className={`w-full justify-start text-sm hover:bg-gray-50 ${
+                      className={`w-full justify-start text-sm hover:bg-red-50 transition-colors duration-200 ${
                         location.pathname === item.url 
-                          ? 'bg-gray-100 text-gray-900' 
-                          : 'text-gray-700 hover:text-gray-900'
+                          ? 'bg-red-100 text-red-900' 
+                          : 'text-gray-700 hover:text-red-700'
                       }`}
                     >
                       <item.icon className="h-4 w-4 mr-2" />
@@ -381,7 +381,7 @@ export function AppSidebar() {
                             : 'text-gray-700 hover:text-gray-900'
                         }`}
                       >
-                        <item.icon className="h-4 w-4 mr-2" />
+                        <item.icon className="h-4 w-4 mr-2" style={{ color: '#fffcfd' }} />
                         <span className="font-normal">{item.title}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

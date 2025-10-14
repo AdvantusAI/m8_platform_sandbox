@@ -28,7 +28,28 @@ export function useUserRole() {
 
         if (error) {
           console.error('Error fetching user role:', error);
-          setRole('user'); // Default to user if no role found
+          // If it's a permission error, try to create a default role
+          if (error.code === 'PGRST301' || error.message?.includes('permission')) {
+            try {
+              // Try to insert a default user role
+              const { error: insertError } = await supabase
+                .schema('m8_schema')
+                .from('user_roles')
+                .insert({ user_id: user.id, role: 'user' });
+              
+              if (!insertError) {
+                setRole('user');
+              } else {
+                console.error('Error creating default role:', insertError);
+                setRole('user'); // Default to user anyway
+              }
+            } catch (insertErr) {
+              console.error('Error creating default role:', insertErr);
+              setRole('user');
+            }
+          } else {
+            setRole('user'); // Default to user if no role found
+          }
         } else {
           // Map database roles to our UserRole type
           const dbRole = data?.role;

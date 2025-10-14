@@ -6,31 +6,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useForm } from "react-hook-form";
 import { Plus, Search, Edit, Trash2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 interface Location {
-  location_node_id: string;
-  location_name: string | null;
-  type: string | null;
-  level_1: string | null;
-  level_2: string | null;
-  level_3: string | null;
-  level_4: string | null;
-  working_cal: string | null;
-  borrowing_pct: number | null;
-  service_level_goal: number | null;
-  warehouse_control_factors_active: boolean | null;
+  id: string;
+  description: string | null;
+  location_code: string | null;
+  type_code: string | null;
+  node_type_id: string | null;
 }
 
 type LocationForm = Omit<Location, 'created_at' | 'updated_at'>;
 
 const ITEMS_PER_PAGE = 10;
 
+interface NodeType {
+  id: string;
+  type_code: string;
+}
+
 const LocationsCatalog = () => {
   const [locations, setLocations] = useState<Location[]>([]);
+  const [nodeTypes, setNodeTypes] = useState<NodeType[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -41,19 +42,28 @@ const LocationsCatalog = () => {
 
   const form = useForm<LocationForm>({
     defaultValues: {
-      location_node_id: "",
-      location_name: "",
-      type: "",
-      level_1: "",
-      level_2: "",
-      level_3: "",
-      level_4: "",
-      working_cal: "",
-      borrowing_pct: null,
-      service_level_goal: null,
-      warehouse_control_factors_active: false,
+      id: "",
+      description: "",
+      location_code: "",
+      type_code: "",
+      node_type_id: "",
     },
   });
+
+  const fetchNodeTypes = async () => {
+    try {
+      const { data, error } = await (supabase as any)
+        .schema('m8_schema')
+        .from("supply_network_node_types")
+        .select("id, type_code")
+        .in("type_code", ["Warehouse", "Customer"]);
+      
+      if (error) throw error;
+      setNodeTypes(data || []);
+    } catch (error) {
+      console.error("Error fetching node types:", error);
+    }
+  };
 
   const fetchLocations = async (page: number = 1) => {
     try {
@@ -61,24 +71,41 @@ const LocationsCatalog = () => {
       const start = (page - 1) * ITEMS_PER_PAGE;
       const end = start + ITEMS_PER_PAGE - 1;
       
-      let query = supabase
-        .from("locations")
-        .select("*", { count: 'exact' })
+      let query = (supabase as any)
+        .schema('m8_schema')
+        .from("supply_network_nodes")
+        .select(`
+          id,
+          description,
+          location_code,
+          node_type_id,
+          supply_network_node_types!inner(type_code)
+        `, { count: 'exact' })
+        .in('supply_network_node_types.type_code', ['Warehouse', 'Customer'])
         .range(start, end);
       
       if (searchTerm) {
-        query = query.or(`location_node_id.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%,type.ilike.%${searchTerm}%`);
+        query = query.or(`description.ilike.%${searchTerm}%,location_code.ilike.%${searchTerm}%`);
       }
       
-      const { data, error, count } = await query.order("location_node_id");
+      const { data, error, count } = await query.order("location_code");
       
       if (error) throw error;
       
-      setLocations(data || []);
+      // Transform the data to match our interface
+      const transformedData = (data || []).map((item: any) => ({
+        id: item.id,
+        description: item.description,
+        location_code: item.location_code,
+        type_code: item.supply_network_node_types?.type_code,
+        node_type_id: item.node_type_id
+      }));
+      
+      setLocations(transformedData);
       setTotalCount(count || 0);
       setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE));
       
-      //////console.log('Locations fetched:', data?.length, 'Total count:', count, 'Total pages:', Math.ceil((count || 0) / ITEMS_PER_PAGE));
+      //////console.log('Locations fetched:', transformedData?.length, 'Total count:', count, 'Total pages:', Math.ceil((count || 0) / ITEMS_PER_PAGE));
     } catch (error) {
       console.error("Error fetching locations:", error);
       toast.error("Error al cargar las ubicaciones");
@@ -90,17 +117,29 @@ const LocationsCatalog = () => {
   const handleSubmit = async (data: LocationForm) => {
     try {
       if (editingLocation) {
-        const { error } = await supabase
-          .from("locations")
-          .update(data)
-          .eq("location_node_id", editingLocation.location_node_id);
+        // Update the supply_network_nodes table
+        const { error } = await (supabase as any)
+          .schema('m8_schema')
+          .from("supply_network_nodes")
+          .update({
+            description: data.description,
+            location_code: data.location_code,
+            node_type_id: data.node_type_id
+          })
+          .eq("id", editingLocation.id);
         
         if (error) throw error;
         toast.success("Ubicación actualizada exitosamente");
       } else {
-        const { error } = await supabase
-          .from("locations")
-          .insert([data]);
+        // Insert into supply_network_nodes table
+        const { error } = await (supabase as any)
+          .schema('m8_schema')
+          .from("supply_network_nodes")
+          .insert([{
+            description: data.description,
+            location_code: data.location_code,
+            node_type_id: data.node_type_id
+          }]);
         
         if (error) throw error;
         toast.success("Ubicación creada exitosamente");
@@ -117,8 +156,17 @@ const LocationsCatalog = () => {
   };
 
   const handleEdit = (location: Location) => {
-    setEditingLocation(location);
-    form.reset(location);
+    // For editing, we need to fetch the full record from supply_network_nodes
+    // since the view doesn't include the id field
+    const editData = {
+      id: location.id || "",
+      description: location.description || "",
+      location_code: location.location_code || "",
+      type_code: location.type_code || "",
+      node_type_id: location.node_type_id || "",
+    };
+    setEditingLocation(editData);
+    form.reset(editData);
     setIsDialogOpen(true);
   };
 
@@ -128,10 +176,11 @@ const LocationsCatalog = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from("locations")
+      const { error } = await (supabase as any)
+        .schema('m8_schema')
+        .from("supply_network_nodes")
         .delete()
-        .eq("location_node_id", locationId);
+        .eq("id", locationId);
       
       if (error) throw error;
       toast.success("Ubicación eliminada exitosamente");
@@ -161,6 +210,7 @@ const LocationsCatalog = () => {
   };
 
   useEffect(() => {
+    fetchNodeTypes();
     fetchLocations(currentPage);
   }, []);
 
@@ -233,7 +283,7 @@ const LocationsCatalog = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="location_node_id"
+                    name="id"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>ID de Ubicación *</FormLabel>
@@ -246,10 +296,10 @@ const LocationsCatalog = () => {
                   />
                   <FormField
                     control={form.control}
-                    name="location_name"
+                    name="location_code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nombre de Ubicación</FormLabel>
+                        <FormLabel>Código de Ubicación *</FormLabel>
                         <FormControl>
                           <Input {...field} value={field.value || ""} />
                         </FormControl>
@@ -259,10 +309,10 @@ const LocationsCatalog = () => {
                   />
                   <FormField
                     control={form.control}
-                    name="type"
+                    name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tipo</FormLabel>
+                        <FormLabel>Descripción</FormLabel>
                         <FormControl>
                           <Input {...field} value={field.value || ""} />
                         </FormControl>
@@ -272,102 +322,24 @@ const LocationsCatalog = () => {
                   />
                   <FormField
                     control={form.control}
-                    name="level_1"
+                    name="node_type_id"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Nivel 1</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="level_2"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nivel 2</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="level_3"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nivel 3</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="level_4"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Nivel 4</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="working_cal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Calendario de Trabajo</FormLabel>
-                        <FormControl>
-                          <Input {...field} value={field.value || ""} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="borrowing_pct"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Porcentaje de Préstamo</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="number"
-                            value={field.value || ""} 
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="service_level_goal"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Meta de Nivel de Servicio</FormLabel>
-                        <FormControl>
-                          <Input 
-                            {...field} 
-                            type="number"
-                            step="0.01"
-                            value={field.value || ""} 
-                            onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
-                          />
-                        </FormControl>
+                        <FormLabel>Tipo de Nodo *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Seleccionar tipo" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {nodeTypes.map((nodeType) => (
+                              <SelectItem key={nodeType.id} value={nodeType.id}>
+                                {nodeType.type_code}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -415,31 +387,27 @@ const LocationsCatalog = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>ID Ubicación</TableHead>
-                  <TableHead>Nombre</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Código de Ubicación</TableHead>
+                  <TableHead>Descripción</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead>Nivel 1</TableHead>
-                  <TableHead>Nivel 2</TableHead>
-                  <TableHead>Nivel de Servicio</TableHead>
                   <TableHead>Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {locations.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
+                    <TableCell colSpan={5} className="text-center py-4">
                       No se encontraron ubicaciones
                     </TableCell>
                   </TableRow>
                 ) : (
                   locations.map((location) => (
-                    <TableRow key={location.location_node_id}>
-                      <TableCell className="font-medium">{location.location_node_id}</TableCell>
-                      <TableCell>{location.location_name || "-"}</TableCell>
-                      <TableCell>{location.type || "-"}</TableCell>
-                      <TableCell>{location.level_1 || "-"}</TableCell>
-                      <TableCell>{location.level_2 || "-"}</TableCell>
-                      <TableCell>{location.service_level_goal || "-"}</TableCell>
+                    <TableRow key={location.id}>
+                      <TableCell className="font-medium">{location.id}</TableCell>
+                      <TableCell>{location.location_code || "-"}</TableCell>
+                      <TableCell>{location.description || "-"}</TableCell>
+                      <TableCell>{location.type_code || "-"}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
                           <Button
@@ -452,7 +420,7 @@ const LocationsCatalog = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleDelete(location.location_node_id)}
+                            onClick={() => handleDelete(location.id)}
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>

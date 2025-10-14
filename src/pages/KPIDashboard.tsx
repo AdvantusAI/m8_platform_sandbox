@@ -514,49 +514,51 @@ export default function KPIDashboard() {
     { 
       field: 'product_id', 
       headerName: 'Producto ID', 
-      width: 240,
+      width: 200,
       cellClass: 'font-medium'
     },
     { 
       field: 'product_name', 
       headerName: 'Nombre del Producto', 
-      width: 480,
+      flex: 2,
+      minWidth: 300,
       cellClass: 'font-medium'
     },
     { 
       field: 'category_name', 
       headerName: 'Categoría', 
-      width: 480,
-      cellRenderer: 'font-medium'
+      flex: 1,
+      minWidth: 200,
+      cellRenderer: CategoryCellRenderer
     },
     { 
       field: 'accuracy_score', 
       headerName: 'Precisión', 
-      width: 200,
+      width: 120,
       cellRenderer: AccuracyCellRenderer
     },
     { 
       field: 'avg_error_percentage', 
       headerName: 'Error %', 
-      width: 200,
+      width: 100,
       cellClass: 'text-red-600 font-medium text-center'
     },
     { 
       field: 'forecast_count', 
       headerName: 'Data points', 
-      width: 200,
+      width: 120,
       cellRenderer: DataPointsCellRenderer
     },
     { 
       field: 'trend', 
       headerName: 'Tendencia', 
-      width: 180,
+      width: 100,
       cellRenderer: TrendCellRenderer
     },
     { 
       field: 'last_forecast_date', 
       headerName: 'Último Pronóstico', 
-      width: 220,
+      width: 150,
       cellRenderer: (params: any) => {
         return new Date(params.value).toLocaleDateString('es-ES');
       },
@@ -838,6 +840,8 @@ export default function KPIDashboard() {
                     suppressRowClickSelection={true}
                     rowSelection="multiple"
                     animateRows={true}
+                    suppressHorizontalScroll={false}
+                    suppressColumnVirtualisation={true}
                     noRowsOverlayComponent={() => (
                       <div className="text-center py-8 text-muted-foreground">
                         No se encontraron productos con baja precisión

@@ -202,7 +202,7 @@ const SidebarHeader = React.forwardRef<HTMLDivElement, React.ComponentProps<"div
   className,
   ...props
 }, ref) => {
-  return <div ref={ref} data-sidebar="header" className={cn("flex flex-col gap-2 p-4 border-b border-gray-200", className)} {...props} />;
+  return <div ref={ref} data-sidebar="header" className={cn("flex flex-col gap-2 p-1 border-b border-gray-200", className)} {...props} />;
 });
 SidebarHeader.displayName = "SidebarHeader";
 

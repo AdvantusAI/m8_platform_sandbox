@@ -127,6 +127,11 @@ export const FilterDropdown = ({
     }
   }, [searchTerm, activeCategory]);
 
+  // Clear search term when category changes
+  useEffect(() => {
+    setSearchTerm("");
+  }, [activeCategory]);
+
   const fetchLocations = async () => {
     try {
       const { data, error } = await (supabase as any)
@@ -504,9 +509,9 @@ export const FilterDropdown = ({
     const category = activeCategory;
 
     return (
-      <div className="space-y-4">
+      <div className="flex flex-col h-full">
         {/* Search Bar */}
-        <div className="relative">
+        <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar"
@@ -521,7 +526,7 @@ export const FilterDropdown = ({
           (category === 'ubicacion' && selectedLocation) || 
           (category === 'cliente' && selectedCustomer) || 
           (category === 'item' && selectedProduct)) && (
-          <div className="space-y-2">
+          <div className="space-y-2 mb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-600" />
@@ -597,140 +602,142 @@ export const FilterDropdown = ({
         )}
 
         {/* Filter Options */}
-        <ScrollArea className="h-64">
-          <div className="space-y-1">
-            {category === 'fecha' ? (
-              // Render date range selector
-              <div className="p-4 space-y-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <CalendarDays className="h-4 w-4 text-primary" />
-                  <span className="text-sm font-medium">Seleccionar rango de fechas</span>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Desde</label>
-                    <Input
-                      type="date"
-                      value={selectedDateRange?.from ? selectedDateRange.from.toISOString().split('T')[0] : ''}
-                      onChange={(e) => {
-                        const fromDate = e.target.value ? new Date(e.target.value) : null;
-                        const currentTo = selectedDateRange?.to;
-                        handleDateRangeChange({ from: fromDate, to: currentTo });
-                      }}
-                      className="text-sm"
-                    />
+          <div className="flex-1 min-h-0">
+            <ScrollArea style={{ height: '300px' }}>
+            <div className="space-y-1">
+              {category === 'fecha' ? (
+                // Render date range selector
+                <div className="p-4 space-y-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CalendarDays className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Seleccionar rango de fechas</span>
                   </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Hasta</label>
-                    <Input
-                      type="date"
-                      value={selectedDateRange?.to ? selectedDateRange.to.toISOString().split('T')[0] : ''}
-                      onChange={(e) => {
-                        const toDate = e.target.value ? new Date(e.target.value) : null;
-                        const currentFrom = selectedDateRange?.from;
-                        handleDateRangeChange({ from: currentFrom, to: toDate });
-                      }}
-                      className="text-sm"
-                    />
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Desde</label>
+                      <Input
+                        type="date"
+                        value={selectedDateRange?.from ? selectedDateRange.from.toISOString().split('T')[0] : ''}
+                        onChange={(e) => {
+                          const fromDate = e.target.value ? new Date(e.target.value) : null;
+                          const currentTo = selectedDateRange?.to;
+                          handleDateRangeChange({ from: fromDate, to: currentTo });
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Hasta</label>
+                      <Input
+                        type="date"
+                        value={selectedDateRange?.to ? selectedDateRange.to.toISOString().split('T')[0] : ''}
+                        onChange={(e) => {
+                          const toDate = e.target.value ? new Date(e.target.value) : null;
+                          const currentFrom = selectedDateRange?.from;
+                          handleDateRangeChange({ from: currentFrom, to: toDate });
+                        }}
+                        className="text-sm"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Quick date range buttons */}
-                <div className="space-y-2">
-                  <span className="text-xs text-muted-foreground">Rangos rápidos:</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => {
-                        const today = new Date();
-                        const lastWeek = new Date(today);
-                        lastWeek.setDate(today.getDate() - 7);
-                        handleDateRangeChange({ from: lastWeek, to: today });
-                      }}
-                    >
-                      Última semana
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => {
-                        const today = new Date();
-                        const lastMonth = new Date(today);
-                        lastMonth.setMonth(today.getMonth() - 1);
-                        handleDateRangeChange({ from: lastMonth, to: today });
-                      }}
-                    >
-                      Último mes
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => {
-                        const today = new Date();
-                        const last3Months = new Date(today);
-                        last3Months.setMonth(today.getMonth() - 3);
-                        handleDateRangeChange({ from: last3Months, to: today });
-                      }}
-                    >
-                      Últimos 3 meses
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => {
-                        const today = new Date();
-                        const lastYear = new Date(today);
-                        lastYear.setFullYear(today.getFullYear() - 1);
-                        handleDateRangeChange({ from: lastYear, to: today });
-                      }}
-                    >
-                      Último año
-                    </Button>
+                  {/* Quick date range buttons */}
+                  <div className="space-y-2">
+                    <span className="text-xs text-muted-foreground">Rangos rápidos:</span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          const today = new Date();
+                          const lastWeek = new Date(today);
+                          lastWeek.setDate(today.getDate() - 7);
+                          handleDateRangeChange({ from: lastWeek, to: today });
+                        }}
+                      >
+                        Última semana
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          const today = new Date();
+                          const lastMonth = new Date(today);
+                          lastMonth.setMonth(today.getMonth() - 1);
+                          handleDateRangeChange({ from: lastMonth, to: today });
+                        }}
+                      >
+                        Último mes
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          const today = new Date();
+                          const last3Months = new Date(today);
+                          last3Months.setMonth(today.getMonth() - 3);
+                          handleDateRangeChange({ from: last3Months, to: today });
+                        }}
+                      >
+                        Últimos 3 meses
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          const today = new Date();
+                          const lastYear = new Date(today);
+                          lastYear.setFullYear(today.getFullYear() - 1);
+                          handleDateRangeChange({ from: lastYear, to: today });
+                        }}
+                      >
+                        Último año
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : category === 'item' ? (
-              // Render tree structure for products
-              data.map((node: HierarchyNode) => renderNode(node))
-            ) : (
-              // Render flat list for other categories
-              data.map((item, index) => {
-                const isSelected = 
-                  (category === 'ubicacion' && selectedLocation?.location_id === item.location_id) ||
-                  (category === 'cliente' && selectedCustomer?.customer_code === item.customer_code);
+              ) : category === 'item' ? (
+                // Render tree structure for products
+                data.map((node: HierarchyNode) => renderNode(node))
+              ) : (
+                // Render flat list for other categories
+                data.map((item, index) => {
+                  const isSelected = 
+                    (category === 'ubicacion' && selectedLocation?.location_id === item.location_id) ||
+                    (category === 'cliente' && selectedCustomer?.customer_code === item.customer_code);
 
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md cursor-pointer"
-                    onClick={() => {
-                      if (category === 'ubicacion') handleLocationSelect(item);
-                      if (category === 'cliente') handleCustomerSelect(item);
-                    }}
-                  >
-                    <Checkbox
-                      checked={isSelected}
-                      onChange={() => {
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded-md cursor-pointer"
+                      onClick={() => {
                         if (category === 'ubicacion') handleLocationSelect(item);
                         if (category === 'cliente') handleCustomerSelect(item);
                       }}
-                    />
-                    <span className="text-sm">
-                      {category === 'ubicacion' && `${item.description} (${item.location_code})`}
-                      {category === 'cliente' && `${item.description} (${item.customer_code})`}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </ScrollArea>
+                    >
+                      <Checkbox
+                        checked={isSelected}
+                        onChange={() => {
+                          if (category === 'ubicacion') handleLocationSelect(item);
+                          if (category === 'cliente') handleCustomerSelect(item);
+                        }}
+                      />
+                      <span className="text-sm">
+                        {category === 'ubicacion' && `${item.description} (${item.location_code})`}
+                        {category === 'cliente' && `${item.description} (${item.customer_code})`}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
     );
   };
@@ -753,7 +760,7 @@ export const FilterDropdown = ({
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent className="w-[600px] p-0" align="start">
+      <DropdownMenuContent className="w-[720px] p-0" align="start">
         <div className="flex h-[500px]">
           {/* Left Panel - Filter Categories */}
           <div className="w-48 bg-gray-50 border-r">

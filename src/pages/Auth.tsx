@@ -96,7 +96,7 @@ export default function Auth() {
               <img
                 src={companyConfig.company_logo}
                 alt={companyConfig.company_name || 'Company Logo'}
-                className="h-16 w-auto object-contain"
+                className="h-28 w-auto object-contain"
                 onError={(e) => {
                   console.error('Error loading company logo:', companyConfig.company_logo);
                   e.currentTarget.style.display = 'none';
@@ -104,10 +104,7 @@ export default function Auth() {
               />
             </div>
           )}
-          <CardTitle className="text-2xl font-bold">
-            {companyConfig?.company_name || 'M8 Platform'}
-          </CardTitle>
-          <p className="text-muted-foreground">Accede a tu cuenta</p>
+        
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignIn} className="space-y-4">
