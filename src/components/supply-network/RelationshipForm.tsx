@@ -14,7 +14,7 @@ import { Separator } from '@/components/ui/separator';
 import { PlusCircle, X, Truck, Plane, Ship, Train, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSupplyNetwork } from '@/hooks/useSupplyNetwork';
-import { supabase } from '@/integrations/supabase/client';
+
 
 const transportationMethods = [
   { value: 'truck', label: 'Camión', icon: Truck },
@@ -91,8 +91,11 @@ export const RelationshipForm: React.FC<RelationshipFormProps> = ({ onSuccess, o
   useEffect(() => {
     const fetchRelationshipTypes = async () => {
       try {
-        const { data, error } = await (supabase as any).schema('m8_schema').rpc('get_supply_network_relationship_types');
-        if (error) throw error;
+        const response = await fetch('/api/supply-network-relationship-types');
+        if (!response.ok) {
+          throw new Error('Failed to fetch relationship types');
+        }
+        const data = await response.json();
         setRelationshipTypes(data || []);
       } catch (error) {
         console.error('Error fetching relationship types:', error);
@@ -141,24 +144,12 @@ export const RelationshipForm: React.FC<RelationshipFormProps> = ({ onSuccess, o
   const onSubmit = async (data: RelationshipFormData) => {
     try {
       const relationshipData = {
-        relationship_code: data.relationship_code,
-        description: data.description,
-        source_node_id: data.source_node_id,
-        target_node_id: data.target_node_id,
-        relationship_type_id: data.relationship_type_id,
-        lead_time_days: data.lead_time_days,
-        primary_transport_method: data.primary_transport_method,
-        primary_transport_cost: data.primary_transport_cost,
-        cost_unit: data.cost_unit,
-        alternate_transport_method: data.alternate_transport_method,
-        alternate_lead_time_days: data.alternate_lead_time_days,
-        alternate_transport_cost: data.alternate_transport_cost,
-        capacity_constraint: data.capacity_constraint,
-        is_bidirectional: data.is_bidirectional,
-        priority_rank: data.priority_rank,
-        alternate_sources: alternateSources,
-        status: 'active' as const,
-        effective_from: new Date().toISOString().split('T')[0],
+        from_node_id: data.source_node_id,
+        to_node_id: data.target_node_id,
+        relationship_type: data.relationship_type_id,
+        capacity: data.capacity_constraint || null,
+        cost: data.primary_transport_cost || null,
+        lead_time: data.lead_time_days || null,
       };
 
       await createRelationship.mutateAsync(relationshipData);

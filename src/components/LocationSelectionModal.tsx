@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ChevronDown, ChevronRight, Search, Package } from 'lucide-react';
@@ -7,10 +6,11 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Location{
+  id?: string, // UUID field from the database
   location_id: string,
+  location_node_id?: string,
   location_name: string,
   level_1?:string,
   level_2?:string,
@@ -21,6 +21,7 @@ interface Location{
 
 interface LocationNode {
   id: string;
+  location_node_id?: string;
   name: string;
   level: 'level_1' | 'level_2' | 'level_3' | 'level_4' | 'location';
   children?: LocationNode[];
@@ -57,19 +58,16 @@ export function LocationSelectionModal({isOpen,onClose, onSelect}: LocationSelec
 const fetchLocations = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('locations')
-        .select('location_id, location_name, level_1, level_2, level_3, level_4, type')
-        .order('location_name');
-
-      if (error) throw error;
+      const response = await fetch('/api/locations');
+      if (!response.ok) throw new Error('Failed to fetch locations');
       
+      const data = await response.json();
       const locationsData = data || [];
+      console.log('Raw locations data sample from MongoDB:', locationsData.slice(0, 3)); // Debug log
       setLocations(locationsData);
       buildLevel1Tree(locationsData);
     } catch (error) {
-      console.error('Error fetching locations:', error);
+      console.error('Error fetching locations from MongoDB:', error);
     } finally {
       setLoading(false);
     }
@@ -87,6 +85,7 @@ const fetchLocations = async () => {
       if (!level1Node) {
         level1Node = {
           id: level1Key,
+          location_node_id: location.location_node_id,    
           name: location.level_1 || 'Sin Localidad',
           level: 'level_1',
           type: 'category',
@@ -98,7 +97,7 @@ const fetchLocations = async () => {
 
       // Add location to level_1
       const locationNode: LocationNode = {
-        id: location.location_id,
+        id: location.id, // Use the UUID instead of the numeric location_id
         name: location.location_name || location.location_id,
         level: 'location',
         type: 'location',
@@ -161,8 +160,8 @@ const fetchLocations = async () => {
           }`}
           style={{ paddingLeft: `${paddingLeft + 8}px` }}
           onClick={() => {
-            if (node.type === 'location' && node.location_id) {
-              handleSelect(node.location_id);
+            if (node.type === 'location' && node.id) {
+              handleSelect(node.id);
             } else if (hasChildren) {
               toggleExpanded(node.id);
             }
@@ -216,7 +215,7 @@ const fetchLocations = async () => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Seleccionar Ubicación
+            Seleccionar Ubicación (MongoDB)
           </DialogTitle>
         </DialogHeader>
 
@@ -235,7 +234,7 @@ const fetchLocations = async () => {
           <ScrollArea className="h-96 border rounded-md">
             {loading ? (
               <div className="flex items-center justify-center p-8">
-                <div className="text-sm text-muted-foreground">Cargando ubicaciones...</div>
+                <div className="text-sm text-muted-foreground">Cargando ubicaciones desde MongoDB...</div>
               </div>
             ) : filteredTree.length === 0 ? (
               <div className="flex items-center justify-center p-8">
@@ -260,3 +259,4 @@ const fetchLocations = async () => {
     </Dialog>
   );
 }
+      

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -49,27 +48,41 @@ import HistoryDataView from "./pages/HistoryDataView";
 import KPIDashboard from "./pages/KPIDashboard";
 import { DataGrids } from "./components/DataGrid";
 
+import CommercialCollaborationApproved from "./pages/CommercialCollaborationApproved";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors
+        if (error?.message?.includes('auth') || error?.message?.includes('401')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 // Initialize AG Grid globally
 configureAGGridLicense();
 
 const App = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Cargando...</p>
+          <p className="text-muted-foreground">Conectando a MongoDB...</p>
         </div>
       </div>
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -98,7 +111,6 @@ const App = () => {
               <Route path="/supply-workbench" element={<SupplyWorkbench />} />
               <Route path="/supply-network" element={<SupplyNetworkVisualization />} />
               <Route path="/what-if-analysis" element={<WhatIfAnalysis />} />
-              <Route path="/commercial-collaboration" element={<CommercialCollaboration />} />
               <Route path="/forecast-collaboration" element={<ForecastCollaboration />} />
               <Route path="/dashboard-gallery" element={<DashboardGallery />} />
               <Route path="/advanced-reports" element={<AdvancedReports />} />
@@ -127,6 +139,8 @@ const App = () => {
               <Route path="/sell-through-analytics" element={<SellThroughAnalytics />} />
               <Route path="/forecast-reconciliation" element={<ForecastReconciliation />} />
               <Route path="/ag-data-grids" element={<DataGrids />} />
+              <Route path="/commercial-collaboration" element={<CommercialCollaboration />} />
+              <Route path="/commercial-approve" element={<CommercialCollaborationApproved />} />
               {/* Protected Routes */}
             </Routes>
           </MasterLayout>

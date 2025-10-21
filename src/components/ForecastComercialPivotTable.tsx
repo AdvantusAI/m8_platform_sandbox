@@ -1,0 +1,409 @@
+import React, { useState } from 'react';
+import { toast } from 'react-toastify';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Save, X } from 'lucide-react';
+import { useForecastCollaboration } from '@/hooks/useForecastCollaboration';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+
+interface ForecastPivotTableProps {
+  data: any[];
+  comments: any[];
+}
+export const ForecastPivotTable: React.FC<ForecastPivotTableProps> = ({
+  data,
+  comments
+}) => {
+  const {
+    updateForecastCollaboration
+  } = useForecastCollaboration();
+  const [editingCells, setEditingCells] = useState<{
+    [key: string]: string;
+  }>({});
+  const [pendingUpdates, setPendingUpdates] = useState<{
+    [key: string]: number;
+  }>({});
+
+  const userRole = 'admin'; // Replace with actual logic to determine user role
+
+  const handleApprove = async (id: string) => {
+    try {
+      const success = await updateForecastCollaboration(id, { collaboration_status: 'Approved' });
+      if (success) {
+        toast.success('Estado cambiado a "Aprobado" exitosamente');
+      } else {
+        toast.error('Error al cambiar el estado');
+      }
+    } catch (error) {
+      console.error('Error al cambiar el estado:', error);
+      toast.error('Error al cambiar el estado');
+    }
+  };
+
+  // Filter dates for last 2 months and next 5 months
+  const getFilteredDates = () => {
+    const today = new Date();
+    const twoMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 2, 1);
+    const fiveMonthsFromNow = new Date(today.getFullYear(), today.getMonth() + 5, 31);
+    return data.filter(item => {
+      const itemDate = new Date(item.postdate);
+      return itemDate >= twoMonthsAgo && itemDate <= fiveMonthsFromNow;
+    }).map(item => item.postdate);
+  };
+
+  // Get unique dates and sort them (filtered)
+  const uniqueDates = [...new Set(getFilteredDates())].sort();
+
+  // Helper function to get data for a specific date
+  const getDataForDate = (date: string) => {
+    return data.find(item => item.postdate === date) || {};
+  };
+
+  // Helper function to format date for display
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  // Handle cell edit
+  const handleCellEdit = (date: string, value: string) => {
+    const cellKey = `input-${date}`;
+    setEditingCells(prev => ({
+      ...prev,
+      [cellKey]: value
+    }));
+  };
+ console.log(data);
+  // Handle cell save
+  const handleCellSave = async (date: string) => {
+    const cellKey = `input-${date}`;
+    const value = editingCells[cellKey];
+    const dayData = getDataForDate(date);
+    if (dayData.id && value !== undefined) {
+      const success = await updateForecastCollaboration(dayData.id, {
+        commercial_input: parseFloat(value) || 0,
+        collaboration_status: 'reviewed'
+      });
+      if (success) {
+        setPendingUpdates(prev => ({
+          ...prev,
+          [cellKey]: parseFloat(value) || 0
+        }));
+        setEditingCells(prev => {
+          const newState = {
+            ...prev
+          };
+          delete newState[cellKey];
+          return newState;
+        });
+      }
+    }
+  };
+
+  // Handle cell cancel
+  const handleCellCancel = (date: string) => {
+    const cellKey = `input-${date}`;
+    setEditingCells(prev => {
+      const newState = {
+        ...prev
+      };
+      delete newState[cellKey];
+      return newState;
+    });
+  };
+
+  // Helper function to get status badge
+  const getStatusBadge = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+      case 'aprobado':
+        return 'default';
+      case 'pending':
+      case 'pendiente':
+        return 'secondary';
+      case 'rejected':
+      case 'rechazado':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
+  // Helper function to get confidence badge
+  const getConfidenceBadge = (confidence: string) => {
+    switch (confidence?.toLowerCase()) {
+      case 'high':
+      case 'alta':
+        return 'default';
+      case 'medium':
+      case 'media':
+        return 'secondary';
+      case 'low':
+      case 'baja':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
+  // Helper function to get product name by ID
+  const getProductName = (productId: string) => {
+    console.log(productId);
+    // Replace with actual logic to fetch product name
+    const product = data.find(item => item.product_id === productId);
+    return product && product.product_name ? product.product_name : productId;
+  };
+
+  // Helper function to get location name by ID
+  const getLocationName = (locationId: string) => {
+    // Replace with actual logic to fetch location name
+    const location = data.find(item => item.location_id === locationId);
+    return location && location.location_name ? location.location_name : locationId;
+  };
+
+  // Helper function to get customer name by ID
+  const getCustomerName = (customerId: string) => {
+    // Replace with actual logic to fetch customer name
+    const customer = data.find(item => item.customer_id === customerId);
+    return customer && customer.customer_name ? customer.customer_name : customerId;
+  };
+
+  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [modalData, setModalData] = useState<any | null>(null);
+  const [savingModalData, setSavingModalData] = useState(false);
+
+  const handleOpenModal = (row: any) => {
+    setSelectedRow(row);
+    setModalData({
+      commercial_input: row.commercial_input || '',
+      commercial_confidence: row.commercial_confidence || '',
+      commercial_notes: row.commercial_notes || '',
+      commercial_reviewed_by: row.commercial_reviewed_by || '',
+      commercial_reviewed_at: row.commercial_reviewed_at || '',
+      market_intelligence: row.market_intelligence || '',
+      promotional_activity: row.promotional_activity || '',
+      competitive_impact: row.competitive_impact || ''
+    });
+  };
+
+  const handleModalSave = async () => {
+    if (!selectedRow) return;
+
+    setSavingModalData(true);
+    try {
+      const success = await updateForecastCollaboration(selectedRow.id, modalData);
+      if (success) {
+        toast.success('Datos guardados exitosamente');
+        setSelectedRow(null);
+        setModalData(null);
+      } else {
+        toast.error('Error al guardar los datos');
+      }
+    } catch (error) {
+      console.error('Error al guardar los datos:', error);
+      toast.error('Error al guardar los datos');
+    } finally {
+      setSavingModalData(false);
+    }
+  };
+
+  const handleModalClose = () => {
+    setSelectedRow(null);
+    setModalData(null);
+  };
+
+  // Render Dirección Comercial table
+  const renderCommercialTable = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Producto</TableHead>
+          <TableHead>Ubicación</TableHead>
+          <TableHead>Cliente</TableHead>
+          <TableHead>Venta YTD</TableHead>
+          <TableHead>Venta LY</TableHead>
+          <TableHead>Venta 3 meses</TableHead>
+          <TableHead>Plan KAM</TableHead>
+          <TableHead>Estado</TableHead>
+          <TableHead>Confianza Comercial</TableHead>
+          <TableHead>Notas Comerciales</TableHead>
+          {userRole === 'admin' && <TableHead>Acciones</TableHead>}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map(item => (
+          <TableRow key={item.id}>
+            <TableCell>{getProductName(item.product_id)}</TableCell>
+            <TableCell>{getLocationName(item.location_id)}</TableCell>
+            <TableCell>{getCustomerName(item.customer_id)}</TableCell>
+            <TableCell>{item.sales_ytd || '-'}</TableCell>
+            <TableCell>{item.sales_ly || '-'}</TableCell>
+            <TableCell>{item.sales_3_months || '-'}</TableCell>
+            <TableCell>
+              <div
+                className="cursor-pointer text-blue-600 hover:underline"
+                onClick={() => handleOpenModal(item)}
+              >
+                {item.commercial_input || '-'}
+              </div>
+            </TableCell>
+            <TableCell>
+              <Badge variant={getStatusBadge(item.collaboration_status)}>
+                {item.collaboration_status || '-'}
+              </Badge>
+            </TableCell>
+            <TableCell>{item.commercial_confidence || '-'}</TableCell>
+            <TableCell>{item.commercial_notes || '-'}</TableCell>
+            {userRole === 'admin' && (
+              <TableCell>
+                <Button size="sm" onClick={() => handleApprove(item.id)}>
+                  Aprobar
+                </Button>
+              </TableCell>
+            )}
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
+  // Render Dirección Comercial Detallada table
+  const renderDetailedCommercialTable = () => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+        <TableHead>Producto</TableHead>
+          <TableHead>Ubicación</TableHead>
+          <TableHead>Cliente</TableHead>
+          <TableHead>Venta YTD</TableHead>
+          <TableHead>Venta LY</TableHead>
+          <TableHead>Venta 3 meses</TableHead>
+          <TableHead>Plan KAM</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.filter(item => item.collaboration_status === 'approved').map(item => (
+          <TableRow key={item.id}>
+            <TableCell>{getProductName(item.product_id)}</TableCell>
+            <TableCell>{getLocationName(item.location_id)}</TableCell>
+            <TableCell>{getCustomerName(item.customer_id)}</TableCell>
+            <TableCell>{item.sales_ytd || '-'}</TableCell>
+            <TableCell>{item.sales_ly || '-'}</TableCell>
+            <TableCell>{item.sales_3_months || '-'}</TableCell>            
+            <TableCell>{item.commercial_input || '-'}</TableCell>                        
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
+  if (!data || data.length === 0) {
+    return <Card>
+        <CardContent className="p-6">
+          <p className="text-center text-muted-foreground">
+            No hay datos disponibles para mostrar en la tabla pivote.
+          </p>
+        </CardContent>
+      </Card>;
+  }
+
+  // Example filters (replace with actual filter logic)
+  const selectedFilters = {
+    productId: 'selectedProductId', // Replace with actual selected product ID
+    locationId: 'selectedLocationId', // Replace with actual selected location ID
+    clientId: 'selectedClientId' // Replace with actual selected client ID
+  };
+
+  // Modal for editing commercial data
+  const renderModal = () => (
+    <Dialog open={!!selectedRow} onOpenChange={handleModalClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Editar Datos Comerciales</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Input Comercial</label>
+            <Input
+              value={modalData?.commercial_input || ''}
+              onChange={(e) => setModalData({ ...modalData, commercial_input: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Confianza Comercial</label>
+            <Input
+              value={modalData?.commercial_confidence || ''}
+              onChange={(e) => setModalData({ ...modalData, commercial_confidence: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Notas Comerciales</label>
+            <Textarea
+              value={modalData?.commercial_notes || ''}
+              onChange={(e) => setModalData({ ...modalData, commercial_notes: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Inteligencia de Mercado</label>
+            <Input
+              value={modalData?.market_intelligence || ''}
+              onChange={(e) => setModalData({ ...modalData, market_intelligence: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Actividad Promocional</label>
+            <Input
+              value={modalData?.promotional_activity || ''}
+              onChange={(e) => setModalData({ ...modalData, promotional_activity: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Impacto Competitivo</label>
+            <Input
+              value={modalData?.competitive_impact || ''}
+              onChange={(e) => setModalData({ ...modalData, competitive_impact: e.target.value })}
+              className="mt-1"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={handleModalClose}>
+              Cancelar
+            </Button>
+            <Button onClick={handleModalSave} disabled={savingModalData}>
+              Guardar
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  return <Card>
+      <CardHeader>
+        <CardTitle>Tabla Pivote - Colaboración de Pronósticos</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mt-6">
+          <CardTitle>Dirección Comercial</CardTitle>
+          {renderCommercialTable()}
+        </div>
+        <div className="mt-6">
+          <CardTitle>Dirección Comercial Detallada</CardTitle>
+          {renderDetailedCommercialTable()}
+        </div>
+      </CardContent>
+      {renderModal()}
+    </Card>;
+};

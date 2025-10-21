@@ -1,17 +1,15 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CommercialProfile {
-  id: string;
+  id?: string;
   user_id: string;
   territory?: string;
   customer_segments?: string[];
   specialization?: string;
   phone?: string;
   region?: string;
-  manager_level?: string;
+  manager_level?: 'junior' | 'senior' | 'director';
   created_at?: string;
   updated_at?: string;
 }
@@ -56,55 +54,67 @@ export function useCommercialCollaboration() {
     fetchCommercialData();
   }, []);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('auth_token');
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  };
+
   const fetchCommercialData = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
+      // Get user from API with auth headers
+      const userResponse = await fetch('/api/auth/user', {
+        headers: getAuthHeaders()
+      });
+      
+      if (!userResponse.ok) {
         toast.error('Usuario no autenticado');
         return;
       }
+      
+      const { user } = await userResponse.json();
 
       // Fetch commercial profile
-      const { data: profileData, error: profileError } = await supabase
-        .schema('m8_schema')
-        .from('commercial_team_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-      } else if (profileData) {
-        setProfile(profileData as unknown as CommercialProfile);
+      try {
+        const profileResponse = await fetch(`/api/commercial-profiles/${user.id}`, {
+          headers: getAuthHeaders()
+        });
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          setProfile(profileData);
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
       }
 
       // Fetch customer assignments
-      const { data: assignmentsData, error: assignmentsError } = await supabase
-        .schema('m8_schema')
-        .from('customer_assignments')
-        .select('*')
-        .eq('commercial_user_id', user.id);
-
-      if (assignmentsError) {
-        console.error('Error fetching assignments:', assignmentsError);
-      } else {
-        setAssignments((assignmentsData || []) as unknown as CustomerAssignment[]);
+      try {
+        const assignmentsResponse = await fetch(`/api/customer-assignments?commercial_user_id=${user.id}`, {
+          headers: getAuthHeaders()
+        });
+        if (assignmentsResponse.ok) {
+          const assignmentsData = await assignmentsResponse.json();
+          setAssignments(assignmentsData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching assignments:', error);
       }
 
       // Fetch market intelligence
-      const { data: intelligenceData, error: intelligenceError } = await supabase
-        .schema('m8_schema')
-        .from('market_intelligence')
-        .select('*')
-        .eq('commercial_user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (intelligenceError) {
-        console.error('Error fetching intelligence:', intelligenceError);
-      } else {
-        setMarketIntelligence((intelligenceData || []) as unknown as MarketIntelligence[]);
+      try {
+        const intelligenceResponse = await fetch(`/api/market-intelligence?commercial_user_id=${user.id}`, {
+          headers: getAuthHeaders()
+        });
+        if (intelligenceResponse.ok) {
+          const intelligenceData = await intelligenceResponse.json();
+          setMarketIntelligence(intelligenceData || []);
+        }
+      } catch (error) {
+        console.error('Error fetching intelligence:', error);
       }
 
     } catch (error) {
@@ -117,23 +127,38 @@ export function useCommercialCollaboration() {
 
   const updateProfile = async (profileData: Partial<CommercialProfile>) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error('Usuario no autenticado');
+      // Validate manager_level if provided
+      if (profileData.manager_level && !['junior', 'senior', 'director'].includes(profileData.manager_level)) {
+        toast.error('Nivel de gerente inválido. Debe ser: junior, senior o director');
         return false;
       }
 
-      const { error } = await supabase
-        .schema('m8_schema')
-        .from('commercial_team_profiles')
-        .upsert({
+      // Get user from API with auth headers
+      const userResponse = await fetch('/api/auth/user', {
+        headers: getAuthHeaders()
+      });
+      
+      if (!userResponse.ok) {
+        toast.error('Usuario no autenticado');
+        return false;
+      }
+      
+      const { user } = await userResponse.json();
+
+      const response = await fetch(`/api/commercial-profiles/${user.id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
           user_id: user.id,
           ...profileData,
           updated_at: new Date().toISOString()
-        });
+        })
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update profile');
+      }
 
       toast.success('Perfil actualizado exitosamente');
       await fetchCommercialData();
@@ -147,25 +172,32 @@ export function useCommercialCollaboration() {
 
   const addMarketIntelligence = async (intelligence: MarketIntelligence) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get user from API with auth headers
+      const userResponse = await fetch('/api/auth/user', {
+        headers: getAuthHeaders()
+      });
       
-      if (!user) {
+      if (!userResponse.ok) {
         toast.error('Usuario no autenticado');
         return false;
       }
+      
+      const { user } = await userResponse.json();
 
-      // For now, just store in local state since table doesn't exist
-      //console.log('Would add market intelligence:', intelligence);
-      toast.success('Inteligencia de mercado agregada (simulado)');
-      
-      // Add to local state
-      setMarketIntelligence(prev => [{
-        ...intelligence,
-        id: Date.now().toString(),
-        commercial_user_id: user.id,
-        created_at: new Date().toISOString()
-      }, ...prev]);
-      
+      const response = await fetch('/api/market-intelligence', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          ...intelligence,
+          commercial_user_id: user.id,
+          created_at: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to add market intelligence');
+
+      toast.success('Inteligencia de mercado agregada');
+      await fetchCommercialData();
       return true;
     } catch (error) {
       console.error('Error adding market intelligence:', error);

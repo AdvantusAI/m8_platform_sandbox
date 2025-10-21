@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export interface SellInData {
@@ -32,17 +31,26 @@ export interface SellOutData {
 }
 
 export interface SellThroughMetrics {
+  id: string;
   product_id: string;
-  location_id: string;
-  customer_id: string;
-  period_month: string;
+  location_id?: string;
+  channel_partner_id: string;
+  calculation_period: string;
   sell_in_units: number;
   sell_out_units: number;
-  eom_inventory_units: number;
-  sell_through_rate_pct: number | null;
-  weeks_of_cover: number | null;
+  inventory_units: number;
+  sell_through_rate: number;
+  days_of_inventory: number;
+  performance_category: 'high' | 'medium' | 'low' | 'critical';
+  weeks_of_cover?: number;
   potential_stockout: boolean;
-  any_promo: boolean;
+  last_updated: string;
+  // Legacy compatibility fields
+  customer_id?: string;
+  period_month?: string;
+  eom_inventory_units?: number;
+  sell_through_rate_pct?: number;
+  any_promo?: boolean;
 }
 
 export const useSellInOutData = () => {
@@ -60,38 +68,28 @@ export const useSellInOutData = () => {
   } = {}) => {
     setLoading(true);
     try {
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('v_time_series_data')
-        .select('*');
+      // Build query parameters
+      const searchParams = new URLSearchParams();
       
-      if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
-      if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
-      if (filters.start_date) query = query.gte('postdate', filters.start_date);
-      if (filters.end_date) query = query.lte('postdate', filters.end_date);
+      if (filters.product_id) searchParams.append('product_id', filters.product_id);
+      if (filters.location_id) searchParams.append('location_id', filters.location_id);
+      if (filters.customer_id) searchParams.append('customer_id', filters.customer_id);
+      if (filters.start_date) searchParams.append('start_date', filters.start_date);
+      if (filters.end_date) searchParams.append('end_date', filters.end_date);
 
-      const { data, error } = await query.order('postdate', { ascending: false });
+      const url = `/api/sell-in-data${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      console.log('Fetching sell-in data from:', url);
       
-      if (error) throw error;
+      const response = await fetch(url);
       
-      // Transform the data to match the SellInData interface
-      const transformedData = (data || []).map((item: any) => ({
-        id: `${item.product_id}_${item.location_id}_${item.customer_id}_${item.postdate}`,
-        product_id: item.product_id,
-        location_id: item.location_id,
-        channel_partner_id: item.customer_id, // Map customer_id to channel_partner_id for compatibility
-        transaction_date: item.postdate,
-        quantity: item.quantity,
-        unit_price: 0, // Default value since not available in view
-        total_value: 0, // Default value since not available in view
-        invoice_number: undefined,
-        payment_terms: undefined,
-        discount_percentage: undefined,
-        transaction_metadata: undefined
-      }));
+      if (!response.ok) {
+        throw new Error(`Failed to fetch sell-in data: ${response.statusText}`);
+      }
       
-      setSellInData(transformedData);
+      const data = await response.json();
+      console.log('Received sell-in data:', data.length);
+      
+      setSellInData(data || []);
     } catch (error) {
       console.error('Error fetching sell-in data:', error);
       toast({
@@ -102,9 +100,7 @@ export const useSellInOutData = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const fetchSellOutData = useCallback(async (filters: {
+  }, []);  const fetchSellOutData = useCallback(async (filters: {
     product_id?: string;
     location_id?: string;
     channel_partner_id?: string;
@@ -113,20 +109,27 @@ export const useSellInOutData = () => {
   } = {}) => {
     setLoading(true);
     try {
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('sell_out_data')
-        .select('*');
+      // Build query parameters
+      const searchParams = new URLSearchParams();
       
-      if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
-      if (filters.channel_partner_id) query = query.eq('channel_partner_id', filters.channel_partner_id);
-      if (filters.start_date) query = query.gte('transaction_date', filters.start_date);
-      if (filters.end_date) query = query.lte('transaction_date', filters.end_date);
+      if (filters.product_id) searchParams.append('product_id', filters.product_id);
+      if (filters.location_id) searchParams.append('location_id', filters.location_id);
+      if (filters.channel_partner_id) searchParams.append('channel_partner_id', filters.channel_partner_id);
+      if (filters.start_date) searchParams.append('start_date', filters.start_date);
+      if (filters.end_date) searchParams.append('end_date', filters.end_date);
 
-      const { data, error } = await query.order('transaction_date', { ascending: false });
+      const url = `/api/sell-out-data${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      console.log('Fetching sell-out data from:', url);
       
-      if (error) throw error;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch sell-out data: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received sell-out data:', data.length);
+      
       setSellOutData(data || []);
     } catch (error) {
       console.error('Error fetching sell-out data:', error);
@@ -144,25 +147,33 @@ export const useSellInOutData = () => {
     product_id?: string;
     location_id?: string;
     customer_id?: string;
+    channel_partner_id?: string;
     period_start?: string;
     period_end?: string;
   } = {}) => {
     setLoading(true);
     try {
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('v_sell_through_monthly')
-        .select('*');
-
-      if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
-      if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
-      if (filters.period_start) query = query.gte('period_month', filters.period_start);
-      if (filters.period_end) query = query.lte('period_month', filters.period_end);
-
-      const { data, error } = await query.order('period_month', { ascending: false });
+      // Build query parameters
+      const searchParams = new URLSearchParams();
       
-      if (error) throw error;
+      if (filters.product_id) searchParams.append('product_id', filters.product_id);
+      if (filters.channel_partner_id) searchParams.append('channel_partner_id', filters.channel_partner_id);
+      if (filters.customer_id) searchParams.append('channel_partner_id', filters.customer_id); // Map customer_id to channel_partner_id
+      if (filters.period_start) searchParams.append('period_start', filters.period_start);
+      if (filters.period_end) searchParams.append('period_end', filters.period_end);
+
+      const url = `/api/sell-through-metrics${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      console.log('Fetching sell-through metrics from:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch sell-through metrics: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Received sell-through metrics:', data.length);
+      
       setSellThroughMetrics(data || []);
     } catch (error) {
       console.error('Error fetching sell-through metrics:', error);
@@ -179,59 +190,32 @@ export const useSellInOutData = () => {
   const createSellInRecord = useCallback(async (data: Omit<SellInData, 'id'>) => {
     setLoading(true);
     try {
-      // Since we're now using a view, we need to insert into the underlying time_series_data table
-      // First, we need to get or create the time_series record
-      let { data: timeSeriesData, error: timeSeriesError } = await (supabase as any)
-        .schema('m8_schema')
-        .from('time_series')
-        .select('id')
-        .eq('product_id', data.product_id)
-        .eq('location_id', data.location_id)
-        .eq('customer_id', data.channel_partner_id)
-        .single();
-
-      if (timeSeriesError && timeSeriesError.code !== 'PGRST116') {
-        throw timeSeriesError;
+      console.log('Creating sell-in record with data:', data);
+      
+      const response = await fetch('/api/sell-in-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create sell-in record: ${response.statusText}`);
       }
-
-      let seriesId: string;
-      if (!timeSeriesData) {
-        // Create new time series record
-        const { data: newTimeSeries, error: createError } = await (supabase as any)
-          .schema('m8_schema')
-          .from('time_series')
-          .insert([{
-            product_id: data.product_id,
-            location_id: data.location_id,
-            customer_id: data.channel_partner_id
-          }])
-          .select('id')
-          .single();
-
-        if (createError) throw createError;
-        seriesId = newTimeSeries.id;
-      } else {
-        seriesId = timeSeriesData.id;
-      }
-
-      // Insert the time series data
-      const { error: insertError } = await (supabase as any)
-        .schema('m8_schema')
-        .from('time_series_data')
-        .insert([{
-          series_id: seriesId,
-          period_date: data.transaction_date,
-          value: data.quantity
-        }]);
-
-      if (insertError) throw insertError;
+      
+      const result = await response.json();
+      console.log('Sell-in record created:', result);
+      
+      // Update local state with the new record
+      setSellInData(prev => [...prev, result]);
       
       toast({
         title: "Success",
         description: "Sell-in record created successfully",
       });
       
-      return true;
+      return result;
     } catch (error) {
       console.error('Error creating sell-in record:', error);
       toast({
@@ -239,7 +223,7 @@ export const useSellInOutData = () => {
         description: "Failed to create sell-in record",
         variant: "destructive",
       });
-      return false;
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -248,18 +232,32 @@ export const useSellInOutData = () => {
   const createSellOutRecord = useCallback(async (data: Omit<SellOutData, 'id'>) => {
     setLoading(true);
     try {
-      const { error } = await (supabase as any)
-        .schema('m8_schema')
-        .from('sell_out_data')
-        .insert([data]);
-      if (error) throw error;
+      console.log('Creating sell-out record with data:', data);
+      
+      const response = await fetch('/api/sell-out-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create sell-out record: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('Sell-out record created:', result);
+      
+      // Update local state with the new record
+      setSellOutData(prev => [...prev, result]);
       
       toast({
         title: "Success",
         description: "Sell-out record created successfully",
       });
       
-      return true;
+      return result;
     } catch (error) {
       console.error('Error creating sell-out record:', error);
       toast({
@@ -267,7 +265,7 @@ export const useSellInOutData = () => {
         description: "Failed to create sell-out record",
         variant: "destructive",
       });
-      return false;
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -276,11 +274,29 @@ export const useSellInOutData = () => {
   const refreshSellThroughRates = useCallback(async (periodStart?: string, periodEnd?: string) => {
     setLoading(true);
     try {
-      // Since we're now using a view, we don't need to refresh it
-      // The view automatically calculates the metrics based on the underlying data
+      console.log('Refreshing sell-through rates...');
+      
+      const response = await fetch('/api/sell-through-metrics/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          period_start: periodStart,
+          period_end: periodEnd,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to refresh sell-through rates: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('Refresh result:', result);
+      
       toast({
-        title: "Info",
-        description: "Sell-through metrics are automatically calculated from the view",
+        title: "Success",
+        description: result.message || "Sell-through rates refreshed successfully",
       });
       
       return true;

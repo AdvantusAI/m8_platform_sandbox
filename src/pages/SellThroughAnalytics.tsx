@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SellThroughAnalyticsDashboard } from '@/components/SellThroughAnalyticsDashboard';
 import { SellInOutDataEntry } from '@/components/SellInOutDataEntry';
 import { SalesVelocityReports } from '@/components/SalesVelocityReports';
@@ -64,6 +65,7 @@ export default function SellThroughAnalytics() {
   const { getProductName } = useProducts();
   const { getLocationName } = useLocations();
   const { getCustomerName } = useCustomers();
+  const { products } = useProducts();
 
   useEffect(() => {
     // Simulate initial loading time
@@ -144,146 +146,6 @@ export default function SellThroughAnalytics() {
         </div>
       </div>
 
-      {/* Filter Section */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-4">
-              
-              {/* Product Filter */}
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium">Producto/Categoría:</span>
-                {selectedProductId ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{selectedProductId}</Badge>
-                    <Badge variant="secondary">
-                      {selectedAggregation ? (
-                        <>
-                          {selectedAggregation.name}
-                          {selectedAggregation.productCount && selectedAggregation.type !== 'product' && (
-                            <span className="ml-1 text-xs">({selectedAggregation.productCount} productos)</span>
-                          )}
-                        </>
-                      ) : (
-                        getProductName(selectedProductId)
-                      )}
-                    </Badge>
-                    {selectedAggregation && (
-                      <Badge variant="outline" className="text-xs">
-                        {selectedAggregation.type === 'category' ? 'Categoría' : 
-                         selectedAggregation.type === 'subcategory' ? 'Subcategoría' : 'Producto'}
-                      </Badge>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">No seleccionado (obligatorio)</span>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsProductModalOpen(true)}
-                  className="ml-2 h-8 w-8"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-              </div>
-              
-              {/* Location Filter */}
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-green-500" />
-                <span className="text-sm font-medium">Ubicación:</span>
-                {selectedLocationId ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{selectedLocationId}</Badge>
-                    <Badge variant="secondary">{getLocationName(selectedLocationId)}</Badge>
-                  </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">No seleccionada (opcional)</span>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsLocationModalOpen(true)}
-                  className="ml-2 h-8 w-8"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-                {selectedLocationId && (
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => {
-                      setSelectedLocationId('');
-                      saveFiltersToStorage({
-                        productId: selectedProductId,
-                        locationId: '',
-                        customerId: selectedCustomerId
-                      });
-                    }}
-                    className="h-8 w-8"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-
-              {/* Customer Filter */}
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-orange-500" />
-                <span className="text-sm font-medium">Cliente:</span>           
-                {selectedCustomerId ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{selectedCustomerId}</Badge>
-                    <Badge variant="secondary">{getCustomerName(selectedCustomerId)}</Badge>
-                  </div>
-                ) : (
-                  <span className="text-sm text-muted-foreground">No seleccionado (opcional)</span>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="icon"
-                  onClick={() => setIsCustomerModalOpen(true)}
-                  className="ml-2 h-8 w-8"
-                >
-                  <Filter className="h-4 w-4" />
-                </Button>
-                {selectedCustomerId && (
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => {
-                      setSelectedCustomerId('');
-                      saveFiltersToStorage({
-                        productId: selectedProductId,
-                        locationId: selectedLocationId,
-                        customerId: ''
-                      });
-                    }}
-                    className="h-8 w-8"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              
-            </div>
-            
-            {/* Clear All Filters Button */}
-            {(selectedProductId || selectedLocationId || selectedCustomerId) && (
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={handleClearFilters}
-                className="h-8 w-8"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       <Tabs defaultValue="analytics" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="analytics" className="flex items-center gap-2">
@@ -301,12 +163,7 @@ export default function SellThroughAnalytics() {
         </TabsList>
 
         <TabsContent value="analytics">
-          <SellThroughAnalyticsDashboard 
-            selectedProductId={selectedProductId}
-            selectedLocationId={selectedLocationId}
-            selectedCustomerId={selectedCustomerId}
-            selectedAggregation={selectedAggregation}
-          />
+          <SellThroughAnalyticsDashboard />
         </TabsContent>
 
         <TabsContent value="velocity">

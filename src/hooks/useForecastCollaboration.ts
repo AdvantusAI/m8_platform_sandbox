@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface ForecastCollaboration {
@@ -48,11 +47,21 @@ export function useForecastCollaboration(
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch data when productId is selected (customerId is optional)
-    if (productId) {
+    console.log('useForecastCollaboration useEffect triggered:', {
+      productId,
+      locationId,
+      customerId,
+      selectionType
+    });
+    
+    // Fetch data when we have a primary filter (product, category, or subcategory)
+    // Location and customer filters are optional and work in combination
+    if (productId || selectionType === 'category' || selectionType === 'subcategory') {
+      console.log('Calling fetchCollaborationData...');
       fetchCollaborationData();
     } else {
-      // Clear data when no product is selected
+      console.log('No primary filter selected, clearing data');
+      // Clear data when no primary filter is selected
       setForecastData([]);
       setComments([]);
       setLoading(false);
@@ -62,14 +71,22 @@ export function useForecastCollaboration(
   const fetchCollaborationData = async () => {
     try {
       setLoading(true);
+      console.log('fetchCollaborationData called with:', {
+        productId,
+        locationId,
+        customerId,
+        selectionType
+      });
       
    
       
       let forecastData: Array<{
         postdate: string;
         product_id: string;
-        location_id: string;
-        customer_id: string;
+        location_id?: string; // Legacy field
+        customer_id?: string; // Legacy field
+        location_node_id?: string; // New UUID field
+        customer_node_id?: string; // New UUID field
         forecast: number | null;
         actual: number | null;
         sales_plan: number | null;
@@ -85,92 +102,38 @@ export function useForecastCollaboration(
         } | null;
       }> = [];
       
-      // Determine the selection type and build appropriate query
-      if (selectionType === 'category') {
-        
-        
-        const { data, error } = await supabase
-          .schema('m8_schema')
-          .from('forecast_data')
-          .select(`
-            postdate,
-            product_id,
-            location_id,
-            customer_id,
-            forecast,
-            actual,
-            sales_plan,
-            demand_planner,
-            commercial_input,
-            commercial_notes,
-            collaboration_status,
-            products!inner(category_id, category_name, subcategory_id, subcategory_name)
-          `)
-          .eq('products.category_id', productId)
-          .order('postdate', { ascending: false });
-
-        if (error) throw error;
-        forecastData = data || [];
-        
-      } else if (selectionType === 'subcategory') {
-        ////console.log('Fetching data for subcategory:', productId);
-        
-        const { data, error } = await supabase
-          .schema('m8_schema')
-          .from('forecast_data')
-          .select(`
-            postdate,
-            product_id,
-            location_id,
-            customer_id,
-            forecast,
-            actual,
-            sales_plan,
-            demand_planner,
-            commercial_input,
-            commercial_notes,
-            collaboration_status,
-            products!inner(category_id, category_name, subcategory_id, subcategory_name)
-          `)
-          .eq('products.subcategory_id', productId)
-          .order('postdate', { ascending: false });
-
-        if (error) throw error;
-        forecastData = data || [];
-        
-      } else if (selectionType === 'product') {
-        ////console.log('Fetching data for product:', productId);
-        
-        const { data, error } = await supabase
-          .schema('m8_schema')
-          .from('forecast_data')
-          .select(`
-            postdate,
-            product_id,
-            location_id,
-            customer_id,
-            forecast,
-            actual,
-            sales_plan,
-            demand_planner,
-            commercial_input,
-            commercial_notes,
-            collaboration_status,
-            products(category_id, category_name, subcategory_id, subcategory_name)
-          `)
-          .eq('product_id', productId)
-          .order('postdate', { ascending: false });
-
-        if (error) throw error;
-        forecastData = data || [];
-      }
-
-      // Apply additional filters
+      // Build query parameters for location and customer filtering
+      const queryParams = new URLSearchParams();
       if (locationId) {
-        forecastData = forecastData.filter(item => item.location_id === locationId);
+        queryParams.append('location_node_id', locationId);
       }
       if (customerId) {
-        forecastData = forecastData.filter(item => item.customer_id === customerId);
+        queryParams.append('customer_node_id', customerId);
+      }
+      const queryString = queryParams.toString();
+      const urlSuffix = queryString ? `?${queryString}` : '';
+
+      // Determine the selection type and build appropriate API call
+      if (productId && selectionType === 'category') {
+        const response = await fetch(`http://localhost:3001/api/forecast-data/category/${productId}${urlSuffix}`);
+        if (!response.ok) throw new Error('Failed to fetch category data');
+        forecastData = await response.json();
+        
+      } else if (productId && selectionType === 'subcategory') {
+        const response = await fetch(`http://localhost:3001/api/forecast-data/subcategory/${productId}${urlSuffix}`);
+        if (!response.ok) throw new Error('Failed to fetch subcategory data');
+        forecastData = await response.json();
+        
+      } else if (productId && selectionType === 'product') {
+        const response = await fetch(`http://localhost:3001/api/forecast-data/product/${productId}${urlSuffix}`);
+        if (!response.ok) throw new Error('Failed to fetch product data');
+        forecastData = await response.json();
+        
+      } else if (!productId && (locationId || customerId)) {
+        // Use general endpoint when only location/customer filters are applied
+        const response = await fetch(`http://localhost:3001/api/forecast-data${urlSuffix}`);
+        if (!response.ok) throw new Error('Failed to fetch filtered data');
+        forecastData = await response.json();
       }
 
      
@@ -196,8 +159,8 @@ export function useForecastCollaboration(
           aggregatedData.set(postdate, {
             postdate,
             product_id: item.product_id,
-            location_id: item.location_id,
-            customer_id: item.customer_id,
+            location_id: item.location_node_id || item.location_id || '', // Use new field name with fallback
+            customer_id: item.customer_node_id || item.customer_id || '', // Use new field name with fallback
             forecast: 0,
             actual: 0,
             sales_plan: 0,
@@ -235,8 +198,12 @@ export function useForecastCollaboration(
     
       setForecastData(processedData);
 
-      // For aggregated data, we don't fetch comments
-      setComments([]);
+      // Fetch comments if we have specific forecast data
+      if (processedData.length > 0 && selectionType === 'product') {
+        await fetchComments(processedData[0].id);
+      } else {
+        setComments([]);
+      }
 
     } catch (error) {
       console.error('Error fetching collaboration data:', error);
@@ -245,15 +212,31 @@ export function useForecastCollaboration(
       setLoading(false);
     }
   };
+
+  const fetchComments = async (forecastId: string) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/forecast-collaboration-comments/${forecastId}`);
+      if (!response.ok) throw new Error('Failed to fetch comments');
+      const commentsData = await response.json();
+      setComments(commentsData || []);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      setComments([]);
+    }
+  };
+
   const fetchFilteredDataByProductIds = async (productIds: string[]) => {
     try {
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('forecast_data')
-        .select('*')
-        .in('product_id', productIds);
+      const response = await fetch(`http://localhost:3001/api/forecast-data/by-products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ productIds }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to fetch filtered data');
+      const data = await response.json();
 
       setForecastData(data || []);
     } catch (error) {
@@ -267,25 +250,22 @@ export function useForecastCollaboration(
     updates: Partial<ForecastCollaboration>
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // For now, we'll skip user authentication since it's not implemented in MongoDB API
+      // In a full implementation, you'd want to get the current user from your auth system
       
-      if (!user) {
-        toast.error('Usuario no autenticado');
-        return false;
-      }
-
-      const { error } = await supabase  
-        .schema('m8_schema')
-        .from('forecast_data')
-        .update({
+      const response = await fetch(`http://localhost:3001/api/forecast-data/${forecastId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           ...updates,
-          commercial_reviewed_by: user.id,
           commercial_reviewed_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        })
-        .eq('id', forecastId);
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to update forecast collaboration');
 
       toast.success('Colaboración actualizada exitosamente');
       await fetchCollaborationData();
@@ -303,24 +283,23 @@ export function useForecastCollaboration(
     commentType: string = 'information'
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // For now, we'll skip user authentication since it's not implemented in MongoDB API
+      // In a full implementation, you'd want to get the current user from your auth system
       
-      if (!user) {
-        toast.error('Usuario no autenticado');
-        return false;
-      }
-
-      const { error } = await supabase
-        .schema('m8_schema')
-        .from('forecast_collaboration_comments')
-        .insert({
+      const response = await fetch(`http://localhost:3001/api/forecast-collaboration-comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           forecast_data_id: forecastId,
-          user_id: user.id,
           comment_text: commentText,
-          comment_type: commentType
-        });
+          comment_type: commentType,
+          created_at: new Date().toISOString()
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to add comment');
 
       toast.success('Comentario agregado');
       await fetchCollaborationData();

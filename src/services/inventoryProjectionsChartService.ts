@@ -1,7 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/integrations/supabase/types';
-
-export type InventoryProjectionRow = Database['public']['Tables']['inventory_projections']['Row'];
+// MongoDB-based inventory projections service
 
 export interface ChartDataPoint {
   projection_month: string;
@@ -17,42 +14,39 @@ export interface ChartFilters {
 
 export class InventoryProjectionsChartService {
   /**
-   * Fetch inventory projections data for chart
+   * Fetch inventory projections data for chart from MongoDB API
    */
   static async getChartData(filters: ChartFilters = {}): Promise<ChartDataPoint[]> {
     try {
-      let query = supabase
-        .from('inventory_projections')
-        .select(`
-          projection_month,
-          forecasted_demand,
-          projected_ending_inventory,
-          product_id,
-          location_id
-        `)
-        .order('projection_month', { ascending: true });
-
-      // Apply filters
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      
       if (filters.product_id) {
-        query = query.eq('product_id', filters.product_id);
+        queryParams.append('product_id', filters.product_id);
       }
       if (filters.location_id) {
-        query = query.eq('location_id', filters.location_id);
+        queryParams.append('location_id', filters.location_id);
       }
-      // Note: customer_id is not available in inventory_projections table
-      // Would need to join with other tables to filter by customer
+      // Note: customer_id filtering would need to be handled differently
+      // as inventory projections are typically not customer-specific
 
-      const { data, error } = await query;
-
-      if (error) {
-        throw error;
+      const url = `http://localhost:3001/api/inventory-projections${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      
+      console.log('Fetching inventory projections from:', url);
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch inventory projections: ${response.statusText}`);
       }
-
-      return data?.map(row => ({
+      
+      const data = await response.json();
+      
+      return data.map((row: any) => ({
         projection_month: row.projection_month,
         forecasted_demand: row.forecasted_demand || 0,
         projected_ending_inventory: row.projected_ending_inventory || 0,
-      })) || [];
+      }));
     } catch (error) {
       console.error('Error fetching chart data:', error);
       throw error;

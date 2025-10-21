@@ -24,7 +24,8 @@ export default function SupplyWorkbench() {
     });
   }, [selectedProductId, selectedLocationId, fetchChartData]);
 
-  const handleProductSelect = (productId: string) => {
+  const handleProductSelect = (selection: { ids: string[]; name: string; type: 'product' | 'category' | 'subcategory' }) => {
+    const productId = selection.ids[0]; // Take the first ID for now
     setSelectedProductId(productId);
     //console.log('Producto seleccionado en Supply Workbench:', productId);
   };

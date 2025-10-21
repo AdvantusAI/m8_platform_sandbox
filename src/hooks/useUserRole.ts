@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 export type UserRole = 'administrator' | 'user' | null;
@@ -19,24 +17,17 @@ export function useUserRole() {
       }
 
       try {
-        const { data, error } = await supabase
-          .schema('m8_schema')
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user role:', error);
-          setRole('user'); // Default to user if no role found
-        } else {
-          // Map database roles to our UserRole type
+        const response = await fetch(`/api/users/${user.id}/role`);
+        if (response.ok) {
+          const data = await response.json();
           const dbRole = data?.role;
           if (dbRole === 'administrator') {
             setRole('administrator');
           } else {
             setRole('user');
           }
+        } else {
+          setRole('user'); // Default to user if no role found
         }
       } catch (error) {
         console.error('Error fetching user role:', error);

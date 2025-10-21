@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Users, X } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -47,42 +46,31 @@ export function CustomerSelectionModal({
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      //console.log('Fetching customers...');
-      
       if (!user) {
         setCustomers([]);
         return;
       }
 
-       let query;
-       if (isAdministrator) {
-       // Admin users can see all customers from customers table
-       query = supabase
-       .schema('m8_schema')
-       .from('customers')
-       .select('*')
-       .order('customer_name');
-       } else {
-       // Regular users use the simplified v_customers view with user email
-       query = supabase
-       .schema('m8_schema')
-       .from('v_customers')
-       .select('*')
-       .eq('email', user.email)
-       .order('customer_name');
-       }
-
+      // Build query parameters
+      const params = new URLSearchParams();
       if (searchTerm) {
-        query = query.or(`customer_name.ilike.%${searchTerm}%,customer_id.ilike.%${searchTerm}%`);
+        params.append('search', searchTerm);
+      }
+      if (!isAdministrator) {
+        params.append('email', user.email);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
+      const url = params.toString() ? `/api/customers?${params}` : '/api/customers';
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
 
-      ////console.log('Customers data:', data);
+      const data = await response.json();
       
       const customerNodes: CustomerNode[] = (data || []).map(customer => ({
-        id: customer.customer_id || customer.id?.toString(),
+        id: customer.id || customer.customer_id?.toString(),
         customer_id: customer.customer_id,
         customer_name: customer.customer_name || 'Sin nombre',
         level_1: customer.level_1,

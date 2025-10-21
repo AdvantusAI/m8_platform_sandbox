@@ -22,7 +22,6 @@ import { EditNodeModal } from './EditNodeModal';
 import { RelationshipEditorModal } from './RelationshipEditorModal';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/integrations/supabase/client';
 
 const nodeTypes: NodeTypes = {
   supplyNetworkNode: SupplyNetworkNode,
@@ -40,11 +39,33 @@ const getNodeColor = (nodeTypeCode: string) => {
       return '#10b981'; // Green
     case 'retailer': 
     case 'retail':
+    case 'customer':
       return '#8b5cf6'; // Purple
     case 'supplier': 
       return '#f59e0b'; // Orange
     default: 
       return '#6b7280'; // Gray
+  }
+};
+
+const getIconNameForType = (typeCode: string) => {
+  switch (typeCode?.toLowerCase()) {
+    case 'factory':
+    case 'manufacturer':
+      return 'Factory';
+    case 'warehouse':
+      return 'Warehouse';
+    case 'distributor':
+    case 'distribution_center':
+      return 'Truck';
+    case 'retailer':
+    case 'retail':
+    case 'customer':
+      return 'Store';
+    case 'supplier':
+      return 'Package';
+    default:
+      return 'Package';
   }
 };
 
@@ -72,16 +93,31 @@ export const SupplyNetworkFlow: React.FC = () => {
   const [editingRelationshipId, setEditingRelationshipId] = useState<string | null>(null);
   const [dbNodeTypes, setDbNodeTypes] = useState<Array<{id: string, type_code: string, type_name: string, icon_name: string}>>([]);
 
-  // Fetch node types
+  // Initialize node types from API
   useEffect(() => {
     const fetchNodeTypes = async () => {
       try {
-        const { data, error } = await 
-          (supabase as any).schema('m8_schema').rpc('get_supply_network_node_types');
-        if (error) throw error;
-        setDbNodeTypes(data || []);
+        const response = await fetch('/api/supply-network-node-types');
+        if (response.ok) {
+          const nodeTypes = await response.json();
+          // Map the API response to match the expected format
+          const mappedTypes = nodeTypes.map((type: any) => ({
+            id: type.id,
+            type_code: type.type_code?.toLowerCase() || 'unknown',
+            type_name: type.type_name,
+            icon_name: getIconNameForType(type.type_code)
+          }));
+          setDbNodeTypes(mappedTypes);
+        }
       } catch (error) {
-        console.error('Error fetching node types:', error);
+        console.error('Failed to fetch node types:', error);
+        // Fallback to hardcoded types if API fails
+        const fallbackTypes = [
+          { id: '1', type_code: 'supplier', type_name: 'Supplier', icon_name: 'Package' },
+          { id: '2', type_code: 'warehouse', type_name: 'Warehouse', icon_name: 'Warehouse' },
+          { id: '3', type_code: 'customer', type_name: 'Customer', icon_name: 'Store' },
+        ];
+        setDbNodeTypes(fallbackTypes);
       }
     };
 
@@ -124,34 +160,33 @@ export const SupplyNetworkFlow: React.FC = () => {
     
     return dbRelationships.map((rel) => {
       // Create a meaningful label with lead time and cost
-      const leadTime = rel.lead_time_days ? `${rel.lead_time_days}d` : '';
-      const cost = rel.primary_transport_cost ? `$${rel.primary_transport_cost}` : '';
+      const leadTime = rel.lead_time ? `${rel.lead_time}d` : '';
+      const cost = rel.cost ? `$${rel.cost}` : '';
       const labelParts = [leadTime, cost].filter(Boolean);
       const label = labelParts.length > 0 ? labelParts.join(' | ') : 'Connection';
 
       return {
         id: rel.id,
-        source: rel.source_node_id,
-        target: rel.target_node_id,
+        source: rel.from_node_id,
+        target: rel.to_node_id,
         type: 'smoothstep',
-        animated: rel.status === 'active',
+        animated: true,
         label: label,
         markerEnd: {
           type: MarkerType.ArrowClosed,
         },
         style: {
-          stroke: rel.status === 'active' ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+          stroke: 'hsl(var(--primary))',
           strokeWidth: 2,
         },
         data: {
           relationshipId: rel.id,
-          relationshipType: rel.relationship_type_id || 'unknown',
+          relationshipType: rel.relationship_type || 'unknown',
           properties: { 
-            description: rel.description || '', 
+            description: '', 
             cost: rel.cost || 0,
-            leadTime: rel.lead_time_days || 0
+            leadTime: rel.lead_time || 0
           },
-          status: rel.status,
         },
       };
     });
@@ -185,11 +220,12 @@ export const SupplyNetworkFlow: React.FC = () => {
     (params: Connection) => {
       if (params.source && params.target) {
         createRelationship.mutate({
-          source_node_id: params.source,
-          target_node_id: params.target,
-          relationship_type_id: 'supplies',
-          status: 'active',
-          description: 'Auto-created relationship',
+          from_node_id: params.source,
+          to_node_id: params.target,
+          relationship_type: 'supply-001',
+          capacity: null,
+          cost: null,
+          lead_time: null,
         });
       }
     },

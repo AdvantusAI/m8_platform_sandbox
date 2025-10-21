@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface CustomerAssignment {
@@ -39,22 +38,14 @@ export function useUserAssignments() {
       setLoading(true);
       
       // Fetch customer assignments
-      const { data: customerData, error: customerError } = await supabase
-        .schema('m8_schema')
-        .from('customer_assignments')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (customerError) throw customerError;
+      const customerResponse = await fetch('/api/customer-assignments');
+      if (!customerResponse.ok) throw new Error('Failed to fetch customer assignments');
+      const customerData = await customerResponse.json();
 
       // Fetch product assignments
-      const { data: productData, error: productError } = await supabase
-        .schema('m8_schema')
-        .from('user_product_assignments')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (productError) throw productError;
+      const productResponse = await fetch('/api/product-assignments');
+      if (!productResponse.ok) throw new Error('Failed to fetch product assignments');
+      const productData = await productResponse.json();
 
       setCustomerAssignments(customerData || []);
       setProductAssignments(productData || []);
@@ -68,14 +59,14 @@ export function useUserAssignments() {
 
   const createCustomerAssignment = async (assignment: Omit<CustomerAssignment, 'id' | 'created_at'>) => {
     try {
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('customer_assignments')
-        .insert([assignment])
-        .select()
-        .single();
+      const response = await fetch('/api/customer-assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(assignment),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to create customer assignment');
+      const data = await response.json();
 
       setCustomerAssignments(prev => [data, ...prev]);
       toast.success('Asignación de cliente creada exitosamente');
@@ -89,14 +80,14 @@ export function useUserAssignments() {
 
   const createProductAssignment = async (assignment: Omit<ProductAssignment, 'id' | 'created_at' | 'updated_at'>) => {
     try {
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('user_product_assignments')
-        .insert([assignment])
-        .select()
-        .single();
+      const response = await fetch('/api/product-assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(assignment),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to create product assignment');
+      const data = await response.json();
 
       setProductAssignments(prev => [data, ...prev]);
       toast.success('Asignación de producto creada exitosamente');
@@ -110,15 +101,14 @@ export function useUserAssignments() {
 
   const updateCustomerAssignment = async (id: string, updates: Partial<CustomerAssignment>) => {
     try {
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('customer_assignments')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await fetch(`/api/customer-assignments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to update customer assignment');
+      const data = await response.json();
 
       setCustomerAssignments(prev => 
         prev.map(assignment => assignment.id === id ? data : assignment)
@@ -134,15 +124,14 @@ export function useUserAssignments() {
 
   const updateProductAssignment = async (id: string, updates: Partial<ProductAssignment>) => {
     try {
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('user_product_assignments')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await fetch(`/api/product-assignments/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to update product assignment');
+      const data = await response.json();
 
       setProductAssignments(prev => 
         prev.map(assignment => assignment.id === id ? data : assignment)
@@ -158,13 +147,11 @@ export function useUserAssignments() {
 
   const deleteCustomerAssignment = async (id: string) => {
     try {
-      const { error } = await supabase
-        .schema('m8_schema')
-        .from('customer_assignments')
-        .delete()
-        .eq('id', id);
+      const response = await fetch(`/api/customer-assignments/${id}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to delete customer assignment');
 
       setCustomerAssignments(prev => prev.filter(assignment => assignment.id !== id));
       toast.success('Asignación de cliente eliminada exitosamente');
@@ -177,13 +164,11 @@ export function useUserAssignments() {
 
   const deleteProductAssignment = async (id: string) => {
     try {
-      const { error } = await supabase
-        .schema('m8_schema')
-        .from('user_product_assignments')
-        .delete()
-        .eq('id', id);
+      const response = await fetch(`/api/product-assignments/${id}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to delete product assignment');
 
       setProductAssignments(prev => prev.filter(assignment => assignment.id !== id));
       toast.success('Asignación de producto eliminada exitosamente');

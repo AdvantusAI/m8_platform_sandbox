@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CompanyConfig {
   company_name: string;
@@ -22,43 +21,23 @@ export default function Auth() {
   const [companyConfig, setCompanyConfig] = useState<CompanyConfig | null>(null);
   
   const navigate = useNavigate();
+  const { signIn, user } = useAuth();
 
   useEffect(() => {
     // Check if user is already logged in
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        navigate('/');
-      }
-    });
+    if (user) {
+      navigate('/');
+    }
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate('/');
-      }
-    });
-
-    // Fetch company config
+    // Fetch company config from MongoDB API
     fetchCompanyConfig();
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [user, navigate]);
 
   const fetchCompanyConfig = async () => {
     try {
-      const { data, error } = await supabase
-      .schema('m8_schema')
-        .from('company_config')
-        .select('company_name, company_logo')
-        .limit(1)
-        .single();
-
-      if (error) {
-        console.error('Error fetching company config:', error);
-        return;
-      }
-
-      if (data) {
+      const response = await fetch('/api/company-config');
+      if (response.ok) {
+        const data = await response.json();
         setCompanyConfig(data);
       }
     } catch (error) {
@@ -71,20 +50,43 @@ export default function Auth() {
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Console log the password and its encoding methods
+    console.log('=== PASSWORD DEBUG INFO ===');
+    console.log('Raw password entered:', password);
+    console.log('Password length:', password.length);
     
-    if (error) {
-      setError(error.message);
-      toast.error('Error al iniciar sesión: ' + error.message);
-    } else {
-      toast.success('¡Sesión iniciada exitosamente!');
-      navigate('/');
+    // Base64 encode the password
+    const base64Password = btoa(password);
+    console.log('Base64 encoded password:', base64Password);
+    console.log('Base64 decoded back:', );
+    // URL encode the password
+    const urlEncodedPassword = encodeURIComponent(password);
+    console.log('URL encoded password:', urlEncodedPassword);
+    
+    // Show how it would look in MongoDB connection string
+    const mongoConnectionExample = `mongodb://admin:${urlEncodedPassword}@localhost:27017/sandbox_db`;
+    console.log('MongoDB connection string format:', mongoConnectionExample);
+    
+    // Simulate bcrypt hash (just for display, actual hashing happens on server)
+    console.log('This password will be bcrypt hashed on the server side');
+    console.log('================================');
+
+    try {
+      const { error } = await signIn(email, password);
+      
+      if (error) {
+        setError(error.message);
+        toast.error('Error al iniciar sesión: ' + error.message);
+      } else {
+        toast.success('¡Sesión iniciada exitosamente!');
+        navigate('/');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Error al iniciar sesión');
+      toast.error('Error al iniciar sesión: ' + (error.message || 'Error desconocido'));
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   return (

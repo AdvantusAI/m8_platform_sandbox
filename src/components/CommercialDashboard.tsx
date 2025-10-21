@@ -61,17 +61,21 @@ export function CommercialDashboard() {
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   
   const { getProductName } = useProducts();
-  const { getLocationName } = useLocations();
-  const { getCustomerName } = useCustomers();
+  const { getLocationName, getLocationUUID, getLocationByUUID } = useLocations();
+  const { getCustomerName, getCustomerUUID, getCustomerByUUID } = useCustomers();
   const {
     assignments,
     loading: commercialLoading
   } = useCommercialCollaboration();
+  // Convert display IDs to UUIDs for the forecast hook
+  const locationUUID = selectedLocationId ? getLocationUUID(selectedLocationId) : '';
+  const customerUUID = selectedCustomerId ? getCustomerUUID(selectedCustomerId) : '';
+
   const {
     forecastData,
     comments,
     loading: forecastLoading
-  } = useForecastCollaboration(selectedProductId, selectedLocationId, selectedCustomerId, selectedAggregation?.type);
+  } = useForecastCollaboration(selectedProductId, locationUUID || '', customerUUID || '', selectedAggregation?.type);
 
   // Update state when URL parameters change
   useEffect(() => {
@@ -98,7 +102,7 @@ export function CommercialDashboard() {
       locationId: selectedLocationId,
       customerId: selectedCustomerId
     });
-    //console.log('Selección realizada en Commercial Dashboard:', selection);
+    console.log('Selección realizada en Commercial Dashboard:', selection);
   };
 
   const handleLocationSelect = (locationId: string) => {
@@ -108,7 +112,7 @@ export function CommercialDashboard() {
       locationId,
       customerId: selectedCustomerId
     });
-    //console.log('Ubicación seleccionada en Commercial Dashboard:', locationId);
+    console.log('Ubicación seleccionada en Commercial Dashboard:', locationId);
   };
 
   const handleCustomerSelect = (customerId: string) => {
@@ -118,7 +122,7 @@ export function CommercialDashboard() {
       locationId: selectedLocationId,
       customerId
     });
-    //console.log('Cliente seleccionado en Commercial Dashboard:', customerId);
+    console.log('Cliente seleccionado en Commercial Dashboard:', customerId);
   };
 
   const handleClearFilters = () => {
@@ -159,7 +163,25 @@ export function CommercialDashboard() {
         </TabsList>
 
         <TabsContent value="forecasts" className="space-y-4 mt-6">
-          {/* Always visible filter info */}
+          {/* Filter Instructions */}
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="bg-blue-100 p-2 rounded-full">
+                  <Filter className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-blue-900 mb-1">Instrucciones de Filtrado</h3>
+                  <p className="text-sm text-blue-700">
+                    <strong>1.</strong> Selecciona un <strong>Filtro Principal</strong>: Producto específico, Categoría completa, o Subcategoría<br/>
+                    <strong>2.</strong> Opcionalmente, añade filtros de <strong>Ubicación</strong> y/o <strong>Cliente</strong> para mayor precisión
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Filter Controls */}
           <Card>
             <CardContent className="p-4">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -167,7 +189,7 @@ export function CommercialDashboard() {
                   
                   <div className="flex items-center gap-2">
                     <Package className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm font-medium">Producto/Categoría:</span>
+                    <span className="text-sm font-medium">Filtro Principal:</span>
                     {selectedProductId ? (
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{selectedProductId}</Badge>
@@ -183,15 +205,13 @@ export function CommercialDashboard() {
                             getProductName(selectedProductId)
                           )}
                         </Badge>
-                        {selectedAggregation && (
-                          <Badge variant="outline" className="text-xs">
-                            {selectedAggregation.type === 'category' ? 'Categoría' : 
-                             selectedAggregation.type === 'subcategory' ? 'Subcategoría' : 'Producto'}
-                          </Badge>
-                        )}
+                        <Badge variant="default" className="text-xs">
+                          {selectedAggregation?.type === 'category' ? 'Categoría' : 
+                           selectedAggregation?.type === 'subcategory' ? 'Subcategoría' : 'Producto'}
+                        </Badge>
                       </div>
                     ) : (
-                      <span className="text-sm text-muted-foreground">No seleccionado (obligatorio)</span>
+                      <span className="text-sm text-muted-foreground">Selecciona Producto, Categoría o Subcategoría</span>
                     )}
                     <Button 
                       variant="outline" 
@@ -201,6 +221,24 @@ export function CommercialDashboard() {
                     >
                       <Filter className="h-4 w-4" />
                     </Button>
+                    {selectedProductId && (
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => {
+                          setSelectedProductId('');
+                          setSelectedAggregation(null);
+                          saveFiltersToStorage({
+                            productId: '',
+                            locationId: selectedLocationId,
+                            customerId: selectedCustomerId
+                          });
+                        }}
+                        className="h-8 w-8"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">

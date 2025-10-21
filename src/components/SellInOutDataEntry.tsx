@@ -187,8 +187,8 @@ export function SellInOutDataEntry({
                       </SelectTrigger>
                       <SelectContent>
                         {products.map(product => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.code} - {product.name}
+                          <SelectItem key={product.id} value={product.product_id?.toString() || product.id}>
+                            {product.product_name || product.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -344,8 +344,8 @@ export function SellInOutDataEntry({
                       </SelectTrigger>
                       <SelectContent>
                         {products.map(product => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.code} - {product.name}
+                          <SelectItem key={product.id} value={product.product_id?.toString() || product.id}>
+                            {product.product_name || product.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

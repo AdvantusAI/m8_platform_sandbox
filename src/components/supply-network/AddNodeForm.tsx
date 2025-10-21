@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupplyNetwork } from '@/hooks/useSupplyNetwork';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 const nodeSchema = z.object({
@@ -48,8 +47,11 @@ export const AddNodeForm: React.FC<AddNodeFormProps> = ({ onSuccess }) => {
   useEffect(() => {
     const fetchNodeTypes = async () => {
       try {
-        const { data, error } = await (supabase as any).schema('m8_schema').rpc('get_supply_network_node_types');
-        if (error) throw error;
+        const response = await fetch('/api/supply-network-node-types');
+        if (!response.ok) {
+          throw new Error('Failed to fetch node types');
+        }
+        const data = await response.json();
         setNodeTypes(data || []);
       } catch (error) {
         console.error('Error fetching node types:', error);
@@ -64,26 +66,36 @@ export const AddNodeForm: React.FC<AddNodeFormProps> = ({ onSuccess }) => {
 
   const onSubmit = async (data: NodeFormData) => {
     try {
-      const properties: Record<string, any> = {};
-      
-      if (data.description) properties.description = data.description;
-      if (data.address) properties.address = data.address;
-      if (data.contactEmail) properties.contact_email = data.contactEmail;
-      if (data.capacity) properties.capacity = data.capacity;
-
       // Find the selected node type to get the type_code
       const selectedNodeType = nodeTypes.find(type => type.id === data.nodeType);
       const typeCode = selectedNodeType?.type_code || 'NODE';
 
-      await createNode.mutateAsync({
-        node_code: `${typeCode}_${Date.now()}`,
+      const nodeData = {
+        location_code: `${typeCode}_${Date.now()}`,
         node_name: data.name,
         node_type_id: data.nodeType,
-        status: data.status,
         description: data.description || '',
-        address: data.address || '',
-        contact_information: properties,
-      });
+        status: data.status,
+        hierarchy_level: 0,
+        version: 1,
+        operating_cost_per_unit: 1,
+        storage_cost_per_unit: 1,
+        node_lead_time: 21,
+        lot_sizing_method: 'lot_for_lot',
+        minimum_order_quantity: 1,
+        maximum_order_quantity: 1000,
+        order_multiple: 1,
+        economic_order_quantity: 1,
+        capacity_metrics: {},
+        operational_hours: {},
+        contact_information: {
+          email: data.contactEmail || '',
+          address: data.address || '',
+          capacity: data.capacity || ''
+        }
+      };
+
+      await createNode.mutateAsync(nodeData);
 
       toast.success('Nodo creado exitosamente');
       onSuccess();

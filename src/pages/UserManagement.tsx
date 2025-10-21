@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UserPlus, Plus, Search, Edit, Trash2, Users } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-enterprise';
@@ -71,14 +70,10 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('user_profiles')
-        .select('*')
-        .order('email');
-
-      if (error) throw error;
+      const response = await fetch('/api/users');
+      if (!response.ok) throw new Error('Failed to fetch users');
       
+      const data = await response.json();
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -94,25 +89,20 @@ export default function UserManagement() {
     setError(null);
 
     try {
-      const { error } = await signUp(
+      await signUp(
         createForm.email, 
         createForm.password, 
         createForm.firstName, 
         createForm.lastName
       );
       
-      if (error) {
-        setError(error.message);
-        toast.error('Error al crear usuario: ' + error.message);
-      } else {
-        toast.success('¡Usuario creado exitosamente!');
-        setIsCreateDialogOpen(false);
-        resetCreateForm();
-        fetchUsers();
-      }
-    } catch (error) {
-      console.error('Error creating user:', error);
-      toast.error('Error al crear usuario');
+      toast.success('¡Usuario creado exitosamente!');
+      setIsCreateDialogOpen(false);
+      resetCreateForm();
+      fetchUsers();
+    } catch (error: any) {
+      setError(error.message);
+      toast.error('Error al crear usuario: ' + error.message);
     } finally {
       setCreateLoading(false);
     }
@@ -133,16 +123,16 @@ export default function UserManagement() {
     if (!editingUser) return;
 
     try {
-      const { error } = await supabase
-        .schema('m8_schema')
-        .from('user_profiles')
-        .update({
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           full_name: editForm.full_name,
           active: editForm.active
-        })
-        .eq('id', editingUser.id);
-      
-      if (error) throw error;
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update user');
       
       toast.success('Usuario actualizado exitosamente');
       setIsEditDialogOpen(false);
@@ -158,15 +148,11 @@ export default function UserManagement() {
     if (!confirm('¿Está seguro de que desea eliminar este usuario?')) return;
 
     try {
-      // Note: This will delete from user_profiles, but the auth user will remain
-      // For complete deletion, you'd need to use supabase.auth.admin.deleteUser()
-      const { error } = await supabase
-        .schema('m8_schema')
-        .from('user_profiles')
-        .delete()
-        .eq('id', userId);
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to delete user');
       
       toast.success('Usuario eliminado exitosamente');
       fetchUsers();

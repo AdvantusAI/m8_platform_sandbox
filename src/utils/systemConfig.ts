@@ -1,27 +1,54 @@
-import { createClient } from '@supabase/supabase-js'; // Import Supabase client
-
-import { supabase } from '@/integrations/supabase/client';
-
 export const getSystemConfig = async (key: string): Promise<{ currentDate: string } | null> => {
   try {
-    if (key === 'system_date') {
-      const { data, error } = await supabase
-        .from('system_config')
-        .select('system_date')
-        .limit(1);
-
-      if (error) {
-        console.error(`Error fetching system config for key: ${key}`, error);
+    const response = await fetch(`http://localhost:3001/api/system-config?key=${key}`);
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        console.warn(`System config not found for key: ${key}`);
         return null;
       }
-
-      return { currentDate: data?.[0]?.system_date || null };
+      throw new Error(`Failed to fetch system config: ${response.status} ${response.statusText}`);
     }
 
-    console.error(`Unsupported key: ${key}`);
-    return null;
+    const data = await response.json();
+    
+    if (key === 'system_date') {
+      return { currentDate: data.currentDate || null };
+    }
+
+    // For other keys, return the value
+    return { currentDate: data.value || null };
   } catch (error) {
     console.error(`Error fetching system config for key: ${key}`, error);
     return null;
+  }
+};
+
+export const updateSystemConfig = async (key: string, value: any): Promise<boolean> => {
+  try {
+    const body: any = { key };
+    
+    if (key === 'system_date') {
+      body.system_date = value;
+    } else {
+      body.value = value;
+    }
+
+    const response = await fetch('http://localhost:3001/api/system-config', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to update system config: ${response.status} ${response.statusText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error(`Error updating system config for key: ${key}`, error);
+    return false;
   }
 };

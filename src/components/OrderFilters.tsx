@@ -21,7 +21,8 @@ interface OrderFiltersProps {
   onFiltersChange: (filters: any) => void;
 }
 
-export function OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
+export function 
+OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
   const handleFilterChange = (key: string, value: any) => {
     onFiltersChange({ ...filters, [key]: value });
   };

@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserCog, Plus, Search, Edit, Trash2, Shield } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-enterprise';
@@ -73,34 +72,12 @@ export default function UserRoles() {
     try {
       setLoading(true);
       
-      // Fetch users
-      const { data: usersData, error: usersError } = await supabase
-        .schema('m8_schema')
-        .from('user_profiles')
-        .select('*')
-        .order('email');
-
-      if (usersError) throw usersError;
-
-      // Fetch user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .schema('m8_schema')
-        .from('user_roles')
-        .select('*');
-
-      if (rolesError) throw rolesError;
-
-      // Combine data
-      const usersWithRoles: UserWithRoles[] = (usersData || []).map(user => {
-        const userRoles = (rolesData || []).filter(role => role.user_id === user.id);
-        return {
-          ...user,
-          roles: userRoles.map(r => r.role),
-          primary_role: userRoles.length > 0 ? userRoles[0].role : null
-        };
-      });
-
-      setUsers(usersWithRoles);
+      // Fetch users with roles from MongoDB API
+      const response = await fetch('/api/users-with-roles');
+      if (!response.ok) throw new Error('Failed to fetch users with roles');
+      
+      const data = await response.json();
+      setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users with roles:', error);
       toast.error('Error al cargar usuarios y roles');
@@ -118,29 +95,21 @@ export default function UserRoles() {
     }
     
     try {
-      if (editingRole) {
-        const { error } = await supabase
-          .schema('m8_schema')
-          .from('user_roles')
-          .update({ role: formData.role as any })
-          .eq('id', editingRole.id);
-        
-        if (error) throw error;
-        toast.success('Rol actualizado exitosamente');
-      } else {
-        const currentUser = await supabase.auth.getUser();
-        const { error } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: formData.user_id,
-            role: formData.role as any,
-            assigned_by: currentUser.data.user?.id || null
-          });
-        
-        if (error) throw error;
-        toast.success('Rol asignado exitosamente');
-      }
+      const method = editingRole ? 'PUT' : 'POST';
+      const url = editingRole ? `/api/user-roles/${editingRole.id}` : '/api/user-roles';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: formData.user_id,
+          role: formData.role
+        }),
+      });
 
+      if (!response.ok) throw new Error('Failed to save role');
+      
+      toast.success(editingRole ? 'Rol actualizado exitosamente' : 'Rol asignado exitosamente');
       setIsDialogOpen(false);
       setEditingRole(null);
       resetForm();
@@ -179,14 +148,12 @@ export default function UserRoles() {
     if (!confirm('¿Está seguro de que desea eliminar este rol?')) return;
 
     try {
-      const { error } = await supabase
-        .schema('m8_schema')
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role as any);
+      const response = await fetch(`/api/user-roles/${userId}/${role}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) throw new Error('Failed to delete role');
+      
       toast.success('Rol eliminado exitosamente');
       fetchUsersWithRoles();
     } catch (error) {

@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export interface Customer {
@@ -11,8 +10,11 @@ export interface Customer {
   level_1_name: string | null;
   level_2: string | null;
   level_2_name: string | null;
+  status?: string;
   created_at: string;
   updated_at: string;
+  // For compatibility with channel partners
+  partner_name?: string;
 }
 
 export const useChannelPartners = () => {
@@ -25,18 +27,27 @@ export const useChannelPartners = () => {
   } = {}) => {
     setLoading(true);
     try {
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('customers')
-        .select('*');
+      // Build query parameters
+      const searchParams = new URLSearchParams();
+      if (filters.level_1) searchParams.append('level_1', filters.level_1);
+      if (filters.level_2) searchParams.append('level_2', filters.level_2);
       
-      if (filters.level_1) query = query.eq('level_1', filters.level_1);
-      if (filters.level_2) query = query.eq('level_2', filters.level_2);
-
-      const { data, error } = await query.order('customer_name');
+      const url = `/api/customers${searchParams.toString() ? '?' + searchParams.toString() : ''}`;
+      const response = await fetch(url);
       
-      if (error) throw error;
-      setPartners(data || []);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch customers: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Transform data to ensure partner_name is available for compatibility
+      const transformedData = data.map((customer: Customer) => ({
+        ...customer,
+        partner_name: customer.customer_name, // Map customer_name to partner_name for compatibility
+      }));
+      
+      setPartners(transformedData || []);
     } catch (error) {
       console.error('Error fetching customers:', error);
       toast({

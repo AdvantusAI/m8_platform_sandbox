@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,17 +15,25 @@ import { useLocations } from '@/hooks/useLocations';
 import { useCustomers } from '@/hooks/useCustomers';
 
 interface ForecastData {
-  customer_id: string;
+  customer_id?: string;
+  customer_node_id?: string;
   postdate: string;
   product_id: string;
-  subcategory_id: string;
-  forecast_ly: number;
-  forecast_sales_gap: number;
-  forecast: number;
-  approved_sm_kam: number;
-  sm_kam_override: number;
-  forecast_sales_manager: number;
-  commercial_input: number;
+  location_id?: string;
+  location_node_id?: string;
+  forecast: number | null;
+  actual: number | null;
+  sales_plan: number | null;
+  demand_planner: number | null;
+  commercial_input: number | null;
+  commercial_notes: string | null;
+  collaboration_status: string | null;
+  products?: {
+    category_id: string | null;
+    category_name: string | null;
+    subcategory_id: string | null;
+    subcategory_name: string | null;
+  } | null;
 }
 
 interface CustomerData {
@@ -117,9 +124,10 @@ const ForecastCollaboration: React.FC = () => {
   // ===== FILTER EVENT HANDLERS =====
   /**
    * Handles product selection from modal
-   * @param productId - Selected product ID
+   * @param selection - Selected product, category, or subcategory selection
    */
-  const handleProductSelect = (productId: string): void => {
+  const handleProductSelect = (selection: { ids: string[]; name: string; type: 'product' | 'category' | 'subcategory' }): void => {
+    const productId = selection.ids[0]; // Take the first ID for now
     setFilterProductId(productId);
     saveFiltersToStorage({
       productId,
@@ -173,13 +181,16 @@ const ForecastCollaboration: React.FC = () => {
     const groupedData: { [key: string]: CustomerData } = {};
     
     rawData.forEach((row: ForecastData) => {
+      // Use customer_node_id if available, otherwise fall back to customer_id
+      const customerId = row.customer_node_id || row.customer_id || 'unknown';
+      
       // Group by customer_id and product_id combination
-      const customerProductKey = `${row.customer_id}-${row.product_id || 'no-product'}`;
+      const customerProductKey = `${customerId}-${row.product_id || 'no-product'}`;
       
       if (!groupedData[customerProductKey]) {
         groupedData[customerProductKey] = {
-          customer_id: row.customer_id,
-          customer_name: customerNamesMap[row.customer_id] || `Customer ${row.customer_id}`,
+          customer_id: customerId,
+          customer_name: customerNamesMap[customerId] || `Customer ${customerId}`,
           product_id: row.product_id || 'no-product',
           months: {}
         };
@@ -214,15 +225,24 @@ const ForecastCollaboration: React.FC = () => {
           };
         }
         
-        // Add the values (this allows aggregation if multiple products exist for same customer/month)
-        groupedData[customerProductKey].months[displayMonth].last_year += row.forecast_ly || 0;
-        groupedData[customerProductKey].months[displayMonth].forecast_sales_gap += row.forecast_sales_gap || 0;
+        // Map MongoDB fields to the display format
+        // Note: MongoDB data may not have all the legacy fields, using available fields
+        groupedData[customerProductKey].months[displayMonth].last_year += row.actual || 0; // Use actual as last year data
+        groupedData[customerProductKey].months[displayMonth].forecast_sales_gap += 0; // Calculate later if needed
         groupedData[customerProductKey].months[displayMonth].calculated_forecast += row.forecast || 0;
-        groupedData[customerProductKey].months[displayMonth].xamview += row.approved_sm_kam || 0;
-        groupedData[customerProductKey].months[displayMonth].kam_forecast_correction += row.sm_kam_override || 0;
-        groupedData[customerProductKey].months[displayMonth].sales_manager_view += row.forecast_sales_manager || 0;
+        groupedData[customerProductKey].months[displayMonth].xamview += row.sales_plan || 0; // Use sales_plan as initial plan
+        groupedData[customerProductKey].months[displayMonth].kam_forecast_correction += row.commercial_input || 0;
+        groupedData[customerProductKey].months[displayMonth].sales_manager_view += row.demand_planner || 0; // Use demand_planner as SM view
         groupedData[customerProductKey].months[displayMonth].effective_forecast += row.commercial_input || row.forecast || 0;
       }
+    });
+
+    // Calculate forecast_sales_gap after processing all records
+    Object.values(groupedData).forEach(customerData => {
+      Object.keys(customerData.months).forEach(month => {
+        const monthData = customerData.months[month];
+        monthData.forecast_sales_gap = monthData.effective_forecast - monthData.last_year;
+      });
     });
 
     return Object.values(groupedData);
@@ -234,53 +254,53 @@ const ForecastCollaboration: React.FC = () => {
         setFilterLoading(true);
       }
       
-      // First, fetch customer names
-      const { data: customersData, error: customersError } = await supabase
-        .schema('m8_schema')
-        .from('customers')
-        .select('customer_id,customer_name');
-
-      if (customersError) throw customersError;
+      // First, fetch customer names from MongoDB API
+      const customersResponse = await fetch('http://localhost:3001/api/customers');
+      if (!customersResponse.ok) {
+        throw new Error(`Failed to fetch customers: ${customersResponse.statusText}`);
+      }
+      const customersData = await customersResponse.json();
 
       const customerNamesMap: {[key: string]: string} = {};
       
-      customersData?.forEach(customer => {
+      customersData?.forEach((customer: any) => {
         customerNamesMap[customer.customer_id] = customer.customer_name;
       });
       
       setCustomerNames(customerNamesMap);
 
-      // Then fetch forecast data using the new commercial_collaboration_view
-      let query = supabase
-        .schema('m8_schema')
-        .from('commercial_collaboration_view')
-        .select('customer_id,postdate,forecast_ly,forecast,approved_sm_kam,sm_kam_override,forecast_sales_manager,commercial_input,forecast_sales_gap,product_id,subcategory_id')
-        .order('customer_id', { ascending: true })
-        .order('postdate', { ascending: true });
-
+      // Then fetch forecast data from MongoDB API
+      const queryParams = new URLSearchParams();
+      
       // Apply filters
       if (filterProductId) {
-        query = query.eq('product_id', filterProductId);
+        queryParams.append('product_id', filterProductId);
       }
       if (filterLocationId) {
-        query = query.eq('location_id', filterLocationId);
+        queryParams.append('location_node_id', filterLocationId);
       }
       if (filterCustomerId) {
-        query = query.eq('customer_id', filterCustomerId);
+        queryParams.append('customer_node_id', filterCustomerId);
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
+      const forecastUrl = `http://localhost:3001/api/forecast-data${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const forecastResponse = await fetch(forecastUrl);
+      
+      if (!forecastResponse.ok) {
+        throw new Error(`Failed to fetch forecast data: ${forecastResponse.statusText}`);
+      }
+      
+      const forecastData = await forecastResponse.json();
 
       // Store raw data for filtering
-      setRawForecastData(data || []);
+      setRawForecastData(forecastData || []);
 
       // Process the data using the new function
-      const allCustomersData = processForecastData(data || [], customerNamesMap);
+      const allCustomersData = processForecastData(forecastData || [], customerNamesMap);
       setAllCustomers(allCustomersData);
       setCustomers(allCustomersData);
     } catch (err) {
+      console.error('Error fetching forecast data:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -365,19 +385,22 @@ const ForecastCollaboration: React.FC = () => {
       setSaving(true);
       const postdate = monthToDate(month);
       
-      const { error } = await (supabase as any).schema('m8_schema')
-        .from('commercial_collaboration')
-        .upsert({
+      const response = await fetch('http://localhost:3001/api/forecast-data/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           product_id: filterProductId,
           customer_id: customerId,
           location_id: filterLocationId || null,
           postdate: postdate,
           commercial_input: value
-        });
+        })
+      });
 
-      if (error) {
-        console.error('Error saving KAM Forecast to database:', error);
-        throw error;
+      if (!response.ok) {
+        throw new Error(`Failed to save KAM Forecast: ${response.statusText}`);
       }
     } catch (error) {
       console.error('Error saving KAM Forecast to database:', error);

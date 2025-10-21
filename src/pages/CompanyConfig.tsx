@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Building2, Upload, Save, Edit, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -31,19 +30,20 @@ const CompanyConfig = () => {
   const fetchConfigs = async () => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-      .schema('m8_schema')
-        .from('company_config')
-        .select('*')
-        .order('id');
-
-      if (error) {
-        console.error('Error fetching company configs:', error);
-        toast.error('Error al cargar las configuraciones');
-        return;
+      const response = await fetch('http://localhost:3001/api/company-config');
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch company configs: ${response.status} ${response.statusText}`);
       }
 
-      setConfigs(data || []);
+      const data = await response.json();
+      
+      // Convert to array format for compatibility
+      setConfigs([{
+        id: 1,
+        company_name: data.company_name,
+        company_logo: data.company_logo
+      }]);
     } catch (error) {
       console.error('Error fetching company configs:', error);
       toast.error('Error al cargar las configuraciones');
@@ -58,16 +58,12 @@ const CompanyConfig = () => {
     }
 
     try {
-      const { error } = await supabase
-      .schema('m8_schema')
-        .from('company_config')
-        .delete()
-        .eq('id', id);
+      const response = await fetch('http://localhost:3001/api/company-config', {
+        method: 'DELETE',
+      });
 
-      if (error) {
-        console.error('Error deleting config:', error);
-        toast.error('Error al eliminar la configuración');
-        return;
+      if (!response.ok) {
+        throw new Error(`Failed to delete company config: ${response.status} ${response.statusText}`);
       }
 
       toast.success('Configuración eliminada exitosamente');

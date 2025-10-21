@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -47,36 +46,19 @@ export const CompanyConfigForm: React.FC<CompanyConfigFormProps> = ({
       };
 
 
-      if (config) {
-        // Update existing config
-        const { error } = await supabase
-        .schema('m8_schema')
-          .from('company_config')
-          .update(updateData)
-          .eq('id', config.id);
+      const response = await fetch('http://localhost:3001/api/company-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
 
-        if (error) {
-          console.error('Error updating config:', error);
-          toast.error('Error al actualizar la configuración');
-          return;
-        }
-
-        toast.success('Configuración actualizada exitosamente');
-      } else {
-        // Create new config
-        const { error } = await supabase
-        .schema('m8_schema')
-          .from('company_config')
-          .insert(updateData as any);
-
-        if (error) {
-          console.error('Error creating config:', error);
-          toast.error('Error al crear la configuración');
-          return;
-        }
-
-        toast.success('Configuración creada exitosamente');
+      if (!response.ok) {
+        throw new Error(`Failed to save company config: ${response.status} ${response.statusText}`);
       }
+
+      toast.success(config ? 'Configuración actualizada exitosamente' : 'Configuración creada exitosamente');
 
       onSuccess();
     } catch (error) {

@@ -1,12 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Search, Package, ChevronRight, ChevronDown } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Product {
   product_id: string;
@@ -28,7 +26,7 @@ interface CategoryNode {
 interface ProductSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (productId: string) => void;
+  onSelect: (selection: { ids: string[]; name: string; type: 'product' | 'category' | 'subcategory' }) => void;
 }
 
 export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSelectionModalProps) {
@@ -37,6 +35,7 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [selectedItem, setSelectedItem] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -47,17 +46,15 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('products')
-        .select('product_id, product_name, category_name, subcategory_name, category_id, subcategory_id')
-        .order('product_name');
-
-      if (error) throw error;
+      const response = await fetch('http://localhost:3001/api/products');
       
-      const productsData = data || [];
-      setProducts(productsData);
-      buildCategoryTree(productsData);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`);
+      }
+      
+      const productsData = await response.json();
+      setProducts(productsData || []);
+      buildCategoryTree(productsData || []);
     } catch (error) {
       console.error('Error fetching products:', error);
     } finally {
@@ -122,22 +119,49 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
     setExpandedNodes(newExpanded);
   };
 
-  const handleSelect = (productId: string) => {
-    onSelect(productId);
-    onClose();
-    setSearchTerm('');
+  const handleSelect = async (id: string, type: 'category' | 'subcategory' | 'product') => {
+    setSelectedItem(id);
+    let name = '';
+    let ids: string[] = [];
+    if (type === 'category') {
+      const node = categoryTree.find(node => node.id === id);
+      name = node?.name || id;
+      // Collect all product ids under this category
+      const collectIds = (nodes: CategoryNode[]) => {
+        nodes.forEach(n => {
+          if (n.type === 'product' && n.product_id) {
+            ids.push(n.product_id);
+          } else if (n.children) {
+            collectIds(n.children);
+          }
+        });
+      };
+      if (node?.children) collectIds(node.children);
+    } else if (type === 'subcategory') {
+      const node = categoryTree.flatMap(node => node.children || []).find(node => node.id === id);
+      name = node?.name || id;
+      // Collect all product ids under this subcategory
+      const collectIds = (nodes: CategoryNode[]) => {
+        nodes.forEach(n => {
+          if (n.type === 'product' && n.product_id) {
+            ids.push(n.product_id);
+          } else if (n.children) {
+            collectIds(n.children);
+          }
+        });
+      };
+      if (node?.children) collectIds(node.children);
+    } else {
+      const product = products.find(p => p.product_id === id);
+      name = product?.product_name || id;
+      ids = [id];
+    }
+    onSelect({ ids, name, type });
   };
 
   const filterTree = (nodes: CategoryNode[], searchTerm: string): CategoryNode[] => {
-    if (!searchTerm) return nodes;
-    
-    return nodes.reduce((filtered: CategoryNode[], node) => {
-      if (node.type === 'product') {
-        if (node.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            node.product_id?.toLowerCase().includes(searchTerm.toLowerCase())) {
-          return [...filtered, node];
-        }
-      } else if (node.children) {
+    return nodes.reduce<CategoryNode[]>((filtered, node) => {
+      if (node.children) {
         const filteredChildren = filterTree(node.children, searchTerm);
         if (filteredChildren.length > 0) {
           return [...filtered, { ...node, children: filteredChildren }];
@@ -154,17 +178,20 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
     const isExpanded = expandedNodes.has(node.id);
     const hasChildren = node.children && node.children.length > 0;
     const paddingLeft = level * 20;
-
     return (
       <div key={node.id}>
-        <div 
+        <div
           className={`flex items-center p-2 hover:bg-gray-50 cursor-pointer ${
             node.type === 'product' ? 'text-sm' : 'font-medium'
           }`}
           style={{ paddingLeft: `${paddingLeft + 8}px` }}
           onClick={() => {
             if (node.type === 'product' && node.product_id) {
-              handleSelect(node.product_id);
+              handleSelect(node.product_id, 'product');
+            } else if (node.type === 'category') {
+              toggleExpanded(node.id);
+            } else if (node.type === 'subcategory') {
+              toggleExpanded(node.id);
             } else if (hasChildren) {
               toggleExpanded(node.id);
             }
@@ -179,18 +206,29 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
               )}
             </div>
           )}
-          
           {node.type === 'product' && <Package className="h-4 w-4 mr-2 text-blue-500" />}
-          
           <span className="flex-1">{node.name}</span>
-          
           {node.type === 'category' && (
-            <Badge variant="outline" className="ml-2 text-xs">
+            <Badge
+              variant="outline"
+              className="ml-2 text-xs cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering parent click logic
+                handleSelect(node.id, 'category');
+              }}
+            >
               Categoría
             </Badge>
           )}
           {node.type === 'subcategory' && (
-            <Badge variant="outline" className="ml-2 text-xs">
+            <Badge
+              variant="outline"
+              className="ml-2 text-xs cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent triggering parent click logic
+                handleSelect(node.id, 'subcategory');
+              }}
+            >
               Subcategoría
             </Badge>
           )}
@@ -200,7 +238,6 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
             </Badge>
           )}
         </div>
-        
         {hasChildren && isExpanded && (
           <div>
             {node.children!.map(child => renderTreeNode(child, level + 1))}
@@ -215,13 +252,12 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh]">
-       <DialogHeader>
-  <DialogTitle>Seleccionar producto</DialogTitle>
-  <DialogDescription>
-    Elige un producto de la lista para asignarlo.
-  </DialogDescription>
-</DialogHeader>
-
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Seleccionar Producto
+          </DialogTitle>
+        </DialogHeader>
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -233,7 +269,6 @@ export function ProductSelectionModal({ isOpen, onClose, onSelect }: ProductSele
               className="pl-10"
             />
           </div>
-
           <ScrollArea className="h-96 border rounded-md">
             {loading ? (
               <div className="flex items-center justify-center p-8">

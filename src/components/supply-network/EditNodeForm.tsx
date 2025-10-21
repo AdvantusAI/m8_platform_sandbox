@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useSupplyNetwork } from '@/hooks/useSupplyNetwork';
-import { supabase } from '@/integrations/supabase/client';
+
 import { toast } from 'sonner';
 
 const nodeSchema = z.object({
@@ -51,8 +51,11 @@ export const EditNodeForm: React.FC<EditNodeFormProps> = ({ nodeId, onSuccess })
   useEffect(() => {
     const fetchNodeTypes = async () => {
       try {
-        const { data, error } = await (supabase as any).schema('m8_schema').rpc('get_supply_network_node_types');
-        if (error) throw error;
+        const response = await fetch('/api/supply-network-node-types');
+        if (!response.ok) {
+          throw new Error('Failed to fetch node types');
+        }
+        const data = await response.json();
         setNodeTypes(data || []);
       } catch (error) {
         console.error('Error fetching node types:', error);
@@ -95,8 +98,10 @@ export const EditNodeForm: React.FC<EditNodeFormProps> = ({ nodeId, onSuccess })
         node_type_id: data.nodeType,
         status: data.status,
         description: data.description || '',
-        address: data.address || '',
-        contact_information: properties,
+        contact_information: {
+          ...properties,
+          address: data.address || '',
+        },
       });
 
       toast.success('Nodo actualizado exitosamente');

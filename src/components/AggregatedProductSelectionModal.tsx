@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Search, Package, ChevronRight, ChevronDown, Folder, FolderOpen } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Product {
   product_id: string;
@@ -47,20 +46,16 @@ export function AggregatedProductSelectionModal({ isOpen, onClose, onSelect }: A
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('products')
-        .select('product_id, product_name, category_name, subcategory_name, category_id, subcategory_id')
-        .order('product_name');
-
-      if (error) throw error;
+      const response = await fetch('/api/products');
+      if (!response.ok) throw new Error('Failed to fetch products');
       
+      const data = await response.json();
       const productsData = data || [];
-      //console.log('Raw products data sample:', productsData.slice(0, 3)); // Debug log
+      console.log('Raw products data sample from MongoDB:', productsData.slice(0, 3)); // Debug log
       setProducts(productsData);
       buildCategoryTree(productsData);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching products from MongoDB:', error);
     } finally {
       setLoading(false);
     }
@@ -337,3 +332,4 @@ export function AggregatedProductSelectionModal({ isOpen, onClose, onSelect }: A
     </Dialog>
   );
 }
+       

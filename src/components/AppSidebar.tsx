@@ -27,6 +27,10 @@ const items = [
   url: "/commercial-collaboration",
   icon: Users
 }, {
+  title: "Revisión Plan Comercial",
+  url: "/commercial-approve",
+  icon: Users
+}, {
   title: "Colaboración en Pronósticos",
   url: "/forecast-collaboration",
   icon: Users

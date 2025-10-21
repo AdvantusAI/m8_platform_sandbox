@@ -5,34 +5,47 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ShoppingCart, Eye, Plus, Package } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { OrderFilters } from "@/components/OrderFilters";
 
 interface PurchaseOrderSuggestion {
   id: string;
-  product_id: string;
-  warehouse_id: number;
-  vendor_id: number;
-  vendor_code: string;
+  product_id: number | string;
+  product_name: string;
+  vendor_id: string;
   vendor_name: string;
-  current_stock: number;
-  available_stock: number;
-  reorder_point: number;
-  safety_stock: number;
-  suggested_quantity: number;
+  node_id: string;
+  node_name: string;
+  location_code: number;
+  recommended_quantity: number;
   unit_cost: number;
   total_cost: number;
   lead_time_days: number;
-  reason: string;
-  demand_forecast: number;
-  bracket_info: any;
+  node_lead_time: number;
+  reasoning: string;
   status: string;
+  required_delivery_date: string;
+  recommended_order_date: string;
+  urgency: string;
+  order_multiple: number;
+  minimum_order_quantity: number;
+  maximum_order_quantity: number;
   created_at: string;
   updated_at: string;
-  order_date: string;
-  days_until_stockout: number;
-  recommended_order_urgency: string;
+  // Legacy fields for backward compatibility
+  suggested_quantity?: number;
+  reason?: string;
+  warehouse_id?: number;
+  vendor_code?: string;
+  current_stock?: number;
+  available_stock?: number;
+  reorder_point?: number;
+  safety_stock?: number;
+  demand_forecast?: number;
+  bracket_info?: any;
+  order_date?: string;
+  days_until_stockout?: number;
+  recommended_order_urgency?: string;
 }
 
 interface PurchaseOrderCalculation {
@@ -67,21 +80,14 @@ export default function OrdenesCompra() {
   const fetchReplenishmentOrders = async () => {
     try {
       setLoading(true);
-      //console.log('Fetching purchase order suggestions...');
       
-      const { data, error } = await supabase
-        .from('purchase_order_suggestions' as any)
-        .select('*')
-        .order('order_date', { ascending: false });
-
-      //console.log('Purchase order suggestions query result:', { data, error });
-
-      if (error) {
-        console.error('Supabase error:', error);
-        throw error;
+      const response = await fetch('/api/purchase-order-suggestions');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch purchase order suggestions: ${response.statusText}`);
       }
-
-      setReplenishmentOrders((data as any) || []);
+      
+      const data = await response.json();
+      setReplenishmentOrders(data || []);
     } catch (error) {
       console.error('Error fetching purchase order suggestions:', error);
       toast.error('Error al cargar órdenes de reabastecimiento: ' + (error as Error).message);
@@ -109,28 +115,37 @@ export default function OrdenesCompra() {
   const fetchOrderCalculations = async (order: PurchaseOrderSuggestion) => {
     try {
       setCalculationsLoading(true);
-      //console.log('Fetching calculations for order:', order.id);
       
-      const { data, error } = await supabase
-        .from('purchase_order_calculations' as any)
-        .select('*')
-        .eq('purchase_order_suggestion_id', order.id);
-
-      //console.log('Purchase order calculations query result:', { data, error });
-
-      if (error) {
-        console.error('Error fetching order calculations:', error);
-        toast.error('Error al cargar cálculos de la orden');
-        setOrderCalculations([]);
-      } else {
-        setOrderCalculations((data as any) || []);
+      const response = await fetch(`/api/purchase-order-calculations/${order.id}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch calculations: ${response.statusText}`);
       }
+      
+      const data = await response.json();
+      setOrderCalculations(data || []);
     } catch (error) {
       console.error('Error fetching calculations:', error);
       toast.error('Error al cargar cálculos de la orden');
       setOrderCalculations([]);
     } finally {
       setCalculationsLoading(false);
+    }
+  };
+
+  const handleNewOrder = async () => {
+    try {
+      setLoading(true);
+      toast.info('Generando nuevas sugerencias de órdenes...');
+      
+      // Refresh the purchase order suggestions to get latest recommendations
+      await fetchReplenishmentOrders();
+      
+      toast.success('Sugerencias de órdenes actualizadas correctamente');
+    } catch (error) {
+      console.error('Error creating new order:', error);
+      toast.error('Error al generar nuevas órdenes');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -171,15 +186,26 @@ export default function OrdenesCompra() {
       if (filters.vendorFilter && !order.vendor_name.toLowerCase().includes(filters.vendorFilter.toLowerCase())) {
         return false;
       }
+ 
+      // Product filter - search in both product_name and product_id
+      if (filters.productFilter) {
+        const productSearch = filters.productFilter.toLowerCase();
+        const productName = order.product_name?.toLowerCase() || '';
+        const productId = order.product_id?.toString().toLowerCase() || '';
+        
+        if (!productName.includes(productSearch) && !productId.includes(productSearch)) {
+          return false;
+        }
+      }
 
       // Status filter - handle "all" value properly
       if (filters.statusFilter && filters.statusFilter !== 'all' && order.status !== filters.statusFilter) {
         return false;
       }
 
-      // Date range filter
+      // Date range filter - use the new date fields
       if (filters.dateFrom) {
-        const orderDate = new Date(order.order_date);
+        const orderDate = new Date(order.recommended_order_date || order.order_date);
         const fromDate = new Date(filters.dateFrom);
         fromDate.setHours(0, 0, 0, 0);
         if (orderDate < fromDate) {
@@ -188,7 +214,7 @@ export default function OrdenesCompra() {
       }
 
       if (filters.dateTo) {
-        const orderDate = new Date(order.order_date);
+        const orderDate = new Date(order.recommended_order_date || order.order_date);
         const toDate = new Date(filters.dateTo);
         toDate.setHours(23, 59, 59, 999);
         if (orderDate > toDate) {
@@ -219,9 +245,9 @@ export default function OrdenesCompra() {
           <h1 className="text-3xl font-bold">Órdenes de Reabastecimiento</h1>
           <p className="text-muted-foreground">Gestiona y monitorea las órdenes de reabastecimiento</p>
         </div>
-        <Button>
+        <Button onClick={handleNewOrder} disabled={loading}>
           <Plus className="h-4 w-4 mr-2" />
-          Nueva Orden
+          {loading ? 'Actualizando...' : 'Actualizar Sugerencias'}
         </Button>
       </div>
 
@@ -258,11 +284,12 @@ export default function OrdenesCompra() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Producto ID</TableHead>
+                    <TableHead>Producto</TableHead>
+                    <TableHead>Nodo</TableHead>
                     <TableHead>Fecha</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Total</TableHead>
-                    <TableHead>Cantidad Sugerida</TableHead>
+                    <TableHead>Cantidad</TableHead>
                     <TableHead>Proveedor</TableHead>
                     <TableHead>Urgencia</TableHead>
                     <TableHead>Acciones</TableHead>
@@ -271,19 +298,39 @@ export default function OrdenesCompra() {
                 <TableBody>
                   {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-medium">{order.product_id}</TableCell>
-                      <TableCell>{formatDate(order.order_date)}</TableCell>
+                      <TableCell className="font-medium">
+                        <div>
+                          <div className="font-semibold">{order.product_name || order.product_id}</div>
+                          <div className="text-sm text-gray-500">ID: {order.product_id}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{order.node_name}</div>
+                          <div className="text-sm text-gray-500">Loc: {order.location_code}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{formatDate(order.recommended_order_date || order.order_date)}</TableCell>
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>{formatCurrency(order.total_cost)}</TableCell>
-                      <TableCell>{order.suggested_quantity.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{(order.recommended_quantity || order.suggested_quantity)?.toLocaleString()}</div>
+                          <div className="text-sm text-gray-500">Min: {order.minimum_order_quantity?.toLocaleString()}</div>
+                        </div>
+                      </TableCell>
                       <TableCell>{order.vendor_name}</TableCell>
                       <TableCell>
                         <Badge className={
-                          order.recommended_order_urgency === 'urgent' 
+                          (order.urgency === 'critical' || order.recommended_order_urgency === 'urgent')
                             ? 'bg-red-100 text-red-700' 
+                            : order.urgency === 'normal'
+                            ? 'bg-green-100 text-green-700'
                             : 'bg-yellow-100 text-yellow-700'
                         }>
-                          {order.recommended_order_urgency === 'urgent' ? 'Urgente' : 'Normal'}
+                          {order.urgency === 'critical' ? 'Crítico' : 
+                           order.urgency === 'normal' ? 'Normal' : 
+                           order.recommended_order_urgency === 'urgent' ? 'Urgente' : 'Normal'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -311,7 +358,7 @@ export default function OrdenesCompra() {
         <DialogContent className="max-w-6xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Detalles de Orden - {selectedOrder?.product_id}
+              Detalles de Orden - {selectedOrder?.product_name || selectedOrder?.product_id}
             </DialogTitle>
           </DialogHeader>
 
@@ -334,11 +381,11 @@ export default function OrdenesCompra() {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Fecha de Orden</p>
-                      <p className="font-medium">{formatDate(selectedOrder.order_date)}</p>
+                      <p className="font-medium">{formatDate(selectedOrder.recommended_order_date || selectedOrder.order_date)}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Días hasta agotamiento</p>
-                      <p className="font-medium">{selectedOrder.days_until_stockout} días</p>
+                      <p className="text-sm text-muted-foreground">Fecha Requerida</p>
+                      <p className="font-medium">{formatDate(selectedOrder.required_delivery_date)}</p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
@@ -347,21 +394,48 @@ export default function OrdenesCompra() {
                       <p className="font-medium">{selectedOrder.vendor_name}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Stock Actual</p>
-                      <p className="font-medium">{selectedOrder.current_stock.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Nodo</p>
+                      <p className="font-medium">{selectedOrder.node_name}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Punto de Reorden</p>
-                      <p className="font-medium">{selectedOrder.reorder_point.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Código de Ubicación</p>
+                      <p className="font-medium">{selectedOrder.location_code}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Tiempo de Entrega</p>
                       <p className="font-medium">{selectedOrder.lead_time_days} días</p>
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tiempo de Entrega del Nodo</p>
+                      <p className="font-medium">{selectedOrder.node_lead_time} días</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Múltiplo de Orden</p>
+                      <p className="font-medium">{selectedOrder.order_multiple}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Urgencia</p>
+                      <Badge className={
+                        selectedOrder.urgency === 'critical' 
+                          ? 'bg-red-100 text-red-700' 
+                          : selectedOrder.urgency === 'normal'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-100 text-yellow-700'
+                      }>
+                        {selectedOrder.urgency === 'critical' ? 'Crítico' : 
+                         selectedOrder.urgency === 'normal' ? 'Normal' : selectedOrder.urgency}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Cantidad Recomendada</p>
+                      <p className="font-medium">{(selectedOrder.recommended_quantity || selectedOrder.suggested_quantity)?.toLocaleString()}</p>
+                    </div>
+                  </div>
                   <div className="mt-4">
                     <p className="text-sm text-muted-foreground">Razón</p>
-                    <p className="mt-1">{selectedOrder.reason}</p>
+                    <p className="mt-1">{selectedOrder.reasoning || selectedOrder.reason}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -399,29 +473,49 @@ export default function OrdenesCompra() {
                   {!showCalculations ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm text-muted-foreground">Producto ID</p>
-                        <p className="font-medium">{selectedOrder.product_id}</p>
+                        <p className="text-sm text-muted-foreground">Producto</p>
+                        <p className="font-medium">{selectedOrder.product_name}</p>
+                        <p className="text-sm text-gray-500">ID: {selectedOrder.product_id}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Cantidad Sugerida</p>
-                        <p className="font-medium">{selectedOrder.suggested_quantity.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Cantidad Recomendada</p>
+                        <p className="font-medium">{(selectedOrder.recommended_quantity || selectedOrder.suggested_quantity)?.toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Precio Unitario</p>
                         <p className="font-medium">{formatCurrency(selectedOrder.unit_cost)}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Stock Disponible</p>
-                        <p className="font-medium">{selectedOrder.available_stock.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Cantidad Mínima</p>
+                        <p className="font-medium">{selectedOrder.minimum_order_quantity?.toLocaleString() || 'N/A'}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Stock de Seguridad</p>
-                        <p className="font-medium">{selectedOrder.safety_stock.toLocaleString()}</p>
+                        <p className="text-sm text-muted-foreground">Cantidad Máxima</p>
+                        <p className="font-medium">{selectedOrder.maximum_order_quantity?.toLocaleString() || 'N/A'}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Pronóstico de Demanda</p>
-                        <p className="font-medium">{selectedOrder.demand_forecast.toFixed(2)}</p>
+                        <p className="text-sm text-muted-foreground">Múltiplo de Orden</p>
+                        <p className="font-medium">{selectedOrder.order_multiple || 1}</p>
                       </div>
+                      {/* Legacy fields for backward compatibility */}
+                      {selectedOrder.available_stock && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Stock Disponible</p>
+                          <p className="font-medium">{selectedOrder.available_stock.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {selectedOrder.safety_stock && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Stock de Seguridad</p>
+                          <p className="font-medium">{selectedOrder.safety_stock.toLocaleString()}</p>
+                        </div>
+                      )}
+                      {selectedOrder.demand_forecast && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Pronóstico de Demanda</p>
+                          <p className="font-medium">{selectedOrder.demand_forecast.toFixed(2)}</p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div>

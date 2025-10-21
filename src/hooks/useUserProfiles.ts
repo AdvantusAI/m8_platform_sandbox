@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 interface UserProfile {
   id: string;
@@ -22,14 +21,10 @@ export function useUserProfiles() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('user_profiles')
-        .select('*')
-        .eq('active', true)
-        .order('full_name');
-
-      if (error) throw error;
+      const response = await fetch('/api/users?active=true');
+      if (!response.ok) throw new Error('Failed to fetch users');
+      
+      const data = await response.json();
       setUsers(data || []);
     } catch (err) {
       console.error('Error fetching users:', err);

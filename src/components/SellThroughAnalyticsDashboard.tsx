@@ -126,11 +126,19 @@ export function SellThroughAnalyticsDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Products</SelectItem>
-                  {products.map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.code} - {product.name}
-                    </SelectItem>
-                  ))}
+                  {products
+                    .filter(product => {
+                      const id = product.product_id ?? product.id;
+                      return id && String(id).trim() !== '';
+                    })
+                    .map(product => {
+                      const id = String(product.product_id ?? product.id);
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {product.product_name ?? product.name ?? 'Unnamed Product'}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </div>
@@ -143,7 +151,9 @@ export function SellThroughAnalyticsDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Partners</SelectItem>
-                  {partners.map(partner => (
+                  {partners
+                    .filter(partner => partner.id && String(partner.id).trim() !== '')
+                    .map(partner => (
                     <SelectItem key={partner.id} value={partner.id}>
                       {partner.partner_name}
                     </SelectItem>
@@ -272,7 +282,7 @@ export function SellThroughAnalyticsDashboard() {
                     <Tooltip />
                     <Bar 
                       dataKey="daysOfInventory" 
-                      fill="hsl(var(--secondary))"
+                      fill="#3b82f6"
                       name="Days of Inventory"
                     />
                   </BarChart>
@@ -312,34 +322,49 @@ export function SellThroughAnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {sellThroughMetrics.map((metric) => {
-                  const partner = partners.find(p => p.id === metric.channel_partner_id);
-                  const product = products.find(p => p.id === metric.product_id);
-                  
-                  return (
-                    <div key={metric.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="space-y-1">
-                        <div className="font-medium">
-                          {partner?.partner_name || 'Unknown Partner'}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {product?.name || metric.product_id} • {format(new Date(metric.calculation_period), 'MMM yyyy')}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <div className="font-medium">{metric.sell_through_rate.toFixed(1)}%</div>
+                {sellThroughMetrics.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No sell-through metrics data available.</p>
+                    <p className="text-sm mt-2">Try adjusting your filters or refreshing the data.</p>
+                  </div>
+                ) : (
+                  sellThroughMetrics.map((metric) => {
+                    const partner = partners.find(p => p.id === metric.channel_partner_id);
+                    const product = products.find(p => {
+                      const productId = String(p.product_id || '');
+                      const metricProductId = String(metric.product_id || '');
+                      const pId = String(p.id || '');
+                      return (
+                        productId === metricProductId || 
+                        pId === metricProductId
+                      );
+                    });
+                    
+                    return (
+                      <div key={metric.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="space-y-1">
+                          <div className="font-medium">
+                            {partner?.partner_name || 'Unknown Partner'}
+                          </div>
                           <div className="text-sm text-muted-foreground">
-                            {metric.days_of_inventory.toFixed(0)} days inventory
+                            {product?.product_name || product?.name || `Product ID: ${metric.product_id}`} • {format(new Date(metric.calculation_period), 'MMM yyyy')}
                           </div>
                         </div>
-                        <Badge variant={getPerformanceBadgeVariant(metric.performance_category)}>
-                          {metric.performance_category}
-                        </Badge>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <div className="font-medium">{metric.sell_through_rate.toFixed(1)}%</div>
+                            <div className="text-sm text-muted-foreground">
+                              {metric.days_of_inventory.toFixed(0)} days inventory
+                            </div>
+                          </div>
+                          <Badge variant={getPerformanceBadgeVariant(metric.performance_category)}>
+                            {metric.performance_category}
+                          </Badge>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
