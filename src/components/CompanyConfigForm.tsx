@@ -95,8 +95,6 @@ export const CompanyConfigForm: React.FC<CompanyConfigFormProps> = ({
         <FileUpload
           onUpload={handleLogoUpload}
           accept="image/*"
-          bucket="company-assets"
-          folder="logos"
           currentUrl={formData.company_logo}
         />
         {formData.company_logo && (

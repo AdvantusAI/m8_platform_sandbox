@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,15 +35,11 @@ const Configuracion = () => {
       setLoading(true);
       //console.log('Fetching system configuration...');
       
-      const { data, error } = await supabase
-        .from("system_config")
-        .select("*")
-        .limit(1);
-      
-      if (error) {
-        console.error('Error fetching system config:', error);
-        throw error;
+      const response = await fetch('/api/system-config');
+      if (!response.ok) {
+        throw new Error('Failed to fetch system config');
       }
+      const data = await response.json();
 
       //console.log('System config data:', data);
       
@@ -75,20 +70,31 @@ const Configuracion = () => {
 
       if (config) {
         // Update existing configuration
-        const { error } = await supabase
-          .from("system_config")
-          .update(data)
-          .eq("id", config.id);
+        const response = await fetch('/api/system-config', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
         
-        if (error) throw error;
+        if (!response.ok) {
+          throw new Error('Failed to update system config');
+        }
         toast.success("Configuración actualizada exitosamente");
       } else {
         // Create new configuration
-        const { error } = await supabase
-          .from("system_config")
-          .insert([data]);
+        const response = await fetch('/api/system-config', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
         
-        if (error) throw error;
+        if (!response.ok) {
+          throw new Error('Failed to create system config');
+        }
         toast.success("Configuración creada exitosamente");
       }
       

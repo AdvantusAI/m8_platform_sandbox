@@ -17,7 +17,6 @@ import {
   ArrowUp,
   ExternalLink
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 interface LowAccuracyProduct {
@@ -101,96 +100,15 @@ export default function KPIDashboard() {
 
   const loadLowAccuracyProducts = async () => {
     try {
-      //console.log('Loading low accuracy products with threshold:', accuracyThreshold);
+      const response = await fetch(`http://localhost:3001/api/kpi/low-accuracy-products?threshold=${accuracyThreshold}`);
       
-      // First, get all forecast data
-      const { data: forecastData, error: forecastError } = await supabase
-       .schema('m8_schema')
-        .from('forecast_interpretability')
-        .select('product_id, interpretability_score, confidence_level, created_at')
-        .not('product_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(500);
-
-      if (forecastError) throw forecastError;
-      
-      //console.log('Forecast data received:', forecastData?.length || 0, 'records');
-
-      // Get product details separately
-      const uniqueProductIds = [...new Set(forecastData?.map(d => d.product_id))];
-      //console.log('Unique product IDs:', uniqueProductIds.length);
-      
-      const { data: productData, error: productError } = await supabase
-        .from('products')
-        .select('product_id, product_name, category_name')
-        .in('product_id', uniqueProductIds);
-
-      if (productError) {
-        console.warn('Product data fetch error:', productError);
+      if (!response.ok) {
+        throw new Error('Failed to fetch low accuracy products');
       }
+
+      const lowAccuracyProducts = await response.json();
       
-      //console.log('Product data received:', productData?.length || 0, 'records');
-
-      // Create product lookup map
-      const productLookup = new Map();
-      productData?.forEach(product => {
-        productLookup.set(product.product_id, product);
-      });
-
-      // Transform and aggregate data by product
-      const productMap = new Map();
-      forecastData?.forEach(item => {
-        const productId = item.product_id;
-        if (!productMap.has(productId)) {
-          const productInfo = productLookup.get(productId);
-          productMap.set(productId, {
-            product_id: productId,
-            product_name: productInfo?.product_name || `Product ${productId}`,
-            category_name: productInfo?.category_name || 'Sin categoría',
-            accuracy_scores: [],
-            forecast_count: 0,
-            last_forecast_date: item.created_at
-          });
-        }
-        
-        const product = productMap.get(productId);
-        product.accuracy_scores.push(item.interpretability_score);
-        product.forecast_count++;
-        
-        if (new Date(item.created_at) > new Date(product.last_forecast_date)) {
-          product.last_forecast_date = item.created_at;
-        }
-      });
-
-      // Calculate averages and trends for all products
-      const allProductsData = Array.from(productMap.values()).map(product => {
-        const avgAccuracy = product.accuracy_scores.reduce((sum: number, score: number) => sum + score, 0) / product.accuracy_scores.length;
-        const errorPercentage = 100 - avgAccuracy;
-        
-        // Simple trend calculation (you can make this more sophisticated)
-        const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
-        
-        return {
-          product_id: product.product_id,
-          product_name: product.product_name,
-          category_name: product.category_name,
-          accuracy_score: Math.round(avgAccuracy),
-          forecast_count: product.forecast_count,
-          last_forecast_date: product.last_forecast_date,
-          avg_error_percentage: Math.round(errorPercentage),
-          trend
-        };
-      });
-
-      // Filter for low accuracy products only
-      const lowAccuracyProducts = allProductsData
-        .filter(product => product.accuracy_score < accuracyThreshold)
-        .sort((a, b) => a.accuracy_score - b.accuracy_score);
-
-      //console.log('All products:', allProductsData.length);
-      //console.log('Low accuracy products after filtering:', lowAccuracyProducts.length);
-      
-      setAllProducts(allProductsData);
+      setAllProducts(lowAccuracyProducts);
       setLowAccuracyProducts(lowAccuracyProducts);
     } catch (error) {
       console.error('Error loading low accuracy products:', error);
@@ -199,94 +117,15 @@ export default function KPIDashboard() {
 
   const loadLowAccuracyCustomers = async () => {
     try {
-      //console.log('Loading low accuracy customers with threshold:', accuracyThreshold);
+      const response = await fetch(`http://localhost:3001/api/kpi/low-accuracy-customers?threshold=${accuracyThreshold}`);
       
-      // First, get all forecast data for customers
-      const { data: forecastData, error: forecastError } = await supabase
-       .schema('m8_schema')
-        .from('forecast_interpretability')
-        .select('customer_id, interpretability_score, confidence_level, created_at')
-        .not('customer_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(500);
-
-      if (forecastError) throw forecastError;
-      
-      //console.log('Customer forecast data received:', forecastData?.length || 0, 'records');
-
-      // Get customer details separately
-      const uniqueCustomerIds = [...new Set(forecastData?.map(d => d.customer_id))];
-      //console.log('Unique customer IDs:', uniqueCustomerIds.length);
-      
-      const { data: customerData, error: customerError } = await supabase
-        .schema('m8_schema')
-        .from('customers')
-        .select('customer_id, customer_name')
-        .in('customer_id', uniqueCustomerIds);
-
-      if (customerError) {
-        console.warn('Customer data fetch error:', customerError);
+      if (!response.ok) {
+        throw new Error('Failed to fetch low accuracy customers');
       }
+
+      const lowAccuracyCustomers = await response.json();
       
-      //console.log('Customer data received:', customerData?.length || 0, 'records');
-
-      // Create customer lookup map
-      const customerLookup = new Map();
-      customerData?.forEach(customer => {
-        customerLookup.set(customer.customer_id, customer);
-      });
-
-      // Transform and aggregate data by customer
-      const customerMap = new Map();
-      forecastData?.forEach(item => {
-        const customerId = item.customer_id;
-        if (!customerMap.has(customerId)) {
-          const customerInfo = customerLookup.get(customerId);
-          customerMap.set(customerId, {
-            customer_id: customerId,
-            customer_name: customerInfo?.customer_name || `Customer ${customerId}`,
-            accuracy_scores: [],
-            forecast_count: 0,
-            last_forecast_date: item.created_at
-          });
-        }
-        
-        const customer = customerMap.get(customerId);
-        customer.accuracy_scores.push(item.interpretability_score);
-        customer.forecast_count++;
-        
-        if (new Date(item.created_at) > new Date(customer.last_forecast_date)) {
-          customer.last_forecast_date = item.created_at;
-        }
-      });
-
-      // Calculate averages and trends for all customers
-      const allCustomersData = Array.from(customerMap.values()).map(customer => {
-        const avgAccuracy = customer.accuracy_scores.reduce((sum: number, score: number) => sum + score, 0) / customer.accuracy_scores.length;
-        const errorPercentage = 100 - avgAccuracy;
-        
-        const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
-        
-        return {
-          customer_id: customer.customer_id,
-          customer_name: customer.customer_name,
-          accuracy_score: Math.round(avgAccuracy),
-          forecast_count: customer.forecast_count,
-          last_forecast_date: customer.last_forecast_date,
-          avg_error_percentage: Math.round(errorPercentage),
-          trend
-        };
-      });
-
-      // Filter for low accuracy customers only
-      const lowAccuracyCustomers = allCustomersData
-        .filter(customer => customer.accuracy_score < accuracyThreshold)
-        .sort((a, b) => a.accuracy_score - b.accuracy_score);
-
-      //console.log('All customers:', allCustomersData.length);
-      //console.log('Low accuracy customers after filtering:', lowAccuracyCustomers.length);
-      
-      setAllCustomers(allCustomersData);
+      setAllCustomers(lowAccuracyCustomers);
       setLowAccuracyCustomers(lowAccuracyCustomers);
     } catch (error) {
       console.error('Error loading low accuracy customers:', error);
@@ -295,110 +134,14 @@ export default function KPIDashboard() {
 
   const loadCustomerProductCombinations = async () => {
     try {
-      //console.log('Loading customer-product combinations with threshold:', accuracyThreshold);
+      const response = await fetch(`http://localhost:3001/api/kpi/customer-product-combinations?threshold=${accuracyThreshold}`);
       
-      // Get forecast data with both customer and product IDs
-      const { data: forecastData, error: forecastError } = await supabase
-       .schema('m8_schema')
-        .from('forecast_interpretability')
-        .select('customer_id, product_id, interpretability_score, confidence_level, created_at')
-        .not('customer_id', 'is', null)
-        .not('product_id', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(1000);
+      if (!response.ok) {
+        throw new Error('Failed to fetch customer-product combinations');
+      }
 
-      if (forecastError) throw forecastError;
-
-      // Get unique IDs for lookups
-      const uniqueCustomerIds = [...new Set(forecastData?.map(d => d.customer_id))];
-      const uniqueProductIds = [...new Set(forecastData?.map(d => d.product_id))];
-      
-      // Get customer and product details
-      const [customerResult, productResult] = await Promise.all([
-        supabase
-          .schema('m8_schema')
-          .from('customers')
-          .select('customer_id, customer_name')
-          .in('customer_id', uniqueCustomerIds),
-        supabase
-          .schema('m8_schema')
-          .from('products')
-          .select('product_id, product_name, category_name')
-          .in('product_id', uniqueProductIds)
-      ]);
-
-
-      // Create lookup maps
-      const customerLookup = new Map();
-      customerResult.data?.forEach(customer => {
-        customerLookup.set(customer.customer_id, customer);
-      });
-
-      const productLookup = new Map();
-      productResult.data?.forEach(product => {
-        productLookup.set(product.product_id, product);
-      });
-
-      // Aggregate by customer-product combination
-      const combinationMap = new Map();
-      forecastData?.forEach(item => {
-        const key = `${item.customer_id}_${item.product_id}`;
-        
-        if (!combinationMap.has(key)) {
-          const customerInfo = customerLookup.get(item.customer_id);
-          const productInfo = productLookup.get(item.product_id);
-          
-          combinationMap.set(key, {
-            customer_id: item.customer_id,
-            customer_name: customerInfo?.customer_name || `Customer ${item.customer_id}`,
-            product_id: item.product_id,
-            product_name: productInfo?.product_name || `Product ${item.product_id}`,
-            category_name: productInfo?.category_name || 'Sin categoría',
-            accuracy_scores: [],
-            forecast_bias_values: [],
-            forecast_count: 0,
-            last_forecast_date: item.created_at
-          });
-        }
-        
-        const combination = combinationMap.get(key);
-        combination.accuracy_scores.push(item.interpretability_score);
-        combination.forecast_bias_values.push(0); // Default to 0 since forecast_bias field may not exist
-        combination.forecast_count++;
-        
-        if (new Date(item.created_at) > new Date(combination.last_forecast_date)) {
-          combination.last_forecast_date = item.created_at;
-        }
-      });
-
-      // Calculate averages and filter by threshold
-      const lowAccuracyCombinations = Array.from(combinationMap.values())
-        .map(combination => {
-          const avgAccuracy = combination.accuracy_scores.reduce((sum: number, score: number) => sum + score, 0) / combination.accuracy_scores.length;
-          const errorPercentage = 100 - avgAccuracy;
-          const avgForecastBias = combination.forecast_bias_values.length > 0 
-            ? combination.forecast_bias_values.reduce((sum: number, bias: number) => sum + bias, 0) / combination.forecast_bias_values.length 
-            : 0;
-          const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
-          
-          return {
-            customer_id: combination.customer_id,
-            customer_name: combination.customer_name,
-            product_id: combination.product_id,
-            product_name: combination.product_name,
-            category_name: combination.category_name,
-            accuracy_score: Math.round(avgAccuracy),
-            forecast_count: combination.forecast_count,
-            last_forecast_date: combination.last_forecast_date,
-            avg_error_percentage: Math.round(errorPercentage),
-            trend,
-            forecast_bias: Math.round(avgForecastBias * 100) / 100
-          };
-        })
-        .filter(combination => combination.accuracy_score < accuracyThreshold)
-        .sort((a, b) => a.accuracy_score - b.accuracy_score);
-
-      setCustomerProductCombinations(lowAccuracyCombinations);
+      const combinations = await response.json();
+      setCustomerProductCombinations(combinations);
     } catch (error) {
       console.error('Error loading customer-product combinations:', error);
     }
@@ -406,32 +149,14 @@ export default function KPIDashboard() {
 
   const loadKPISummary = async () => {
     try {
-      // Mock summary calculation - adjust based on your data
-      const { data: allData, error } = await supabase
-       .schema('m8_schema')
-        .from('forecast_interpretability')
-        .select('interpretability_score, product_id, customer_id')
-        .order('created_at', { ascending: false })
-        .limit(1000);
+      const response = await fetch(`http://localhost:3001/api/kpi/summary?threshold=${accuracyThreshold}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch KPI summary');
+      }
 
-      if (error) throw error;
-
-      const uniqueProducts = new Set(allData?.map(d => d.product_id).filter(Boolean));
-      const uniqueCustomers = new Set(allData?.map(d => d.customer_id).filter(Boolean));
-      
-      const lowAccuracyProducts = allData?.filter(d => d.interpretability_score < accuracyThreshold && d.product_id);
-      const lowAccuracyCustomers = allData?.filter(d => d.interpretability_score < accuracyThreshold && d.customer_id);
-      
-      const overallAccuracy = allData?.reduce((sum, d) => sum + d.interpretability_score, 0) / (allData?.length || 1);
-      
-      setKpiSummary({
-        total_products: uniqueProducts.size,
-        low_accuracy_products: new Set(lowAccuracyProducts?.map(d => d.product_id)).size,
-        total_customers: uniqueCustomers.size,
-        low_accuracy_customers: new Set(lowAccuracyCustomers?.map(d => d.customer_id)).size,
-        overall_accuracy: Math.round(overallAccuracy || 0),
-        accuracy_trend: overallAccuracy > 75 ? 'improving' : overallAccuracy < 60 ? 'declining' : 'stable'
-      });
+      const summary = await response.json();
+      setKpiSummary(summary);
     } catch (error) {
       console.error('Error loading KPI summary:', error);
     }

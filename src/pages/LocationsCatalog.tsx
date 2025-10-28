@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+// Removed Supabase import - now using MongoDB API
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,27 +58,26 @@ const LocationsCatalog = () => {
   const fetchLocations = async (page: number = 1) => {
     try {
       setLoading(true);
-      const start = (page - 1) * ITEMS_PER_PAGE;
-      const end = start + ITEMS_PER_PAGE - 1;
+      const offset = (page - 1) * ITEMS_PER_PAGE;
       
-      let query = supabase
-        .from("locations")
-        .select("*", { count: 'exact' })
-        .range(start, end);
-      
+      let url = `http://localhost:3001/api/locations?limit=${ITEMS_PER_PAGE}&offset=${offset}`;
       if (searchTerm) {
-        query = query.or(`location_id.ilike.%${searchTerm}%,location_name.ilike.%${searchTerm}%,type.ilike.%${searchTerm}%`);
+        url += `&searchTerm=${encodeURIComponent(searchTerm)}`;
       }
       
-      const { data, error, count } = await query.order("location_id");
+      const response = await fetch(url);
       
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+      
+      const data = await response.json();
       
       setLocations(data || []);
-      setTotalCount(count || 0);
-      setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE));
+      setTotalCount(data.length); // For now, we'll use length as count
+      setTotalPages(Math.ceil(data.length / ITEMS_PER_PAGE));
       
-      //console.log('Locations fetched:', data?.length, 'Total count:', count, 'Total pages:', Math.ceil((count || 0) / ITEMS_PER_PAGE));
+      //console.log('Locations fetched:', data?.length);
     } catch (error) {
       console.error("Error fetching locations:", error);
       toast.error("Error al cargar las ubicaciones");
@@ -90,19 +89,32 @@ const LocationsCatalog = () => {
   const handleSubmit = async (data: LocationForm) => {
     try {
       if (editingLocation) {
-        const { error } = await supabase
-          .from("locations")
-          .update(data)
-          .eq("location_id", editingLocation.location_id);
+        const response = await fetch(`http://localhost:3001/api/locations/${editingLocation.location_id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
         
-        if (error) throw error;
+        if (!response.ok) {
+          throw new Error('Failed to update location');
+        }
+        
         toast.success("Ubicación actualizada exitosamente");
       } else {
-        const { error } = await supabase
-          .from("locations")
-          .insert([data]);
+        const response = await fetch('http://localhost:3001/api/locations', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
         
-        if (error) throw error;
+        if (!response.ok) {
+          throw new Error('Failed to create location');
+        }
+        
         toast.success("Ubicación creada exitosamente");
       }
       
@@ -128,12 +140,14 @@ const LocationsCatalog = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from("locations")
-        .delete()
-        .eq("location_id", locationId);
+      const response = await fetch(`http://localhost:3001/api/locations/${locationId}`, {
+        method: 'DELETE',
+      });
       
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to delete location');
+      }
+      
       toast.success("Ubicación eliminada exitosamente");
       fetchLocations(currentPage);
     } catch (error) {

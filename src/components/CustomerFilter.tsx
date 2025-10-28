@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Users, ChevronRight, ChevronDown } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -41,15 +40,14 @@ export function CustomerFilter({
 
   const fetchSystemConfig = async () => {
     try {
-      const { data, error } = await supabase
-        .from('system_config')
-        .select('client_levels')
-        .single();
+      const response = await fetch('/api/system-config');
+      if (!response.ok) {
+        throw new Error('Failed to fetch system config');
+      }
+      const data = await response.json();
       
-      if (error) throw error;
-      
-      setClientLevels(data?.client_levels || 1);
-      //console.log('Client levels:', data?.client_levels);
+      setClientLevels(data[0]?.client_levels || 1);
+      //console.log('Client levels:', data[0]?.client_levels);
     } catch (error) {
       console.error('Error fetching system config:', error);
       setClientLevels(1);
@@ -60,17 +58,17 @@ export function CustomerFilter({
     setLoading(true);
     try {
       ////console.log('Fetching customers with client levels:', clientLevels);
-      let query = supabase
-        .schema('m8_schema')
-        .from('customers')
-        .select('*');
-
+      let url = '/api/customers';
       if (searchTerm) {
-        query = query.or(`customer_name.ilike.%${searchTerm}%,customer_id.ilike.%${searchTerm}%,level_1_name.ilike.%${searchTerm}%`);
+        const searchParam = encodeURIComponent(searchTerm);
+        url += `?search=${searchParam}`;
       }
 
-      const { data, error } = await query.order('customer_name');
-      if (error) throw error;
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
+      const data = await response.json();
 
       ////console.log('Customers data:', data);
       

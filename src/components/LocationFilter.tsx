@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Search, MapPin } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -38,24 +37,17 @@ export function LocationFilter({
   }, [locationLevels, searchTerm]);
   const fetchLocationLevels = async () => {
     try {
-     
-      const {
-        data,
-        error
-      } = await supabase.schema('m8_schema').from('system_config').select('location_levels');
-      if (error) {
-        console.error('Error fetching location levels:', error);
-        setLocationLevels(2);
-        return;
+      const response = await fetch('/api/system-config');
+      if (!response.ok) {
+        throw new Error('Failed to fetch system config');
       }
+      const data = await response.json();
      
       if (!data || data.length === 0) {
-     
         setLocationLevels(2);
         return;
       }
       const levels = data[0]?.location_levels || 2;
-     
       setLocationLevels(levels);
     } catch (error) {
       console.error('Error fetching location levels:', error);
@@ -65,18 +57,17 @@ export function LocationFilter({
   const fetchLocations = async () => {
     setLoading(true);
     try {
-     
-      let query = supabase
-      .schema('m8_schema')
-      .from('locations').select('*');
+      let url = '/api/locations';
       if (searchTerm) {
-        query = query.or(`location_name.ilike.%${searchTerm}%,level_1.ilike.%${searchTerm}%,level_2.ilike.%${searchTerm}%,level_3.ilike.%${searchTerm}%,level_4.ilike.%${searchTerm}%`);
+        const searchParam = encodeURIComponent(searchTerm);
+        url += `?search=${searchParam}`;
       }
-      const {
-        data,
-        error
-      } = await query;
-      if (error) throw error;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch locations');
+      }
+      const data = await response.json();
      
       const tree = buildLocationTree(data || [], locationLevels);
      

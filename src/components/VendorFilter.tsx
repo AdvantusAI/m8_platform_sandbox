@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Search, Truck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -49,19 +48,20 @@ export function VendorFilter({
 
   const fetchSystemConfig = async () => {
     try {
-      const { data, error } = await supabase
-        .from('system_config')
-        .select('vendor_levels')
-        .single();
+      const response = await fetch('/api/system-config');
+      if (!response.ok) {
+        throw new Error('Failed to fetch system config');
+      }
+      const data = await response.json();
       
-      if (error || !data) {
+      if (!data || data.length === 0) {
         //console.log('No system config found, using default vendor_levels = 1');
         setVendorLevels(1);
         return;
       }
       
       // Handle case where vendor_levels column might not exist
-      const levels = (data as any)?.vendor_levels || 1;
+      const levels = data[0]?.vendor_levels || 1;
       setVendorLevels(levels);
       //console.log('Vendor levels:', levels);
     } catch (error) {

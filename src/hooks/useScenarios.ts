@@ -1,7 +1,6 @@
 // File: src/hooks/useScenarios.ts
 import { useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { ScenarioDefinition, ScenarioExecution } from '@/types/scenario';
 import { ServiceLevelScenarioService } from '@/services/serviceLevelScenarioService';
 import { toast } from 'sonner';
@@ -14,16 +13,11 @@ export const useScenarios = () => {
     queryKey: ['scenarios'],
     queryFn: async () => {
       //console.log('🔍 Fetching scenarios from database...');
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('what_if_scenarios')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) {
-        console.error('❌ Error fetching scenarios:', error);
-        throw error;
+      const response = await fetch('/api/scenarios');
+      if (!response.ok) {
+        throw new Error('Failed to fetch scenarios');
       }
+      const data = await response.json();
       
       //console.log('📊 Raw scenarios data:', data);
       
@@ -89,15 +83,19 @@ export const useScenarios = () => {
         insertData.customer_id = scenario.scope.customer_ids[0];
       }
 
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('what_if_scenarios')
-        .insert([insertData])
-        .select()
-        .single();
+      const response = await fetch('/api/scenarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(insertData),
+      });
       
-      if (error) throw error;
-      return data;
+      if (!response.ok) {
+        throw new Error('Failed to create scenario');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scenarios'] });
@@ -118,8 +116,7 @@ export const useScenarios = () => {
         parameters: updates.parameters,
         location_id: updates.scope?.warehouse_ids?.[0],
         product_id: updates.scope?.product_ids?.[0],
-        description: updates.description,
-        updated_at: new Date().toISOString()
+        description: updates.description
       };
 
       // Only add customer_id if it exists in the scope
@@ -127,15 +124,19 @@ export const useScenarios = () => {
         updateData.customer_id = updates.scope.customer_ids[0];
       }
 
-      const { data, error } = await supabase
-        .from('what_if_scenarios')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
+      const response = await fetch(`/api/scenarios/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      });
       
-      if (error) throw error;
-      return data;
+      if (!response.ok) {
+        throw new Error('Failed to update scenario');
+      }
+      
+      return await response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['scenarios'] });
@@ -151,24 +152,27 @@ export const useScenarios = () => {
   const executeScenarioMutation = useMutation({
     mutationFn: async (scenarioId: string) => {
       // Get scenario definition
-      const { data: scenario, error: scenarioError } = await supabase
-        .from('what_if_scenarios')
-        .select('*')
-        .eq('id', scenarioId)
-        .single();
-
-      if (scenarioError) throw scenarioError;
+      const scenarioResponse = await fetch(`/api/scenarios/${scenarioId}`);
+      if (!scenarioResponse.ok) {
+        throw new Error('Failed to fetch scenario');
+      }
+      const scenario = await scenarioResponse.json();
 
       // Update scenario status to running
-      const { error: updateError } = await supabase
-        .from('what_if_scenarios')
-        .update({ 
+      const runningResponse = await fetch(`/api/scenarios/${scenarioId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
           status: 'running',
           updated_at: new Date().toISOString()
-        })
-        .eq('id', scenarioId);
+        }),
+      });
       
-      if (updateError) throw updateError;
+      if (!runningResponse.ok) {
+        throw new Error('Failed to update scenario status');
+      }
 
       try {
         // Convert database scenario to ScenarioDefinition format
@@ -220,28 +224,34 @@ export const useScenarios = () => {
         }
 
         // Update scenario with results
-        const { data: completedScenario, error: completeError } = await supabase
-          .from('what_if_scenarios')
-          .update({ 
+        const completedResponse = await fetch(`/api/scenarios/${scenarioId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
             status: 'completed',
             results: results,
             updated_at: new Date().toISOString()
-          })
-          .eq('id', scenarioId)
-          .select()
-          .single();
+          }),
+        });
 
-        if (completeError) throw completeError;
-        return completedScenario;
+        if (!completedResponse.ok) {
+          throw new Error('Failed to update scenario with results');
+        }
+        return await completedResponse.json();
       } catch (error) {
         // Update scenario status to failed
-        await supabase
-          .from('what_if_scenarios')
-          .update({ 
+        await fetch(`/api/scenarios/${scenarioId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
             status: 'failed',
             updated_at: new Date().toISOString()
-          })
-          .eq('id', scenarioId);
+          }),
+        });
         
         throw error;
       }
@@ -259,12 +269,14 @@ export const useScenarios = () => {
   // Delete scenario mutation
   const deleteScenarioMutation = useMutation({
     mutationFn: async (scenarioId: string) => {
-      const { error } = await supabase
-        .from('what_if_scenarios')
-        .delete()
-        .eq('id', scenarioId);
+      const response = await fetch(`/api/scenarios/${scenarioId}`, {
+        method: 'DELETE',
+      });
       
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to delete scenario');
+      }
+      
       return scenarioId;
     },
     onSuccess: () => {

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Users, Plus, Search, Edit, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+// Removed Supabase import - now using MongoDB API
 import { toast } from "sonner";
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, GridReadyEvent } from 'ag-grid-enterprise';
@@ -63,14 +63,13 @@ export default function CustomersCatalog() {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .schema('m8_schema') // Ensure to use the correct schema if needed
-        .from('customers')
-        .select('*')
-        .order('customer_id');
-
-      if (error) throw error;
+      const response = await fetch('http://localhost:3001/api/customers');
       
+      if (!response.ok) {
+        throw new Error('Failed to fetch customers');
+      }
+      
+      const data = await response.json();
       setCustomers(data || []);
     } catch (error) {
       console.error('Error fetching customers:', error);
@@ -85,21 +84,32 @@ export default function CustomersCatalog() {
     
     try {
       if (editingCustomer) {
-        const { error } = await supabase
-          .schema('m8_schema') // Ensure to use the correct schema if needed    
-          .from('customers')
-          .update(formData)
-          .eq('id', editingCustomer.id);
+        const response = await fetch(`http://localhost:3001/api/customers/${editingCustomer.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
         
-        if (error) throw error;
+        if (!response.ok) {
+          throw new Error('Failed to update customer');
+        }
+        
         toast.success('Cliente actualizado exitosamente');
       } else {
-        const { error } = await supabase
-          .schema('m8_schema') // Ensure to use the correct schema if needed
-          .from('customers')
-          .insert([formData]);
+        const response = await fetch('http://localhost:3001/api/customers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
         
-        if (error) throw error;
+        if (!response.ok) {
+          throw new Error('Failed to create customer');
+        }
+        
         toast.success('Cliente creado exitosamente');
       }
 
@@ -131,13 +141,14 @@ export default function CustomersCatalog() {
     if (!confirm('¿Está seguro de que desea eliminar este cliente?')) return;
 
     try {
-      const { error } = await supabase
-        .schema('m8_schema') // Ensure to use the correct schema if needed
-        .from('customers')
-        .delete()
-        .eq('id', customerId);
+      const response = await fetch(`http://localhost:3001/api/customers/${customerId}`, {
+        method: 'DELETE',
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to delete customer');
+      }
+      
       toast.success('Cliente eliminado exitosamente');
       fetchCustomers();
     } catch (error) {

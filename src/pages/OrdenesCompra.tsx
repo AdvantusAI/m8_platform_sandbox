@@ -153,6 +153,7 @@ export default function OrdenesCompra() {
     const statusConfig = {
       'draft': { color: 'bg-gray-100 text-gray-700', label: 'Borrador' },
       'pending': { color: 'bg-yellow-100 text-yellow-700', label: 'Pendiente' },
+      'ordered': { color: 'bg-cyan-100 text-cyan-700', label: 'Ordenada' },
       'approved': { color: 'bg-blue-100 text-blue-700', label: 'Aprobada' },
       'sent': { color: 'bg-green-100 text-green-700', label: 'Enviada' },
       'received': { color: 'bg-purple-100 text-purple-700', label: 'Recibida' },
@@ -198,9 +199,13 @@ export default function OrdenesCompra() {
         }
       }
 
-      // Status filter - handle "all" value properly
-      if (filters.statusFilter && filters.statusFilter !== 'all' && order.status !== filters.statusFilter) {
-        return false;
+      // Status filter - handle "all" value properly and case-insensitive comparison
+      if (filters.statusFilter && filters.statusFilter !== 'all') {
+        const orderStatus = order.status?.toLowerCase() || '';
+        const filterStatus = filters.statusFilter.toLowerCase();
+        if (orderStatus !== filterStatus) {
+          return false;
+        }
       }
 
       // Date range filter - use the new date fields

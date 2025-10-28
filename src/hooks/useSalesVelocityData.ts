@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 export interface SalesVelocityData {
@@ -71,42 +70,38 @@ export const useSalesVelocityData = () => {
   } = {}) => {
     setLoading(true);
     try {
-      // Use the actual v_sales_velocity_monthly view
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('v_sales_velocity_monthly')
-        .select(`
-          *,
-          products!inner(name, code),
-          customers!inner(customer_name)
-        `);
-      
-      if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
-      if (filters.period_start) query = query.gte('period_month', filters.period_start);
-      if (filters.period_end) query = query.lte('period_month', filters.period_end);
+      // Build query parameters for MongoDB API
+      const params = new URLSearchParams();
+      if (filters.product_id) params.append('product_id', filters.product_id);
+      if (filters.customer_id) params.append('channel_partner_id', filters.customer_id);
+      if (filters.location_id) params.append('location_id', filters.location_id);
+      if (filters.period_start) params.append('period_start', filters.period_start);
+      if (filters.period_end) params.append('period_end', filters.period_end);
 
-      const { data, error } = await query.order('period_month', { ascending: false });
+      const response = await fetch(`http://localhost:3001/api/sell-through-metrics?${params.toString()}`);
       
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to fetch velocity data');
+      }
 
-      // Transform the data to match our interface
-      const velocityData: SalesVelocityData[] = data?.map(record => ({
-        id: `${record.product_id}_${record.customer_id}_${record.location_id}_${record.period_month}`,
+      const data = await response.json();
+
+      // Transform sell-through metrics data to velocity data format
+      const velocityData: SalesVelocityData[] = data.map((record: any) => ({
+        id: record.id || record._id?.toString(),
         product_id: record.product_id,
-        channel_partner_id: record.customer_id, // Map customer_id to channel_partner_id for compatibility
+        channel_partner_id: record.channel_partner_id, // This should match the id field in customer collection (UUID)
         location_id: record.location_id,
-        period: record.period_month,
-        velocity_units_per_day: record.velocity_units_per_day || 0,
-        velocity_units_per_week: record.velocity_units_per_week || 0,
-        normalized_velocity_per_location: record.velocity_units_per_month_per_location || 0,
-        trailing_velocity_l3m: 0, // Would need additional calculation for trailing periods
-        trailing_velocity_l6m: 0, // Would need additional calculation for trailing periods
-        active_locations: record.active_locations || 0,
+        period: record.calculation_period,
+        velocity_units_per_day: (record.sell_out_units || 0) / 30, // Approximate daily velocity
+        velocity_units_per_week: (record.sell_out_units || 0) / 4, // Approximate weekly velocity
+        normalized_velocity_per_location: record.sell_out_units || 0,
+        trailing_velocity_l3m: 0, // Would need historical calculation
+        trailing_velocity_l6m: 0, // Would need historical calculation
+        active_locations: 1, // Assuming 1 location per record
         sell_out_units: record.sell_out_units || 0,
-        days_in_month: 0, // Not directly available in the view, could be calculated
-      })) || [];
+        days_in_month: 30, // Default assumption
+      }));
       
       setVelocityData(velocityData);
     } catch (error) {
@@ -130,73 +125,126 @@ export const useSalesVelocityData = () => {
   } = {}) => {
     setLoading(true);
     try {
-      // Use the actual v_sales_velocity_monthly view for metrics
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('v_sales_velocity_monthly')
-        .select(`
-          *,
-          products!inner(name, code),
-          customers!inner(customer_name)
-        `);
-      
-      if (filters.product_id) query = query.eq('product_id', filters.product_id);
-      if (filters.customer_id) query = query.eq('customer_id', filters.customer_id);
-      if (filters.location_id) query = query.eq('location_id', filters.location_id);
-      if (filters.period_start) query = query.gte('period_month', filters.period_start);
-      if (filters.period_end) query = query.lte('period_month', filters.period_end);
+      // Build query parameters for MongoDB API
+      const params = new URLSearchParams();
+      if (filters.product_id) params.append('product_id', filters.product_id);
+      if (filters.customer_id) params.append('channel_partner_id', filters.customer_id);
+      if (filters.location_id) params.append('location_id', filters.location_id);
+      if (filters.period_start) params.append('period_start', filters.period_start);
+      if (filters.period_end) params.append('period_end', filters.period_end);
 
-      const { data, error } = await query.order('period_month', { ascending: false });
+      const response = await fetch(`http://localhost:3001/api/sell-through-metrics?${params.toString()}`);
       
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to fetch velocity metrics');
+      }
 
-      // Transform the data to match our metrics interface
-      const metrics: VelocityMetrics[] = data?.map((record, index) => ({
-        id: `${record.product_id}_${record.customer_id}_${record.location_id}_${record.period_month}`,
+      const data = await response.json();
+
+      // Transform sell-through metrics data to velocity metrics format
+      const metrics: VelocityMetrics[] = data.map((record: any, index: number) => ({
+        id: record.id || record._id?.toString(),
         product_id: record.product_id,
-        channel_partner_id: record.customer_id, // Map customer_id to channel_partner_id for compatibility
+        channel_partner_id: record.channel_partner_id, // This should match the id field in customer collection (UUID)
         location_id: record.location_id,
-        velocity_units_per_day: record.velocity_units_per_day || 0,
-        velocity_units_per_week: record.velocity_units_per_week || 0,
-        normalized_velocity_per_location: record.velocity_units_per_month_per_location || 0,
-        trailing_velocity_l3m: 0, // Would need additional calculation for trailing periods
-        trailing_velocity_l6m: 0, // Would need additional calculation for trailing periods
+        velocity_units_per_day: (record.sell_out_units || 0) / 30, // Approximate daily velocity
+        velocity_units_per_week: (record.sell_out_units || 0) / 4, // Approximate weekly velocity
+        normalized_velocity_per_location: record.sell_out_units || 0,
+        trailing_velocity_l3m: 0, // Would need historical calculation
+        trailing_velocity_l6m: 0, // Would need historical calculation
         velocity_rank: index + 1, // Simple ranking based on order
         coefficient_of_variation: 0.15, // Placeholder - would need calculation
-        recommended_order_qty: Math.round((record.velocity_units_per_week || 0) * 2), // Simple calculation
-        weeks_of_cover: record.eom_inventory_units ? Math.round((record.eom_inventory_units / (record.velocity_units_per_week || 1)) * 4.345) : 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })) || [];
+        recommended_order_qty: Math.round(((record.sell_out_units || 0) / 4) * 2), // Simple calculation
+        weeks_of_cover: record.inventory_units ? Math.round((record.inventory_units / ((record.sell_out_units || 1) / 4))) : 0,
+        created_at: record.created_at || new Date().toISOString(),
+        updated_at: record.updated_at || new Date().toISOString(),
+      }));
 
       setVelocityMetrics(metrics);
 
-      // Generate top movers
+      // Fetch customer and product data for proper names
+      const [customersResponse, productsResponse] = await Promise.all([
+        fetch('http://localhost:3001/api/customers'),
+        fetch('http://localhost:3001/api/products')
+      ]);
+
+      const customers = customersResponse.ok ? await customersResponse.json() : [];
+      const products = productsResponse.ok ? await productsResponse.json() : [];
+
+      // Generate top movers with actual product names
       const topMoversData: TopMover[] = metrics
         .sort((a, b) => b.velocity_units_per_week - a.velocity_units_per_week)
         .slice(0, 5)
-        .map(metric => ({
-          product_id: metric.product_id,
-          product_name: `Product ${metric.product_id}`, // Would need to get actual product name
-          velocity_units_per_week: metric.velocity_units_per_week,
-          velocity_rank: metric.velocity_rank,
-        }));
+        .map(metric => {
+          const product = products.find((p: any) => p.product_id === metric.product_id);
+          return {
+            product_id: metric.product_id,
+            product_name: product?.product_name || `Product ${metric.product_id}`,
+            velocity_units_per_week: metric.velocity_units_per_week,
+            velocity_rank: metric.velocity_rank,
+          };
+        });
 
       setTopMovers(topMoversData);
 
-      // Generate alerts
+      // Generate alerts with actual customer and product names
       const alertsData: VelocityAlert[] = [];
       
+      console.log('Debug - Customers data:', customers);
+      console.log('Debug - Sample customer:', customers[0]);
+      
       metrics.forEach(metric => {
+        console.log('Debug - Looking for channel_partner_id:', metric.channel_partner_id);
+        
+        // channel_partner_id should match the id field in customer collection
+        const customer = customers.find((c: any) => {
+          console.log('Debug - Checking customer id:', c.id, 'type:', typeof c.id);
+          
+          // Try multiple extraction methods
+          let customerId = c.id;
+          
+          // Method 1: Direct match
+          if (customerId === metric.channel_partner_id) {
+            console.log('Debug - Direct match found');
+            return true;
+          }
+          
+          // Method 2: Extract from UUID('...') format
+          if (typeof customerId === 'string' && customerId.includes('UUID(')) {
+            const match = customerId.match(/UUID\('([^']+)'\)/);
+            if (match) {
+              customerId = match[1];
+              console.log('Debug - Extracted UUID:', customerId);
+              const isMatch = customerId === metric.channel_partner_id;
+              console.log('Debug - UUID match:', customerId, '===', metric.channel_partner_id, '=', isMatch);
+              return isMatch;
+            }
+          }
+          
+          // Method 3: Try string conversion
+          const customerIdStr = String(customerId);
+          const isStringMatch = customerIdStr === metric.channel_partner_id;
+          console.log('Debug - String match:', customerIdStr, '===', metric.channel_partner_id, '=', isStringMatch);
+          
+          return isStringMatch;
+        });
+        
+        console.log('Debug - Found customer:', customer?.customer_name);
+        
+        const product = products.find((p: any) => p.product_id === metric.product_id);
+        
+        const customerName = customer?.customer_name || `Unknown Customer`;
+        const productName = product?.product_name || `Product ${metric.product_id}`;
+        
         // Overstock alert: low velocity + high weeks of cover
         if (metric.velocity_units_per_week < 20 && metric.weeks_of_cover > 8) {
           alertsData.push({
             id: `overstock_${metric.id}`,
             type: 'overstock',
             product_id: metric.product_id,
-            product_name: `Product ${metric.product_id}`,
+            product_name: productName,
             partner_id: metric.channel_partner_id,
-            partner_name: `Partner ${metric.channel_partner_id}`,
+            partner_name: customerName,
             message: `Low velocity (${metric.velocity_units_per_week.toFixed(1)} units/week) with ${metric.weeks_of_cover.toFixed(1)} weeks of cover`,
             recommended_action: 'Consider promotional activities or inventory redistribution',
             severity: metric.weeks_of_cover > 12 ? 'high' : 'medium',
@@ -209,9 +257,9 @@ export const useSalesVelocityData = () => {
             id: `replenishment_${metric.id}`,
             type: 'replenishment',
             product_id: metric.product_id,
-            product_name: `Product ${metric.product_id}`,
+            product_name: productName,
             partner_id: metric.channel_partner_id,
-            partner_name: `Partner ${metric.channel_partner_id}`,
+            partner_name: customerName,
             message: `High velocity (${metric.velocity_units_per_week.toFixed(1)} units/week) with only ${metric.weeks_of_cover.toFixed(1)} weeks of cover`,
             recommended_action: `Order ${metric.recommended_order_qty} units immediately`,
             severity: metric.weeks_of_cover < 1.5 ? 'high' : 'medium',

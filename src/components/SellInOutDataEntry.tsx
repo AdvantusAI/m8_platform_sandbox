@@ -8,12 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Upload, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CalendarIcon, Upload, Download, FileText, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useSellInOutData } from '@/hooks/useSellInOutData';
 import { useChannelPartners } from '@/hooks/useChannelPartners';
 import { useProducts } from '@/hooks/useProducts';
+import { toast } from 'sonner';
 
 interface SellInOutDataEntryProps {
   selectedProductId?: string;
@@ -59,6 +61,9 @@ export function SellInOutDataEntry({
 
   const [sellInDate, setSellInDate] = useState<Date>();
   const [sellOutDate, setSellOutDate] = useState<Date>();
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const { loading, createSellInRecord, createSellOutRecord } = useSellInOutData();
   const { partners } = useChannelPartners();
@@ -137,6 +142,223 @@ export function SellInOutDataEntry({
     }
   };
 
+  const exportTemplate = (type: 'sell-in' | 'sell-out') => {
+    const sellInHeaders = [
+      'product_id',
+      'channel_partner_id', 
+      'location_id',
+      'transaction_date',
+      'quantity',
+      'unit_price',
+      'invoice_number',
+      'payment_terms',
+      'discount_percentage'
+    ];
+
+    const sellOutHeaders = [
+      'product_id',
+      'channel_partner_id',
+      'location_id', 
+      'transaction_date',
+      'quantity',
+      'unit_price',
+      'end_customer_id',
+      'inventory_on_hand'
+    ];
+
+    const headers = type === 'sell-in' ? sellInHeaders : sellOutHeaders;
+    
+    // Create sample data rows with real product and partner IDs if available
+    const sampleProductId = products.length > 0 ? (products[0].product_id?.toString() || products[0].id) : 'product_id_example';
+    const samplePartnerId = partners.length > 0 ? partners[0].id : 'partner_id_example';
+    
+    const sampleData = type === 'sell-in' ? [
+      sampleProductId,
+      samplePartnerId,
+      'location_001',
+      '2025-10-23',
+      '100',
+      '25.50',
+      'INV-001',
+      'Net 30',
+      '5.0'
+    ] : [
+      sampleProductId,
+      samplePartnerId, 
+      'location_001',
+      '2025-10-23',
+      '80',
+      '30.00',
+      'customer_001',
+      '500'
+    ];
+
+    // Add helpful comments as additional rows
+    const commentRows = type === 'sell-in' ? [
+      '# Ejemplo de datos de entrada (sell-in)',
+      '# Elimina esta fila antes de importar',
+      '# product_id: ID del producto',
+      '# channel_partner_id: ID del socio comercial', 
+      '# location_id: ID de ubicación (opcional)',
+      '# transaction_date: Fecha en formato YYYY-MM-DD',
+      '# quantity: Cantidad vendida (número)',
+      '# unit_price: Precio por unidad (número decimal)',
+      '# invoice_number: Número de factura (opcional)',
+      '# payment_terms: Términos de pago (opcional)',
+      '# discount_percentage: Porcentaje de descuento (opcional)'
+    ] : [
+      '# Ejemplo de datos de salida (sell-out)',
+      '# Elimina esta fila antes de importar',
+      '# product_id: ID del producto', 
+      '# channel_partner_id: ID del socio comercial',
+      '# location_id: ID de ubicación (opcional)',
+      '# transaction_date: Fecha en formato YYYY-MM-DD',
+      '# quantity: Cantidad vendida (número)',
+      '# unit_price: Precio por unidad (número decimal)',
+      '# end_customer_id: ID del cliente final (opcional)',
+      '# inventory_on_hand: Inventario disponible (opcional)'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      sampleData.join(','),
+      '',
+      ...commentRows
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `plantilla-${type === 'sell-in' ? 'entrada' : 'salida'}-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success(`Plantilla de ${type === 'sell-in' ? 'entrada' : 'salida'} descargada`);
+  };
+
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.trim());
+    return result;
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      toast.error('Por favor selecciona un archivo');
+      return;
+    }
+
+    setImporting(true);
+    
+    try {
+      const text = await importFile.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length < 2) {
+        toast.error('El archivo debe contener al menos una fila de datos');
+        return;
+      }
+
+      const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+      const rows = lines.slice(1);
+      
+      // Validate required headers
+      const requiredHeaders = ['product_id', 'channel_partner_id', 'transaction_date', 'quantity', 'unit_price'];
+      const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+      
+      if (missingHeaders.length > 0) {
+        toast.error(`Faltan columnas requeridas: ${missingHeaders.join(', ')}`);
+        return;
+      }
+      
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (const row of rows) {
+        if (!row.trim() || row.trim().startsWith('#')) continue;
+        
+        const values = parseCSVLine(row).map(v => v.replace(/^"|"$/g, '').trim());
+        const data: any = {};
+        
+        headers.forEach((header, index) => {
+          data[header] = values[index] || '';
+        });
+
+        try {
+          // Validate required fields
+          if (!data.product_id || !data.channel_partner_id || !data.quantity || !data.unit_price) {
+            console.warn('Skipping row with missing required data:', data);
+            errorCount++;
+            continue;
+          }
+
+          // Determine if this is sell-in or sell-out based on headers
+          const isSellIn = headers.includes('invoice_number') || headers.includes('payment_terms');
+          
+          const quantity = parseFloat(data.quantity);
+          const unitPrice = parseFloat(data.unit_price);
+          
+          if (isNaN(quantity) || isNaN(unitPrice)) {
+            console.warn('Skipping row with invalid numeric data:', data);
+            errorCount++;
+            continue;
+          }
+          
+          const record = {
+            ...data,
+            quantity,
+            unit_price: unitPrice,
+            total_value: quantity * unitPrice,
+            discount_percentage: data.discount_percentage ? parseFloat(data.discount_percentage) : undefined,
+            inventory_on_hand: data.inventory_on_hand ? parseFloat(data.inventory_on_hand) : undefined,
+          };
+
+          const success = isSellIn 
+            ? await createSellInRecord(record)
+            : await createSellOutRecord(record);
+            
+          if (success) {
+            successCount++;
+          } else {
+            errorCount++;
+          }
+        } catch (error) {
+          console.error('Error processing row:', error);
+          errorCount++;
+        }
+      }
+
+      toast.success(`Importación completada: ${successCount} registros exitosos, ${errorCount} errores`);
+      setShowImportModal(false);
+      setImportFile(null);
+      
+    } catch (error) {
+      console.error('Import error:', error);
+      toast.error('Error al procesar el archivo');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -147,11 +369,14 @@ export function SellInOutDataEntry({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowImportModal(true)}>
             <Upload className="mr-2 h-4 w-4" />
             Importar Datos
           </Button>
-          <Button variant="outline">
+          <Button 
+            variant="outline" 
+            onClick={() => exportTemplate(activeTab as 'sell-in' | 'sell-out')}
+          >
             <Download className="mr-2 h-4 w-4" />
             Exportar Plantilla
           </Button>
@@ -467,6 +692,79 @@ export function SellInOutDataEntry({
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Import Modal */}
+      <Dialog open={showImportModal} onOpenChange={setShowImportModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Importar Datos
+            </DialogTitle>
+            <DialogDescription>
+              Sube un archivo CSV con los datos de transacciones. El formato se detectará automáticamente basado en las columnas.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Archivo CSV</Label>
+              <Input
+                type="file"
+                accept=".csv"
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                disabled={importing}
+              />
+              {importFile && (
+                <p className="text-sm text-muted-foreground">
+                  Archivo seleccionado: {importFile.name}
+                </p>
+              )}
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Formato requerido:</p>
+                  <ul className="text-xs space-y-1">
+                    <li>• Primera fila debe contener los nombres de columnas</li>
+                    <li>• Usa las plantillas descargadas como referencia</li>
+                    <li>• Los campos product_id y channel_partner_id son obligatorios</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowImportModal(false)}
+                disabled={importing}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleImport}
+                disabled={!importFile || importing}
+                className="min-w-[120px]"
+              >
+                {importing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Importando...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Importar
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

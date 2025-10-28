@@ -17,6 +17,43 @@ const JWT_SECRET = process.env.JWT_SECRET || 'sb_publishable_JtRi9l_JtwYWLdjJ_pk
 
 let db;
 
+// Utility function to safely create ObjectId
+function safeObjectId(id) {
+  if (!id) return null;
+  if (typeof id === 'object' && id._bsontype === 'ObjectId') return id;
+  if (ObjectId.isValid(id)) {
+    try {
+      return new ObjectId(id);
+    } catch (error) {
+      console.log(`Failed to create ObjectId from ${id}:`, error.message);
+      return null;
+    }
+  }
+  return null;
+}
+
+// Utility function to build safe customer search conditions
+function buildSafeCustomerSearchConditions(customerId) {
+  const conditions = [
+    { id: customerId },
+    { customer_id: customerId }
+  ];
+  
+  // Add numeric conversion if applicable
+  const numericId = parseInt(customerId);
+  if (!isNaN(numericId)) {
+    conditions.push({ customer_id: numericId });
+  }
+  
+  // Add ObjectId condition only if valid
+  const objectId = safeObjectId(customerId);
+  if (objectId) {
+    conditions.push({ _id: objectId });
+  }
+  
+  return conditions;
+}
+
 // Connect to MongoDB
 async function connectToDatabase() {
   try {
@@ -26,6 +63,7 @@ async function connectToDatabase() {
     });
     await client.connect();
     db = client.db(MONGODB_DB);
+    db.client = client;
     console.log('Connected to MongoDB successfully');
     console.log('Database:', MONGODB_DB);
     console.log('Auth Source: sandbox_db');
@@ -2166,6 +2204,7 @@ app.get('/api/purchase-order-suggestions', ensureDbConnection, async (req, res) 
       console.log(`Found ${suggestions.length} records from v_purchase_order_recommendations view`);
     } catch (viewError) {
       console.log('View v_purchase_order_recommendations not available, trying fallback collection');
+
     }
     
     // If no data from view, fallback to the old collection for backward compatibility
@@ -2395,13 +2434,10 @@ app.get('/api/sell-out-data', ensureDbConnection, async (req, res) => {
     if (channel_partner_id && channel_partner_id !== 'all') {
       // Enhanced customer lookup: Handle both UUID and numeric customer IDs
       try {
+        const customerSearchConditions = buildSafeCustomerSearchConditions(channel_partner_id);
+        
         const customer = await db.collection('customers').findOne({
-          $or: [
-            { id: channel_partner_id },
-            { _id: new ObjectId(channel_partner_id) },
-            { customer_id: channel_partner_id },
-            { customer_id: parseInt(channel_partner_id) || null }
-          ]
+          $or: customerSearchConditions
         });
 
         if (customer) {
@@ -2495,40 +2531,110 @@ app.get('/api/sell-through-metrics', ensureDbConnection, async (req, res) => {
     }
     
     if (channel_partner_id && channel_partner_id !== 'all') {
-      // Enhanced customer lookup: Handle both UUID and numeric customer IDs
-      // First, try to find the customer to get both UUID and numeric IDs
+      // Two-step customer lookup process:
+      // 1. Look up UUID in v_customer_node view using customer_id field (not _customer_id)
+      // 2. Use customer_code to find customer in customers collection
       try {
-        const customer = await db.collection('customers').findOne({
-          $or: [
-            { id: channel_partner_id },
-            { _id: new ObjectId(channel_partner_id) },
-            { customer_id: channel_partner_id },
-            { customer_id: parseInt(channel_partner_id) || null }
-          ]
-        });
+        console.log(`Looking up customer UUID in v_customer_node: ${channel_partner_id}`);
+        
+        // Step 1: Look up in v_customer_node view using customer_id field
+        let customerNode = null;
+        
+        // Try multiple UUID formats since MongoDB can store UUIDs in different ways
+        const lookupStrategies = [
+          // Strategy 1: Try as UUID object (MongoDB UUID type)
+          () => db.collection('v_customer_node').findOne({
+            customer_id: new UUID(channel_partner_id)
+          }),
+          // Strategy 2: Try as ObjectId if valid
+          () => {
+            const safeCustomerId = safeObjectId(channel_partner_id);
+            return safeCustomerId ? db.collection('v_customer_node').findOne({
+              customer_id: safeCustomerId
+            }) : null;
+          },
+          // Strategy 3: Try as string
+          () => db.collection('v_customer_node').findOne({
+            customer_id: channel_partner_id
+          }),
+          // Strategy 4: Try with $regex for partial matching
+          () => db.collection('v_customer_node').findOne({
+            customer_id: { $regex: channel_partner_id, $options: 'i' }
+          })
+        ];
 
-        if (customer) {
-          // Use flexible matching for sell_through_metrics collection
-          filter.$or = [
-            { channel_partner_id: channel_partner_id },
-            { channel_partner_id: customer.customer_id },
-            { channel_partner_id: customer.id },
-            { customer_id: customer.customer_id },
-            { customer_id: customer.id },
-            { customer_id: channel_partner_id }
-          ];
-          console.log(`Found customer: ${customer.customer_name} (ID: ${customer.customer_id}, UUID: ${customer.id})`);
+        for (let i = 0; i < lookupStrategies.length && !customerNode; i++) {
+          try {
+            console.log(`Trying customer lookup strategy ${i + 1} for: ${channel_partner_id}`);
+            customerNode = await lookupStrategies[i]();
+            if (customerNode) {
+              console.log(`Customer node found with strategy ${i + 1}:`, customerNode);
+              break;
+            }
+          } catch (error) {
+            console.log(`Strategy ${i + 1} failed:`, error.message);
+          }
+        }
+
+        if (customerNode) {
+          console.log(`Found customer node: ${customerNode.description} (code: ${customerNode.customer_code})`);
+          
+          // Step 2: Use customer_code to find the actual customer record
+          const customer = await db.collection('customers').findOne({
+            customer_id: customerNode.customer_code
+          });
+
+          if (customer) {
+            console.log(`Found customer: ${customer.customer_name} (ID: ${customer.customer_id})`);
+            
+            // Use flexible matching for sell_through_metrics collection
+            filter.$or = [
+              { channel_partner_id: channel_partner_id },
+              { channel_partner_id: customerNode.customer_code },
+              { channel_partner_id: customer.customer_id },
+              { customer_id: customerNode.customer_code },
+              { customer_id: customer.customer_id },
+              { customer_id: channel_partner_id }
+            ];
+          } else {
+            console.log(`Customer not found in customers collection for code: ${customerNode.customer_code}`);
+            // Use customer_code from v_customer_node
+            filter.$or = [
+              { channel_partner_id: channel_partner_id },
+              { channel_partner_id: customerNode.customer_code },
+              { customer_id: customerNode.customer_code },
+              { customer_id: channel_partner_id }
+            ];
+          }
         } else {
-          // Fallback: try multiple field combinations without customer lookup
-          filter.$or = [
-            { channel_partner_id: channel_partner_id },
-            { customer_id: channel_partner_id },
-            { customer_id: parseInt(channel_partner_id) || null }
-          ];
-          console.log(`Customer not found, using fallback filters for: ${channel_partner_id}`);
+          console.log(`Customer node not found for UUID: ${channel_partner_id}`);
+          
+          // Fallback: try direct lookup in customers collection
+          const customerSearchConditions = buildSafeCustomerSearchConditions(channel_partner_id);
+          
+          const customer = await db.collection('customers').findOne({
+            $or: customerSearchConditions
+          });
+
+          if (customer) {
+            filter.$or = [
+              { channel_partner_id: channel_partner_id },
+              { channel_partner_id: customer.customer_id },
+              { customer_id: customer.customer_id },
+              { customer_id: channel_partner_id }
+            ];
+            console.log(`Found customer via fallback: ${customer.customer_name} (ID: ${customer.customer_id})`);
+          } else {
+            // Final fallback: simple matching
+            filter.$or = [
+              { channel_partner_id: channel_partner_id },
+              { customer_id: channel_partner_id }
+            ];
+            console.log(`Using simple fallback filters for: ${channel_partner_id}`);
+          }
         }
       } catch (error) {
-        console.error('Error looking up customer:', error);
+        console.error('Error in customer lookup process:', error);
         // Simple fallback
         filter.channel_partner_id = channel_partner_id;
       }
@@ -2582,6 +2688,326 @@ app.post('/api/sell-through-metrics/refresh', ensureDbConnection, async (req, re
   } catch (error) {
     console.error('Refresh sell-through rates error:', error);
     res.status(500).json({ message: 'Failed to refresh sell-through rates' });
+  }
+});
+
+// Specialized Sell-Through Endpoints with Enhanced Customer Lookup
+
+// Get sell-through customers (for dropdowns)
+app.get('/api/sell-through/customers', ensureDbConnection, async (req, res) => {
+  try {
+    console.log('Fetching sell-through customers...');
+    
+    // Get unique channel partner IDs from sell_through_metrics
+    const uniquePartnerIds = await db.collection('sell_through_metrics')
+      .distinct('channel_partner_id');
+    
+    console.log(`Found ${uniquePartnerIds.length} unique channel partner IDs`);
+    
+    const customers = [];
+    
+    for (const partnerId of uniquePartnerIds) {
+      if (!partnerId) continue;
+      
+      try {
+        // Use the same two-step lookup process as in sell-through-metrics
+        let customerNode = null;
+        const safeCustomerId = safeObjectId(partnerId);
+        
+        if (safeCustomerId) {
+          customerNode = await db.collection('v_customer_node').findOne({
+            customer_id: safeCustomerId
+          });
+        }
+        
+        if (!customerNode) {
+          customerNode = await db.collection('v_customer_node').findOne({
+            customer_id: partnerId
+          });
+        }
+
+        if (customerNode) {
+          const customer = await db.collection('customers').findOne({
+            customer_id: customerNode.customer_code
+          });
+
+          if (customer) {
+            customers.push({
+              id: partnerId,
+              customer_id: customer.customer_id,
+              customer_name: customer.customer_name,
+              customer_code: customerNode.customer_code,
+              status: customerNode.status
+            });
+          }
+        } else {
+          // Fallback: try direct customer lookup
+          const customerSearchConditions = buildSafeCustomerSearchConditions(partnerId);
+          const customer = await db.collection('customers').findOne({
+            $or: customerSearchConditions
+          });
+
+          if (customer) {
+            customers.push({
+              id: partnerId,
+              customer_id: customer.customer_id,
+              customer_name: customer.customer_name,
+              customer_code: customer.customer_id,
+              status: 'active'
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error looking up customer for partner ID ${partnerId}:`, error);
+      }
+    }
+    
+    console.log(`Resolved ${customers.length} customers with names`);
+    res.json(customers);
+  } catch (error) {
+    console.error('Get sell-through customers error:', error);
+    res.status(500).json({ message: 'Failed to fetch sell-through customers' });
+  }
+});
+
+// Get sell-through metrics with embedded customer information
+// Debug endpoint for UUID analysis
+app.get('/api/sell-through/debug', ensureDbConnection, async (req, res) => {
+  try {
+    console.log('\n=== Debug UUID Analysis ===');
+    const { channel_partner_id } = req.query;
+    console.log('Received channel_partner_id:', channel_partner_id);
+    
+    const analyticsDb = db.client.db('analytics');
+    
+    // Check available collections in sandbox_db
+    const sandboxCollections = await db.listCollections().toArray();
+    console.log('Available collections in sandbox_db:', sandboxCollections.map(c => c.name));
+    
+    // Check if customer data exists in sandbox_db
+    const sampleCustomers = await db.collection('customers').find({}).limit(3).toArray();
+    console.log('Sample customers in sandbox_db:', sampleCustomers.map(customer => ({
+      customer_id: customer.customer_id,
+      customer_name: customer.customer_name,
+      _id: customer._id
+    })));
+    
+    // Try to access analytics database (will likely fail due to permissions)
+    let analyticsAccess = false;
+    let sampleNodes = [];
+    try {
+      sampleNodes = await analyticsDb.collection('v_customer_node').find({}).limit(3).toArray();
+      analyticsAccess = true;
+      console.log('Sample v_customer_node entries:', sampleNodes.map(node => ({
+        customer_id: node.customer_id,
+        customer_id_type: typeof node.customer_id,
+        customer_id_constructor: node.customer_id?.constructor?.name,
+        customer_code: node.customer_code,
+        description: node.description
+      })));
+    } catch (analyticsError) {
+      console.log('Analytics database access error:', analyticsError.message);
+    }
+    
+    // Check v_customer_node in sandbox_db
+    const sampleNodesSandbox = await db.collection('v_customer_node').find({}).limit(3).toArray();
+    console.log('Sample v_customer_node in sandbox_db:', sampleNodesSandbox.map(node => ({
+      customer_id: node.customer_id,
+      customer_id_type: typeof node.customer_id,
+      customer_id_constructor: node.customer_id?.constructor?.name,
+      customer_code: node.customer_code,
+      description: node.description
+    })));
+    
+    // Try finding the specific channel_partner_id in v_customer_node (sandbox_db)
+    const directNodeLookup = await db.collection('v_customer_node').findOne({
+      customer_id: channel_partner_id
+    });
+    console.log('Direct node lookup in sandbox_db:', directNodeLookup);
+    
+    // Try UUID conversion for v_customer_node lookup
+    let uuidNodeLookup = null;
+    try {
+      const { UUID } = require('mongodb');
+      uuidNodeLookup = await db.collection('v_customer_node').findOne({
+        customer_id: new UUID(channel_partner_id)
+      });
+      console.log('UUID node lookup in sandbox_db:', uuidNodeLookup);
+    } catch (uuidError) {
+      console.log('UUID conversion error for v_customer_node:', uuidError.message);
+    }
+    
+    // Check sell_through_metrics structure
+    const sampleMetrics = await db.collection('sell_through_metrics').find({}).limit(3).toArray();
+    console.log('Sample sell_through_metrics:', sampleMetrics.map(metric => ({
+      product_id: metric.product_id,
+      channel_partner_id: metric.channel_partner_id,
+      channel_partner_id_type: typeof metric.channel_partner_id,
+      channel_partner_id_constructor: metric.channel_partner_id?.constructor?.name
+    })));
+    
+    res.json({
+      received_id: channel_partner_id,
+      sandbox_collections: sandboxCollections.map(c => c.name),
+      sample_customers: sampleCustomers.map(customer => ({
+        customer_id: customer.customer_id,
+        customer_name: customer.customer_name,
+        _id: customer._id
+      })),
+      sample_metrics: sampleMetrics.map(metric => ({
+        product_id: metric.product_id,
+        channel_partner_id: metric.channel_partner_id,
+        channel_partner_id_type: typeof metric.channel_partner_id,
+        channel_partner_id_constructor: metric.channel_partner_id?.constructor?.name
+      })),
+      analytics_access: analyticsAccess,
+      sample_nodes: sampleNodes.map(node => ({
+        customer_id: node.customer_id,
+        customer_id_type: typeof node.customer_id,
+        customer_id_constructor: node.customer_id?.constructor?.name,
+        customer_code: node.customer_code,
+        description: node.description
+      })),
+      sample_nodes_sandbox: sampleNodesSandbox.map(node => ({
+        customer_id: node.customer_id,
+        customer_id_type: typeof node.customer_id,
+        customer_id_constructor: node.customer_id?.constructor?.name,
+        customer_code: node.customer_code,
+        description: node.description
+      })),
+      direct_lookup: directNodeLookup,
+      uuid_lookup: uuidNodeLookup
+    });
+  } catch (error) {
+    console.error('Debug error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/api/sell-through/metrics-with-customers', ensureDbConnection, async (req, res) => {
+  try {
+    const { product_id, channel_partner_id, period_start, period_end } = req.query;
+    
+    console.log('\n=== Enhanced Sell-Through Metrics API ===');
+    console.log('Fetching enhanced sell-through metrics with filters:', { product_id, channel_partner_id, period_start, period_end });
+
+    // Build query filter (same as original endpoint)
+    const filter = {};
+    
+    if (product_id && product_id !== 'all') {
+      const productIdNum = parseInt(product_id);
+      filter.product_id = !isNaN(productIdNum) ? productIdNum : product_id;
+    }
+    
+    if (channel_partner_id && channel_partner_id !== 'all') {
+      console.log(`Filtering by channel_partner_id: ${channel_partner_id}`);
+      
+      try {
+        console.log(`Filtering by channel_partner_id: ${channel_partner_id}`);
+        
+        // Convert string UUID to MongoDB UUID object for matching
+        const uuidObject = new UUID(channel_partner_id);
+        filter.channel_partner_id = uuidObject;
+        
+        console.log(`Using UUID object filter: channel_partner_id = ${uuidObject}`);
+        
+      } catch (error) {
+        console.error('Error converting UUID:', error);
+        // Fallback to string match
+        filter.channel_partner_id = channel_partner_id;
+        console.log(`Using string filter: channel_partner_id = ${channel_partner_id}`);
+      }
+    }
+    
+    if (period_start) {
+      filter.calculation_period = { $gte: new Date(period_start) };
+    }
+    
+    if (period_end) {
+      if (filter.calculation_period) {
+        filter.calculation_period.$lte = new Date(period_end);
+      } else {
+        filter.calculation_period = { $lte: new Date(period_end) };
+      }
+    }
+
+    console.log('MongoDB query filter:', JSON.stringify(filter, null, 2));
+
+    // Get data from sell_through_metrics collection
+    const metrics = await db.collection('sell_through_metrics')
+      .find(filter)
+      .sort({ calculation_period: -1 })
+      .toArray();
+
+    console.log(`Found ${metrics.length} sell-through metrics`);
+
+    // Enhance each metric with customer information
+    const enhancedMetrics = await Promise.all(metrics.map(async (metric) => {
+      let customerInfo = null;
+      
+      try {
+        // Use the same customer lookup logic
+        let customerNode = null;
+        const safeCustomerId = safeObjectId(metric.channel_partner_id);
+        
+        if (safeCustomerId) {
+          customerNode = await db.collection('v_customer_node').findOne({
+            customer_id: safeCustomerId
+          });
+        }
+        
+        if (!customerNode) {
+          customerNode = await db.collection('v_customer_node').findOne({
+            customer_id: metric.channel_partner_id
+          });
+        }
+
+        if (customerNode) {
+          const customer = await db.collection('customers').findOne({
+            customer_id: customerNode.customer_code
+          });
+
+          if (customer) {
+            customerInfo = {
+              customer_id: customer.customer_id,
+              customer_name: customer.customer_name,
+              customer_code: customerNode.customer_code,
+              description: customerNode.description,
+              status: customerNode.status
+            };
+          }
+        } else {
+          // Fallback lookup
+          const customerSearchConditions = buildSafeCustomerSearchConditions(metric.channel_partner_id);
+          const customer = await db.collection('customers').findOne({
+            $or: customerSearchConditions
+          });
+
+          if (customer) {
+            customerInfo = {
+              customer_id: customer.customer_id,
+              customer_name: customer.customer_name,
+              customer_code: customer.customer_id,
+              description: customer.customer_name,
+              status: 'active'
+            };
+          }
+        }
+      } catch (error) {
+        console.error(`Error enhancing metric ${metric.id} with customer info:`, error);
+      }
+      
+      return {
+        ...metric,
+        customer_info: customerInfo,
+        customer_name: customerInfo?.customer_name || 'Unknown Customer'
+      };
+    }));
+
+    res.json(enhancedMetrics);
+  } catch (error) {
+    console.error('Get enhanced sell-through metrics error:', error);
+    res.status(500).json({ message: 'Failed to fetch enhanced sell-through metrics' });
   }
 });
 

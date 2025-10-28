@@ -5,7 +5,7 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridApi, GridReadyEvent, CellFocusedEvent } from 'ag-grid-community';
 import { Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+// Removed Supabase import - now using MongoDB API
 import { configureAGGridLicense, defaultGridOptions } from '@/lib/ag-grid-config';
 import { useProducts } from '@/hooks/useProducts';
 import '@/styles/ag-grid-custom.css';
@@ -51,18 +51,14 @@ const HistoryDataView: React.FC = () => {
   const fetchInventory = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .schema('m8_schema')
-        .from('history')
-        .select(`
-          *,
-          customers(customer_name)
-        `)
-        .order('postdate', { ascending: false });
-
-      if (error) throw error;
-
-      setInventory((data as unknown as HistoryData[]) || []);
+      const response = await fetch('http://localhost:3001/api/history');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch history data');
+      }
+      
+      const data = await response.json();
+      setInventory(data || []);
     } catch (error) {
       console.error('Error fetching inventory:', error);
       toast.error('Error al cargar el inventario');

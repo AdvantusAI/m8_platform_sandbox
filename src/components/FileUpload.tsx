@@ -1,23 +1,22 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, X, FileImage } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 interface FileUploadProps {
   onUpload: (url: string) => void;
   accept?: string;
-  bucket: string;
-  folder?: string;
+  bucket?: string; // Keep for compatibility but unused
+  folder?: string; // Keep for compatibility but unused
   currentUrl?: string | null;
 }
 
 export const FileUpload: React.FC<FileUploadProps> = ({
   onUpload,
   accept = "*/*",
-  bucket,
-  folder = "",
+  bucket, // Unused in MongoDB version
+  folder = "", // Unused in MongoDB version
   currentUrl,
 }) => {
   const [uploading, setUploading] = useState(false);
@@ -36,30 +35,24 @@ export const FileUpload: React.FC<FileUploadProps> = ({
     try {
       setUploading(true);
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = folder ? `${folder}/${fileName}` : fileName;
+      // Convert file to base64 data URL for MongoDB storage
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        onUpload(dataUrl);
+        toast.success('Archivo subido exitosamente');
+        setUploading(false);
+      };
+      
+      reader.onerror = () => {
+        toast.error('Error al procesar el archivo');
+        setUploading(false);
+      };
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast.error('Error al subir el archivo');
-        return;
-      }
-
-      const { data } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
-
-      onUpload(data.publicUrl);
-      toast.success('Archivo subido exitosamente');
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error('Error al subir el archivo');
-    } finally {
       setUploading(false);
     }
   };

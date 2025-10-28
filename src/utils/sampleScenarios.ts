@@ -1,5 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
-
 export const createSampleScenarios = async () => {
   const sampleScenarios = [
     {
@@ -124,15 +122,19 @@ export const createSampleScenarios = async () => {
     //console.log('📝 Creating sample scenarios...');
     
     for (const scenario of sampleScenarios) {
-      const { data, error } = await supabase
-        .from('what_if_scenarios')
-        .insert([scenario])
-        .select();
+      const response = await fetch('/api/scenarios', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(scenario),
+      });
       
-      if (error) {
-        console.error('❌ Error creating sample scenario:', error);
+      if (!response.ok) {
+        console.error('❌ Error creating sample scenario:', scenario.scenario_name);
       } else {
-        //console.log('✅ Created sample scenario:', data[0].scenario_name);
+        const data = await response.json();
+        //console.log('✅ Created sample scenario:', data.scenario_name);
       }
     }
     

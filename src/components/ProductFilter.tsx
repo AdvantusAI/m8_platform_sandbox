@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight, Search, PackageSearch } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -38,15 +37,11 @@ export function ProductFilter({
   const fetchProductLevels = async () => {
     try {
       //console.log('Fetching product levels...');
-      const {
-        data,
-        error
-      } = await supabase.schema('m8_schema').from('system_config').select('product_levels');
-      if (error) {
-        console.error('Error fetching product levels:', error);
-        setProductLevels(2); // Default to 2 levels
-        return;
+      const response = await fetch('/api/system-config');
+      if (!response.ok) {
+        throw new Error('Failed to fetch system config');
       }
+      const data = await response.json();
       //console.log('System config data:', data);
       if (!data || data.length === 0) {
         //console.log('No system config found, using default 2 levels');
@@ -65,16 +60,17 @@ export function ProductFilter({
     setLoading(true);
     try {
       //console.log('Fetching products with levels:', productLevels);
-      let query = supabase
-      .schema('m8_schema').from('products').select('*');
+      let url = '/api/products';
       if (searchTerm) {
-        query = query.or(`product_name.ilike.%${searchTerm}%,category_name.ilike.%${searchTerm}%,subcategory_name.ilike.%${searchTerm}%,class_name.ilike.%${searchTerm}%,subclass_name.ilike.%${searchTerm}%`);
+        const searchParam = encodeURIComponent(searchTerm);
+        url += `?search=${searchParam}`;
       }
-      const {
-        data,
-        error
-      } = await query;
-      if (error) throw error;
+      
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      const data = await response.json();
       //console.log('Products data:', data);
       const tree = buildProductTree(data || [], productLevels);
       //console.log('Built tree:', tree);

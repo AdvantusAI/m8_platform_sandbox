@@ -33,7 +33,7 @@ import {
   Download
 } from 'lucide-react';
 import { useSalesVelocityData } from '@/hooks/useSalesVelocityData';
-import { useChannelPartners } from '@/hooks/useChannelPartners';
+import { useCustomers } from '@/hooks/useCustomers';
 import { useProducts } from '@/hooks/useProducts';
 import { format } from 'date-fns';
 
@@ -56,6 +56,9 @@ export function SalesVelocityReports({
   selectedAggregation = null 
 }: SalesVelocityReportsProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('last_6_months');
+  const [localSelectedProductId, setLocalSelectedProductId] = useState<string>(selectedProductId);
+  const [localSelectedCustomerId, setLocalSelectedCustomerId] = useState<string>(selectedCustomerId);
+  const [localSelectedLocationId, setLocalSelectedLocationId] = useState<string>(selectedLocationId);
   const [showHighVelocityOnly, setShowHighVelocityOnly] = useState(false);
   const [showLowVelocityOnly, setShowLowVelocityOnly] = useState(false);
   const [showUnstableMovers, setShowUnstableMovers] = useState(false);
@@ -71,14 +74,18 @@ export function SalesVelocityReports({
     exportVelocityReport
   } = useSalesVelocityData();
   
-  const { partners } = useChannelPartners();
+  const { customers } = useCustomers();
   const { products } = useProducts();
 
   useEffect(() => {
     const filters: any = {};
-    if (selectedProductId) filters.product_id = selectedProductId;
-    if (selectedCustomerId) filters.channel_partner_id = selectedCustomerId;
-    if (selectedLocationId) filters.location_id = selectedLocationId;
+    const currentProductId = localSelectedProductId || selectedProductId;
+    const currentCustomerId = localSelectedCustomerId || selectedCustomerId;
+    const currentLocationId = localSelectedLocationId || selectedLocationId;
+    
+    if (currentProductId && currentProductId !== 'all') filters.product_id = currentProductId;
+    if (currentCustomerId && currentCustomerId !== 'all') filters.customer_id = currentCustomerId;
+    if (currentLocationId && currentLocationId !== 'all') filters.location_id = currentLocationId;
     
     // Set period filters based on selection
     const now = new Date();
@@ -96,7 +103,7 @@ export function SalesVelocityReports({
     
     fetchVelocityData(filters);
     fetchVelocityMetrics(filters);
-  }, [selectedProductId, selectedCustomerId, selectedLocationId, selectedPeriod, fetchVelocityData, fetchVelocityMetrics]);
+  }, [selectedProductId, selectedCustomerId, selectedLocationId, localSelectedProductId, localSelectedCustomerId, localSelectedLocationId, selectedPeriod, fetchVelocityData, fetchVelocityMetrics]);
 
   // Calculate summary metrics
   const avgVelocityUnitsPerWeek = velocityMetrics.length > 0 
@@ -119,13 +126,21 @@ export function SalesVelocityReports({
 
   // Velocity vs Inventory scatter data
   const scatterData = velocityMetrics.map(metric => {
-    const partner = partners.find(p => p.id === metric.channel_partner_id);
-    const product = products.find(p => p.id === metric.product_id);
+    const customer = customers.find(c => {
+      // Extract UUID from UUID('...') format or use as-is
+      let customerId = c.id;
+      if (typeof customerId === 'string' && customerId.includes('UUID(')) {
+        const match = customerId.match(/UUID\('([^']+)'\)/);
+        customerId = match ? match[1] : customerId;
+      }
+      return customerId === metric.channel_partner_id;
+    });
+    const product = products.find(p => p.product_id?.toString() === metric.product_id?.toString());
     
     return {
       x: metric.velocity_units_per_week || 0,
       y: metric.weeks_of_cover || 0,
-      name: `${product?.name || 'Unknown'} - ${partner?.partner_name || 'Unknown'}`,
+      name: `${product?.product_name || 'Unknown'} - ${customer?.customer_name || 'Unknown'}`,
       cv: metric.coefficient_of_variation || 0,
       recommended_order: metric.recommended_order_qty || 0,
     };
@@ -146,9 +161,13 @@ export function SalesVelocityReports({
 
   const handleExport = async () => {
     const filters: any = {};
-    if (selectedProductId) filters.product_id = selectedProductId;
-    if (selectedCustomerId) filters.channel_partner_id = selectedCustomerId;
-    if (selectedLocationId) filters.location_id = selectedLocationId;
+    const currentProductId = localSelectedProductId || selectedProductId;
+    const currentCustomerId = localSelectedCustomerId || selectedCustomerId;
+    const currentLocationId = localSelectedLocationId || selectedLocationId;
+    
+    if (currentProductId && currentProductId !== 'all') filters.product_id = currentProductId;
+    if (currentCustomerId && currentCustomerId !== 'all') filters.channel_partner_id = currentCustomerId;
+    if (currentLocationId && currentLocationId !== 'all') filters.location_id = currentLocationId;
     
     await exportVelocityReport(filters);
   };
@@ -181,15 +200,15 @@ export function SalesVelocityReports({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Producto</label>
-              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <Select value={localSelectedProductId || selectedProductId || 'all'} onValueChange={setLocalSelectedProductId}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Products" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Products</SelectItem>
                   {products.map(product => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.code} - {product.name}
+                    <SelectItem key={product.id} value={product.product_id?.toString() || product.id?.toString()}>
+                      {product.product_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -198,15 +217,15 @@ export function SalesVelocityReports({
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Socio Comercial</label>
-              <Select value={selectedPartner} onValueChange={setSelectedPartner}>
+              <Select value={localSelectedCustomerId || selectedCustomerId || 'all'} onValueChange={setLocalSelectedCustomerId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Partners" />
+                  <SelectValue placeholder="All Customers" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Partners</SelectItem>
-                  {partners.map(partner => (
-                    <SelectItem key={partner.id} value={partner.id}>
-                      {partner.partner_name}
+                  <SelectItem value="all">All Customers</SelectItem>
+                  {customers.map(customer => (
+                    <SelectItem key={customer.id} value={customer.id?.toString()}>
+                      {customer.customer_name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -308,17 +327,31 @@ export function SalesVelocityReports({
       {/* Alerts */}
       {alerts && alerts.length > 0 && (
         <div className="space-y-2">
-          {alerts.slice(0, 3).map((alert, index) => (
-            <Alert key={index} variant={alert.type === 'replenishment' ? 'default' : 'destructive'}>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>{alert.product_name}</strong> at {alert.partner_name}: {alert.message}
-                {alert.recommended_action && (
-                  <span className="ml-2 text-sm">→ {alert.recommended_action}</span>
-                )}
-              </AlertDescription>
-            </Alert>
-          ))}
+          {alerts.slice(0, 3).map((alert, index) => {
+            // Find the actual customer name using the id field (UUID)
+            const customer = customers.find(c => {
+              // Extract UUID from UUID('...') format or use as-is
+              let customerId = c.id;
+              if (typeof customerId === 'string' && customerId.includes('UUID(')) {
+                const match = customerId.match(/UUID\('([^']+)'\)/);
+                customerId = match ? match[1] : customerId;
+              }
+              return customerId === alert.partner_id;
+            });
+            const product = products.find(p => p.product_id?.toString() === alert.product_id?.toString());
+            
+            return (
+              <Alert key={index} variant={alert.type === 'replenishment' ? 'default' : 'destructive'}>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>{product?.product_name || alert.product_name}</strong> at {customer?.customer_name || 'Unknown Customer'}: {alert.message}
+                  {alert.recommended_action && (
+                    <span className="ml-2 text-sm">→ {alert.recommended_action}</span>
+                  )}
+                </AlertDescription>
+              </Alert>
+            );
+          })}
         </div>
       )}
 
@@ -441,8 +474,16 @@ export function SalesVelocityReports({
                 {velocityMetrics
                   .sort((a, b) => (b.velocity_units_per_week || 0) - (a.velocity_units_per_week || 0))
                   .map((metric, index) => {
-                    const product = products.find(p => p.id === metric.product_id);
-                    const partner = partners.find(p => p.id === metric.channel_partner_id);
+                    const product = products.find(p => p.product_id?.toString() === metric.product_id?.toString());
+                    const customer = customers.find(c => {
+                      // Extract UUID from UUID('...') format or use as-is
+                      let customerId = c.id;
+                      if (typeof customerId === 'string' && customerId.includes('UUID(')) {
+                        const match = customerId.match(/UUID\('([^']+)'\)/);
+                        customerId = match ? match[1] : customerId;
+                      }
+                      return customerId === metric.channel_partner_id;
+                    });
                     
                     return (
                       <div key={metric.id} className="flex items-center justify-between p-4 border rounded-lg">
@@ -451,9 +492,9 @@ export function SalesVelocityReports({
                             {index + 1}
                           </div>
                           <div>
-                            <div className="font-medium">{product?.name || 'Unknown Product'}</div>
+                            <div className="font-medium">{product?.product_name || 'Unknown Product'}</div>
                             <div className="text-sm text-muted-foreground">
-                              {partner?.partner_name || 'Unknown Partner'}
+                              {customer?.customer_name || 'Unknown Customer'}
                             </div>
                           </div>
                         </div>
@@ -492,21 +533,29 @@ export function SalesVelocityReports({
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {partners.map(partner => {
-                  const partnerMetrics = velocityMetrics.filter(m => m.channel_partner_id === partner.id);
-                  const avgVelocity = partnerMetrics.length > 0 
-                    ? partnerMetrics.reduce((sum, m) => sum + (m.velocity_units_per_week || 0), 0) / partnerMetrics.length 
+                {customers.map(customer => {
+                  const customerMetrics = velocityMetrics.filter(m => {
+                    // Extract UUID from UUID('...') format or use as-is
+                    let customerId = customer.id;
+                    if (typeof customerId === 'string' && customerId.includes('UUID(')) {
+                      const match = customerId.match(/UUID\('([^']+)'\)/);
+                      customerId = match ? match[1] : customerId;
+                    }
+                    return customerId === m.channel_partner_id;
+                  });
+                  const avgVelocity = customerMetrics.length > 0 
+                    ? customerMetrics.reduce((sum, m) => sum + (m.velocity_units_per_week || 0), 0) / customerMetrics.length 
                     : 0;
-                  const unstableCount = partnerMetrics.filter(m => (m.coefficient_of_variation || 0) > 0.5).length;
+                  const unstableCount = customerMetrics.filter(m => (m.coefficient_of_variation || 0) > 0.5).length;
                   
-                  if (partnerMetrics.length === 0) return null;
+                  if (customerMetrics.length === 0) return null;
                   
                   return (
-                    <div key={partner.id} className="p-4 border rounded-lg">
+                    <div key={customer.customer_id} className="p-4 border rounded-lg">
                       <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-medium">{partner.partner_name}</h3>
+                        <h3 className="font-medium">{customer.customer_name}</h3>
                         <div className="flex gap-2">
-                          <Badge variant="outline">{partnerMetrics.length} SKUs</Badge>
+                          <Badge variant="outline">{customerMetrics.length} SKUs</Badge>
                           {unstableCount > 0 && (
                             <Badge variant="destructive">{unstableCount} Unstable</Badge>
                           )}
@@ -515,18 +564,18 @@ export function SalesVelocityReports({
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                           <div className="text-sm text-muted-foreground">Velocidad Promedio</div>
-                                                      <div className="text-lg font-medium">{avgVelocity.toFixed(1)} unidades/semana</div>
+                          <div className="text-lg font-medium">{avgVelocity.toFixed(1)} unidades/semana</div>
                         </div>
                         <div>
                           <div className="text-sm text-muted-foreground">Mejor Rendimiento</div>
                           <div className="text-lg font-medium">
-                            {Math.max(...partnerMetrics.map(m => m.velocity_units_per_week || 0)).toFixed(1)} units/week
+                            {Math.max(...customerMetrics.map(m => m.velocity_units_per_week || 0)).toFixed(1)} units/week
                           </div>
                         </div>
                         <div>
                           <div className="text-sm text-muted-foreground">Estabilidad</div>
                           <div className="text-lg font-medium">
-                            {((partnerMetrics.length - unstableCount) / partnerMetrics.length * 100).toFixed(0)}% Stable
+                            {((customerMetrics.length - unstableCount) / customerMetrics.length * 100).toFixed(0)}% Stable
                           </div>
                         </div>
                       </div>

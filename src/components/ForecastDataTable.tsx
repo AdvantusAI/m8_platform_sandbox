@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -66,79 +65,29 @@ export function ForecastDataTable({
 
   const fetchAndAggregateManually = async () => {
     try {
-      let query = supabase
-        .schema('m8_schema')
-        .from('forecast_with_fitted_history')
-        .select('product_id,location_id,customer_id,postdate,forecast,actual,sales_plan,demand_planner,forecast_ly,upper_bound,lower_bound,commercial_input,fitted_history')
-        .eq('product_id', selectedProductId!)
-        .order('postdate');
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append('product_id', selectedProductId!);
       
-      // Apply location filter only if selected
       if (selectedLocationId) {
-        query = query.eq('location_id', selectedLocationId);
+        params.append('location_id', selectedLocationId);
       }
       
-      // Apply vendor filter only if selected - use customer_id field for vendor filtering
       if (selectedCustomerId) {
-        query = query.eq('customer_id', selectedCustomerId);
+        params.append('customer_id', selectedCustomerId);
       }
-      
-      
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching forecast data for manual aggregation:', error);
-        return;
-      }
-      
-      
-      
-      // Group and aggregate by postdate
-      const aggregatedData = new Map<string, ForecastData>();
-      
-      (data || []).forEach(item => {
-        const postdate = item.postdate;
-        
-        if (!aggregatedData.has(postdate)) {
-          aggregatedData.set(postdate, {
-            postdate,
-            forecast: 0,
-            actual: 0,
-            sales_plan: 0,
-            demand_planner: 0,
-            forecast_ly: 0,
-            upper_bound: 0,
-            lower_bound: 0,
-            commercial_input: 0,
-            fitted_history: 0
-          });
-        }
-        
-        const existing = aggregatedData.get(postdate)!;
-        
-        // Sum the numerical values
-        existing.forecast = (existing.forecast || 0) + (item.forecast || 0);
-        existing.actual = (existing.actual || 0) + (item.actual || 0);
-        existing.sales_plan = (existing.sales_plan || 0) + (item.sales_plan || 0);
-        existing.demand_planner = (existing.demand_planner || 0) + (item.demand_planner || 0);
-        existing.forecast_ly = (existing.forecast_ly || 0) + (item.forecast_ly || 0);
-        existing.commercial_input = (existing.commercial_input || 0) +  (item.commercial_input || 0); 
-        existing.fitted_history = (existing.fitted_history || 0) + (item.fitted_history || 0);
-        
-    
-      });
-      
-      // Convert to array and sort by postdate
-      const result = Array.from(aggregatedData.values()).sort((a, b) => 
-        new Date(a.postdate).getTime() - new Date(b.postdate).getTime()
-      );
 
-      //console.log('Aggregated forecast data:', result);
+      const response = await fetch(`http://localhost:3001/api/forecast-data-table?${params}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch forecast data');
+      }
+
+      const result = await response.json();
       setForecastData(result);
       
     } catch (error) {
-      console.error('Error in manual aggregation:', error);
+      console.error('Error fetching forecast data:', error);
     }
   };
 
@@ -177,25 +126,27 @@ export function ForecastDataTable({
     setSavingValues(prev => ({ ...prev, [key]: true }));
 
     try {
-      // Build the update query with filters
-      let query = supabase
-        .schema('m8_schema')
-        .from('forecast_data')
-        .update({ demand_planner: newValue })
-        .eq('postdate', date)
-        .eq('product_id', selectedProductId)
-        .eq('customer_id', selectedCustomerId);
+      // Send update request to MongoDB endpoint
+      const response = await fetch('http://localhost:3001/api/forecast-data-table/demand-planner', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_id: selectedProductId,
+          customer_id: selectedCustomerId,
+          location_id: selectedLocationId,
+          postdate: date,
+          demand_planner: newValue
+        })
+      });
 
-      // Apply location filter if selected
-      if (selectedLocationId) {
-        query = query.eq('location_id', selectedLocationId);
+      if (!response.ok) {
+        throw new Error('Failed to update demand planner value');
       }
 
-      const { error } = await query;
-
-      if (error) {
-        throw error;
-      }
+      const result = await response.json();
+      console.log('Update result:', result);
 
       // Update local state to reflect the change
       setForecastData(prev => prev.map(item => 

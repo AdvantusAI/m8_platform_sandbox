@@ -3,7 +3,7 @@ import { Target, TrendingUp, Users, Home, Settings, Database, BarChart3, Package
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+
 interface CompanyConfig {
   company_name: string;
   company_logo: string;
@@ -145,16 +145,15 @@ export function AppSidebar() {
   useEffect(() => {
     const fetchCompanyConfig = async () => {
       try {
-        const {
-          data,
-          error
-        } = await supabase
-        .schema('m8_schema')
-        .from('company_config').select('company_name, company_logo').limit(1).single();
-        if (error) {
-          console.error('Error fetching company config:', error);
+        const response = await fetch('http://localhost:3001/api/company-config');
+        
+        if (!response.ok) {
+          console.error('Error fetching company config:', response.statusText);
           return;
         }
+        
+        const data = await response.json();
+        
         if (data) {
           setCompanyConfig(data);
         }

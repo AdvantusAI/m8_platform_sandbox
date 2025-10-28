@@ -57,12 +57,13 @@ OrderFilters({ filters, onFiltersChange }: OrderFiltersProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="DRAFT">Borrador</SelectItem>
-            <SelectItem value="PENDING">Pendiente</SelectItem>
-            <SelectItem value="APPROVED">Aprobada</SelectItem>
-            <SelectItem value="SENT">Enviada</SelectItem>
-            <SelectItem value="RECEIVED">Recibida</SelectItem>
-            <SelectItem value="CANCELLED">Cancelada</SelectItem>
+            <SelectItem value="draft">Borrador</SelectItem>
+            <SelectItem value="pending">Pendiente</SelectItem>
+            <SelectItem value="ordered">Ordenada</SelectItem>
+            <SelectItem value="approved">Aprobada</SelectItem>
+            <SelectItem value="sent">Enviada</SelectItem>
+            <SelectItem value="received">Recibida</SelectItem>
+            <SelectItem value="cancelled">Cancelada</SelectItem>
           </SelectContent>
         </Select>
       </div>

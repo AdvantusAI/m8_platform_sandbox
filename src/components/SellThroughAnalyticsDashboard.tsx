@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { TrendingUp, TrendingDown, RefreshCw, Calendar, Filter } from 'lucide-react';
 import { useSellInOutData } from '@/hooks/useSellInOutData';
-import { useChannelPartners } from '@/hooks/useChannelPartners';
+import { useCustomers } from '@/hooks/useCustomers';
 import { useProducts } from '@/hooks/useProducts';
 import { format } from 'date-fns';
 
@@ -16,21 +16,59 @@ export function SellThroughAnalyticsDashboard() {
   const [selectedProduct, setSelectedProduct] = useState<string>('all');
   const [selectedPartner, setSelectedPartner] = useState<string>('all');
   const [selectedPeriod, setSelectedPeriod] = useState<string>('last_3_months');
+  const [loading, setLoading] = useState(false);
+  const [sellThroughCustomers, setSellThroughCustomers] = useState<any[]>([]);
+  const [enhancedMetrics, setEnhancedMetrics] = useState<any[]>([]);
   
-  const { 
-    loading, 
-    sellThroughMetrics, 
-    fetchSellThroughMetrics, 
-    refreshSellThroughRates 
-  } = useSellInOutData();
-  
-  const { partners } = useChannelPartners();
   const { products } = useProducts();
+
+  // Fetch sell-through customers with proper lookup
+  const fetchSellThroughCustomers = async () => {
+    try {
+      const response = await fetch('/api/sell-through/customers');
+      if (!response.ok) throw new Error('Failed to fetch customers');
+      const data = await response.json();
+      setSellThroughCustomers(data);
+    } catch (error) {
+      console.error('Error fetching sell-through customers:', error);
+      setSellThroughCustomers([]);
+    }
+  };
+
+  // Fetch enhanced metrics with customer info embedded
+  const fetchEnhancedMetrics = async (filters: any = {}) => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      
+      if (filters.product_id) params.append('product_id', filters.product_id);
+      if (filters.channel_partner_id) params.append('channel_partner_id', filters.channel_partner_id);
+      if (filters.period_start) params.append('period_start', filters.period_start);
+      if (filters.period_end) params.append('period_end', filters.period_end);
+      
+      const response = await fetch(`/api/sell-through/metrics-with-customers?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch enhanced metrics');
+      const data = await response.json();
+      setEnhancedMetrics(data);
+    } catch (error) {
+      console.error('Error fetching enhanced metrics:', error);
+      setEnhancedMetrics([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load customers on component mount
+  useEffect(() => {
+    fetchSellThroughCustomers();
+  }, []);
 
   useEffect(() => {
     const filters: any = {};
     if (selectedProduct && selectedProduct !== 'all') filters.product_id = selectedProduct;
-    if (selectedPartner && selectedPartner !== 'all') filters.channel_partner_id = selectedPartner;
+    if (selectedPartner && selectedPartner !== 'all') {
+      filters.channel_partner_id = selectedPartner;
+    }
     
     // Set period filters based on selection
     const now = new Date();
@@ -46,41 +84,72 @@ export function SellThroughAnalyticsDashboard() {
         break;
     }
     
-    fetchSellThroughMetrics(filters);
-  }, [selectedProduct, selectedPartner, selectedPeriod, fetchSellThroughMetrics]);
+    console.log('Enhanced SellThrough Filters:', filters); // Debug log
+    fetchEnhancedMetrics(filters);
+  }, [selectedProduct, selectedPartner, selectedPeriod]);
 
   const handleRefreshRates = async () => {
-    await refreshSellThroughRates();
-    // Refetch metrics after refresh
-    const filters: any = {};
-    if (selectedProduct && selectedProduct !== 'all') filters.product_id = selectedProduct;
-    if (selectedPartner && selectedPartner !== 'all') filters.channel_partner_id = selectedPartner;
-    fetchSellThroughMetrics(filters);
+    try {
+      setLoading(true);
+      // Call refresh endpoint
+      await fetch('/api/sell-through-metrics/refresh', { method: 'POST' });
+      
+      // Refetch customers and metrics
+      await fetchSellThroughCustomers();
+      
+      const filters: any = {};
+      if (selectedProduct && selectedProduct !== 'all') filters.product_id = selectedProduct;
+      if (selectedPartner && selectedPartner !== 'all') {
+        filters.channel_partner_id = selectedPartner;
+      }
+      
+      // Set period filters
+      const now = new Date();
+      switch (selectedPeriod) {
+        case 'last_month':
+          filters.period_start = format(new Date(now.getFullYear(), now.getMonth() - 1, 1), 'yyyy-MM-dd');
+          break;
+        case 'last_3_months':
+          filters.period_start = format(new Date(now.getFullYear(), now.getMonth() - 3, 1), 'yyyy-MM-dd');
+          break;
+        case 'last_6_months':
+          filters.period_start = format(new Date(now.getFullYear(), now.getMonth() - 6, 1), 'yyyy-MM-dd');
+          break;
+      }
+      
+      await fetchEnhancedMetrics(filters);
+    } catch (error) {
+      console.error('Error refreshing rates:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Calculate summary metrics
-  const avgSellThroughRate = sellThroughMetrics.length > 0 
-    ? sellThroughMetrics.reduce((sum, m) => sum + m.sell_through_rate, 0) / sellThroughMetrics.length 
+  const avgSellThroughRate = enhancedMetrics.length > 0 
+    ? enhancedMetrics.reduce((sum, m) => sum + m.sell_through_rate, 0) / enhancedMetrics.length 
     : 0;
 
-  const avgDaysOfInventory = sellThroughMetrics.length > 0
-    ? sellThroughMetrics.reduce((sum, m) => sum + m.days_of_inventory, 0) / sellThroughMetrics.length
+  const avgDaysOfInventory = enhancedMetrics.length > 0
+    ? enhancedMetrics.reduce((sum, m) => sum + m.days_of_inventory, 0) / enhancedMetrics.length
     : 0;
 
-  const performanceDistribution = sellThroughMetrics.reduce((acc, metric) => {
+  const performanceDistribution = enhancedMetrics.reduce((acc, metric) => {
     acc[metric.performance_category] = (acc[metric.performance_category] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   // Prepare chart data
-  const chartData = sellThroughMetrics
+  const chartData = enhancedMetrics
     .sort((a, b) => new Date(a.calculation_period).getTime() - new Date(b.calculation_period).getTime())
-    .map(metric => ({
-      period: format(new Date(metric.calculation_period), 'MMM yyyy'),
-      sellThroughRate: metric.sell_through_rate,
-      daysOfInventory: metric.days_of_inventory,
-      partnerName: partners.find(p => p.id === metric.channel_partner_id)?.partner_name || 'Unknown',
-    }));
+    .map(metric => {
+      return {
+        period: format(new Date(metric.calculation_period), 'MMM yyyy'),
+        sellThroughRate: metric.sell_through_rate,
+        daysOfInventory: metric.days_of_inventory,
+        partnerName: metric.customer_info?.customer_name || 'Unknown Customer',
+      };
+    });
 
   const getPerformanceBadgeVariant = (category: string) => {
     switch (category) {
@@ -132,9 +201,10 @@ export function SellThroughAnalyticsDashboard() {
                       return id && String(id).trim() !== '';
                     })
                     .map(product => {
-                      const id = String(product.product_id ?? product.id);
+                      // Use product_id primarily, fallback to id
+                      const productId = String(product.product_id ?? product.id);
                       return (
-                        <SelectItem key={id} value={id}>
+                        <SelectItem key={productId} value={productId}>
                           {product.product_name ?? product.name ?? 'Unnamed Product'}
                         </SelectItem>
                       );
@@ -151,13 +221,16 @@ export function SellThroughAnalyticsDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Partners</SelectItem>
-                  {partners
-                    .filter(partner => partner.id && String(partner.id).trim() !== '')
-                    .map(partner => (
-                    <SelectItem key={partner.id} value={partner.id}>
-                      {partner.partner_name}
-                    </SelectItem>
-                  ))}
+                  {sellThroughCustomers
+                    .filter(customer => customer.id && String(customer.id).trim() !== '')
+                    .map(customer => {
+                      const customerId = String(customer.id);
+                      return (
+                        <SelectItem key={customerId} value={customerId}>
+                          {customer.customer_name}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </div>
@@ -302,7 +375,7 @@ export function SellThroughAnalyticsDashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{count}</div>
+                  <div className="text-2xl font-bold">{String(count)}</div>
                   <Badge variant={getPerformanceBadgeVariant(category)} className="mt-2">
                     {category.toUpperCase()}
                   </Badge>
@@ -322,32 +395,21 @@ export function SellThroughAnalyticsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {sellThroughMetrics.length === 0 ? (
+                {enhancedMetrics.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <p>No sell-through metrics data available.</p>
                     <p className="text-sm mt-2">Try adjusting your filters or refreshing the data.</p>
                   </div>
                 ) : (
-                  sellThroughMetrics.map((metric) => {
-                    const partner = partners.find(p => p.id === metric.channel_partner_id);
-                    const product = products.find(p => {
-                      const productId = String(p.product_id || '');
-                      const metricProductId = String(metric.product_id || '');
-                      const pId = String(p.id || '');
-                      return (
-                        productId === metricProductId || 
-                        pId === metricProductId
-                      );
-                    });
-                    
+                  enhancedMetrics.map((metric) => {
                     return (
                       <div key={metric.id} className="flex items-center justify-between p-4 border rounded-lg">
                         <div className="space-y-1">
                           <div className="font-medium">
-                            {partner?.partner_name || 'Unknown Partner'}
+                            {metric.customer_info?.customer_name || 'Unknown Customer'}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {product?.product_name || product?.name || `Product ID: ${metric.product_id}`} • {format(new Date(metric.calculation_period), 'MMM yyyy')}
+                            {metric.product_info?.product_name || `Product ID: ${metric.product_id}`} • {format(new Date(metric.calculation_period), 'MMM yyyy')}
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
