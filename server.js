@@ -2338,7 +2338,7 @@ app.get('/api/sell-in-data', ensureDbConnection, async (req, res) => {
 
     console.log('MongoDB query filter:', JSON.stringify(filter, null, 2));
 
-    const sellInData = await db.collection('sell_in_data')
+    const sellInData = await db.collection('sell_through_metrics')
       .find(filter)
       .sort({ transaction_date: -1 })
       .toArray();
@@ -2363,7 +2363,7 @@ app.post('/api/sell-in-data', ensureDbConnection, async (req, res) => {
       updated_at: new Date()
     };
 
-    await db.collection('sell_in_data').insertOne(sellInData);
+    await db.collection('sell_through_metrics').insertOne(sellInData);
     
     console.log('Sell-in record created successfully');
     res.status(201).json(sellInData);
@@ -2393,7 +2393,41 @@ app.get('/api/sell-out-data', ensureDbConnection, async (req, res) => {
     }
     
     if (channel_partner_id && channel_partner_id !== 'all') {
-      filter.channel_partner_id = channel_partner_id;
+      // Enhanced customer lookup: Handle both UUID and numeric customer IDs
+      try {
+        const customer = await db.collection('customers').findOne({
+          $or: [
+            { id: channel_partner_id },
+            { _id: new ObjectId(channel_partner_id) },
+            { customer_id: channel_partner_id },
+            { customer_id: parseInt(channel_partner_id) || null }
+          ]
+        });
+
+        if (customer) {
+          // Use flexible matching for sell_through_metrics collection
+          filter.$or = [
+            { channel_partner_id: channel_partner_id },
+            { channel_partner_id: customer.customer_id },
+            { channel_partner_id: customer.id },
+            { customer_id: customer.customer_id },
+            { customer_id: customer.id },
+            { customer_id: channel_partner_id }
+          ];
+          console.log(`Found customer: ${customer.customer_name} (ID: ${customer.customer_id}, UUID: ${customer.id})`);
+        } else {
+          // Fallback: try multiple field combinations
+          filter.$or = [
+            { channel_partner_id: channel_partner_id },
+            { customer_id: channel_partner_id },
+            { customer_id: parseInt(channel_partner_id) || null }
+          ];
+          console.log(`Customer not found, using fallback filters for: ${channel_partner_id}`);
+        }
+      } catch (error) {
+        console.error('Error looking up customer in sell-out data:', error);
+        filter.channel_partner_id = channel_partner_id;
+      }
     }
     
     if (start_date) {
@@ -2410,7 +2444,7 @@ app.get('/api/sell-out-data', ensureDbConnection, async (req, res) => {
 
     console.log('MongoDB query filter:', JSON.stringify(filter, null, 2));
 
-    const sellOutData = await db.collection('sell_out_data')
+    const sellOutData = await db.collection('sell_through_metrics')
       .find(filter)
       .sort({ transaction_date: -1 })
       .toArray();
@@ -2435,7 +2469,7 @@ app.post('/api/sell-out-data', ensureDbConnection, async (req, res) => {
       updated_at: new Date()
     };
 
-    await db.collection('sell_out_data').insertOne(sellOutData);
+    await db.collection('sell_through_metrics').insertOne(sellOutData);
     
     console.log('Sell-out record created successfully');
     res.status(201).json(sellOutData);
@@ -2461,7 +2495,43 @@ app.get('/api/sell-through-metrics', ensureDbConnection, async (req, res) => {
     }
     
     if (channel_partner_id && channel_partner_id !== 'all') {
-      filter.channel_partner_id = channel_partner_id;
+      // Enhanced customer lookup: Handle both UUID and numeric customer IDs
+      // First, try to find the customer to get both UUID and numeric IDs
+      try {
+        const customer = await db.collection('customers').findOne({
+          $or: [
+            { id: channel_partner_id },
+            { _id: new ObjectId(channel_partner_id) },
+            { customer_id: channel_partner_id },
+            { customer_id: parseInt(channel_partner_id) || null }
+          ]
+        });
+
+        if (customer) {
+          // Use flexible matching for sell_through_metrics collection
+          filter.$or = [
+            { channel_partner_id: channel_partner_id },
+            { channel_partner_id: customer.customer_id },
+            { channel_partner_id: customer.id },
+            { customer_id: customer.customer_id },
+            { customer_id: customer.id },
+            { customer_id: channel_partner_id }
+          ];
+          console.log(`Found customer: ${customer.customer_name} (ID: ${customer.customer_id}, UUID: ${customer.id})`);
+        } else {
+          // Fallback: try multiple field combinations without customer lookup
+          filter.$or = [
+            { channel_partner_id: channel_partner_id },
+            { customer_id: channel_partner_id },
+            { customer_id: parseInt(channel_partner_id) || null }
+          ];
+          console.log(`Customer not found, using fallback filters for: ${channel_partner_id}`);
+        }
+      } catch (error) {
+        console.error('Error looking up customer:', error);
+        // Simple fallback
+        filter.channel_partner_id = channel_partner_id;
+      }
     }
     
     if (period_start) {
@@ -2514,6 +2584,729 @@ app.post('/api/sell-through-metrics/refresh', ensureDbConnection, async (req, re
     res.status(500).json({ message: 'Failed to refresh sell-through rates' });
   }
 });
+
+
+// KPI Dashboard endpoints
+app.get('/api/kpi/low-accuracy-products', ensureDbConnection, async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 75;
+    
+    // Get forecast data for products with interpretability_score
+    const forecastData = await db.collection('forecast_data')
+      .find({ 
+        product_id: { $exists: true, $ne: null },
+        interpretability_score: { $exists: true }
+      })
+      .sort({ created_at: -1 })
+      .limit(500)
+      .toArray();
+
+    // Get unique product IDs
+    const productIds = [...new Set(forecastData.map(d => d.product_id).filter(Boolean))];
+    
+    // Get product details
+    const products = await db.collection('products')
+      .find({ product_id: { $in: productIds } })
+      .toArray();
+
+    // Create product lookup
+    const productLookup = new Map();
+    products.forEach(product => {
+      productLookup.set(product.product_id, product);
+    });
+
+    // Aggregate by product
+    const productMap = new Map();
+    forecastData.forEach(item => {
+      if (!item.product_id) return;
+      
+      if (!productMap.has(item.product_id)) {
+        const productInfo = productLookup.get(item.product_id);
+        productMap.set(item.product_id, {
+          product_id: item.product_id,
+          product_name: productInfo?.product_name || `Product ${item.product_id}`,
+          category_name: productInfo?.category_name || 'Sin categoría',
+          accuracy_scores: [],
+          forecast_count: 0,
+          last_forecast_date: item.created_at
+        });
+      }
+      
+      const product = productMap.get(item.product_id);
+      if (item.interpretability_score !== null && item.interpretability_score !== undefined) {
+        product.accuracy_scores.push(item.interpretability_score);
+      }
+      product.forecast_count++;
+      
+      if (new Date(item.created_at) > new Date(product.last_forecast_date)) {
+        product.last_forecast_date = item.created_at;
+      }
+    });
+
+    // Calculate averages and filter
+    const results = Array.from(productMap.values())
+      .map(product => {
+        const avgAccuracy = product.accuracy_scores.length > 0 
+          ? product.accuracy_scores.reduce((sum, score) => sum + score, 0) / product.accuracy_scores.length
+          : 0;
+        const errorPercentage = 100 - avgAccuracy;
+        const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
+        
+        return {
+          product_id: product.product_id,
+          product_name: product.product_name,
+          category_name: product.category_name,
+          accuracy_score: Math.round(avgAccuracy),
+          forecast_count: product.forecast_count,
+          last_forecast_date: product.last_forecast_date,
+          avg_error_percentage: Math.round(errorPercentage),
+          trend
+        };
+      })
+      .filter(product => product.accuracy_score < threshold)
+      .sort((a, b) => a.accuracy_score - b.accuracy_score);
+
+    res.json(results);
+  } catch (error) {
+    console.error('KPI low accuracy products error:', error);
+    res.status(500).json({ message: 'Failed to fetch low accuracy products' });
+  }
+});
+
+app.get('/api/kpi/low-accuracy-customers', ensureDbConnection, async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 75;
+    
+    // Get forecast data for customers with interpretability_score
+    const forecastData = await db.collection('forecast_data')
+      .find({ 
+        customer_id: { $exists: true, $ne: null },
+        interpretability_score: { $exists: true }
+      })
+      .sort({ created_at: -1 })
+      .limit(500)
+      .toArray();
+
+    // Get unique customer IDs (handle both string and UUID formats)
+    const customerIds = [...new Set(forecastData.map(d => d.customer_id).filter(Boolean))];
+    
+    // Get customer details with UUID handling
+    const customers = await db.collection('customers')
+      .find({ 
+        $or: [
+          { customer_id: { $in: customerIds } },
+          { _id: { $in: customerIds.map(id => {
+            try { return new ObjectId(id); } catch { return null; }
+          }).filter(Boolean) } }
+        ]
+      })
+      .toArray();
+
+    // Create customer lookup
+    const customerLookup = new Map();
+    customers.forEach(customer => {
+      const customerId = customer.customer_id || customer._id.toString();
+      customerLookup.set(customerId, customer);
+    });
+
+    // Aggregate by customer
+    const customerMap = new Map();
+    forecastData.forEach(item => {
+      if (!item.customer_id) return;
+      
+      if (!customerMap.has(item.customer_id)) {
+        const customerInfo = customerLookup.get(item.customer_id);
+        customerMap.set(item.customer_id, {
+          customer_id: item.customer_id,
+          customer_name: customerInfo?.customer_name || `Customer ${item.customer_id}`,
+          accuracy_scores: [],
+          forecast_count: 0,
+          last_forecast_date: item.created_at
+        });
+      }
+      
+      const customer = customerMap.get(item.customer_id);
+      if (item.interpretability_score !== null && item.interpretability_score !== undefined) {
+        customer.accuracy_scores.push(item.interpretability_score);
+      }
+      customer.forecast_count++;
+      
+      if (new Date(item.created_at) > new Date(customer.last_forecast_date)) {
+        customer.last_forecast_date = item.created_at;
+      }
+    });
+
+    // Calculate averages and filter
+    const results = Array.from(customerMap.values())
+      .map(customer => {
+        const avgAccuracy = customer.accuracy_scores.length > 0 
+          ? customer.accuracy_scores.reduce((sum, score) => sum + score, 0) / customer.accuracy_scores.length
+          : 0;
+        const errorPercentage = 100 - avgAccuracy;
+        const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
+        
+        return {
+          customer_id: customer.customer_id,
+          customer_name: customer.customer_name,
+          accuracy_score: Math.round(avgAccuracy),
+          forecast_count: customer.forecast_count,
+          last_forecast_date: customer.last_forecast_date,
+          avg_error_percentage: Math.round(errorPercentage),
+          trend
+        };
+      })
+      .filter(customer => customer.accuracy_score < threshold)
+      .sort((a, b) => a.accuracy_score - b.accuracy_score);
+
+    res.json(results);
+  } catch (error) {
+    console.error('KPI low accuracy customers error:', error);
+    res.status(500).json({ message: 'Failed to fetch low accuracy customers' });
+  }
+});
+
+app.get('/api/kpi/customer-product-combinations', ensureDbConnection, async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 75;
+    
+    // Get forecast data with both customer and product IDs
+    const forecastData = await db.collection('forecast_data')
+      .find({ 
+        customer_id: { $exists: true, $ne: null },
+        product_id: { $exists: true, $ne: null },
+        interpretability_score: { $exists: true }
+      })
+      .sort({ created_at: -1 })
+      .limit(1000)
+      .toArray();
+
+    // Get unique IDs
+    const customerIds = [...new Set(forecastData.map(d => d.customer_id).filter(Boolean))];
+    const productIds = [...new Set(forecastData.map(d => d.product_id).filter(Boolean))];
+    
+    // Get customer and product details in parallel
+    const [customers, products] = await Promise.all([
+      db.collection('customers')
+        .find({ 
+          $or: [
+            { customer_id: { $in: customerIds } },
+            { _id: { $in: customerIds.map(id => {
+              try { return new ObjectId(id); } catch { return null; }
+            }).filter(Boolean) } }
+          ]
+        })
+        .toArray(),
+      db.collection('products')
+        .find({ product_id: { $in: productIds } })
+        .toArray()
+    ]);
+
+    // Create lookup maps
+    const customerLookup = new Map();
+    customers.forEach(customer => {
+      const customerId = customer.customer_id || customer._id.toString();
+      customerLookup.set(customerId, customer);
+    });
+
+    const productLookup = new Map();
+    products.forEach(product => {
+      productLookup.set(product.product_id, product);
+    });
+
+    // Aggregate by customer-product combination
+    const combinationMap = new Map();
+    forecastData.forEach(item => {
+      const key = `${item.customer_id}_${item.product_id}`;
+      
+      if (!combinationMap.has(key)) {
+        const customerInfo = customerLookup.get(item.customer_id);
+        const productInfo = productLookup.get(item.product_id);
+        
+        combinationMap.set(key, {
+          customer_id: item.customer_id,
+          customer_name: customerInfo?.customer_name || `Customer ${item.customer_id}`,
+          product_id: item.product_id,
+          product_name: productInfo?.product_name || `Product ${item.product_id}`,
+          category_name: productInfo?.category_name || 'Sin categoría',
+          accuracy_scores: [],
+          forecast_count: 0,
+          last_forecast_date: item.created_at
+        });
+      }
+      
+      const combination = combinationMap.get(key);
+      if (item.interpretability_score !== null && item.interpretability_score !== undefined) {
+        combination.accuracy_scores.push(item.interpretability_score);
+      }
+      combination.forecast_count++;
+      
+      if (new Date(item.created_at) > new Date(combination.last_forecast_date)) {
+        combination.last_forecast_date = item.created_at;
+      }
+    });
+
+    // Calculate averages and filter
+    const results = Array.from(combinationMap.values())
+      .map(combination => {
+        const avgAccuracy = combination.accuracy_scores.length > 0 
+          ? combination.accuracy_scores.reduce((sum, score) => sum + score, 0) / combination.accuracy_scores.length
+          : 0;
+        const errorPercentage = 100 - avgAccuracy;
+        const trend = avgAccuracy < 60 ? 'declining' : avgAccuracy > 80 ? 'improving' : 'stable';
+        
+        return {
+          customer_id: combination.customer_id,
+          customer_name: combination.customer_name,
+          product_id: combination.product_id,
+          product_name: combination.product_name,
+          category_name: combination.category_name,
+          accuracy_score: Math.round(avgAccuracy),
+          forecast_count: combination.forecast_count,
+          last_forecast_date: combination.last_forecast_date,
+          avg_error_percentage: Math.round(errorPercentage),
+          trend,
+          forecast_bias: 0 // Default value since we don't have this field yet
+        };
+      })
+      .filter(combination => combination.accuracy_score < threshold)
+      .sort((a, b) => a.accuracy_score - b.accuracy_score);
+
+    res.json(results);
+  } catch (error) {
+    console.error('KPI customer-product combinations error:', error);
+    res.status(500).json({ message: 'Failed to fetch customer-product combinations' });
+  }
+});
+
+app.get('/api/kpi/summary', ensureDbConnection, async (req, res) => {
+  try {
+    const threshold = parseInt(req.query.threshold) || 75;
+    
+    // Get all forecast data for summary calculation
+    const allData = await db.collection('forecast_data')
+      .find({ interpretability_score: { $exists: true } })
+      .sort({ created_at: -1 })
+      .limit(1000)
+      .toArray();
+
+    const uniqueProducts = new Set(allData.map(d => d.product_id).filter(Boolean));
+    const uniqueCustomers = new Set(allData.map(d => d.customer_id).filter(Boolean));
+    
+    const lowAccuracyProducts = allData.filter(d => 
+      d.interpretability_score < threshold && d.product_id
+    );
+    const lowAccuracyCustomers = allData.filter(d => 
+      d.interpretability_score < threshold && d.customer_id
+    );
+    
+    const overallAccuracy = allData.length > 0 
+      ? allData.reduce((sum, d) => sum + d.interpretability_score, 0) / allData.length
+      : 0;
+    
+    const summary = {
+      total_products: uniqueProducts.size,
+      low_accuracy_products: new Set(lowAccuracyProducts.map(d => d.product_id)).size,
+      total_customers: uniqueCustomers.size,
+      low_accuracy_customers: new Set(lowAccuracyCustomers.map(d => d.customer_id)).size,
+      overall_accuracy: Math.round(overallAccuracy),
+      accuracy_trend: overallAccuracy > 75 ? 'improving' : overallAccuracy < 60 ? 'declining' : 'stable'
+    };
+
+    res.json(summary);
+  } catch (error) {
+    console.error('KPI summary error:', error);
+    res.status(500).json({ message: 'Failed to fetch KPI summary' });
+  }
+});
+
+// ForecastDataTable endpoint - supports filtering by product, location, and customer with aggregation
+app.get('/api/forecast-data-table', ensureDbConnection, async (req, res) => {
+  try {
+    const { product_id, location_id, customer_id } = req.query;
+    
+    console.log('ForecastDataTable endpoint called with:', { product_id, location_id, customer_id });
+
+    if (!product_id) {
+      return res.status(400).json({ message: 'product_id is required' });
+    }
+
+    // Build query for forecast_data
+    const query = { product_id: parseInt(product_id) };
+    
+    // Add location filter if provided (UUID)
+    if (location_id) {
+      try {
+        query.location_node_id = new UUID(location_id);
+      } catch (error) {
+        query.location_node_id = location_id;
+      }
+    }
+    
+    // Add customer filter if provided (UUID)
+    if (customer_id) {
+      try {
+        query.customer_node_id = new UUID(customer_id);
+      } catch (error) {
+        query.customer_node_id = customer_id;
+      }
+    }
+
+    console.log('Forecast data query:', JSON.stringify(query, null, 2));
+
+    // Get forecast data
+    const forecastData = await db.collection('forecast_data')
+      .find(query)
+      .sort({ postdate: 1 })
+      .toArray();
+
+    console.log(`Found ${forecastData.length} forecast records`);
+
+    // Group and aggregate by postdate for ForecastDataTable
+    const aggregatedData = new Map();
+    
+    forecastData.forEach(item => {
+      const postdate = new Date(item.postdate);
+      const monthKey = `${postdate.getFullYear()}-${String(postdate.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!aggregatedData.has(monthKey)) {
+        aggregatedData.set(monthKey, {
+          postdate: monthKey,
+          forecast: 0,
+          actual: 0,
+          sales_plan:   0,
+          demand_planner: 0,
+          forecast_ly: 0,
+          upper_bound: 0,
+          lower_bound: 0,
+          commercial_input: 0,
+          fitted_history: 0
+        });
+      }
+      
+      const existing = aggregatedData.get(monthKey);
+      
+      // Sum the numerical values (handle null values)
+      existing.forecast = (existing.forecast || 0) + (item.forecast || 0);
+      existing.actual = (existing.actual || 0) + (item.actual || 0);
+      existing.sales_plan = (existing.sales_plan || 0) + (item.sales_plan || 0);
+      existing.demand_planner = (existing.demand_planner || 0) + (item.demand_planner || 0);
+      existing.forecast_ly = (existing.forecast_ly || 0) + (item.forecast_ly || 0);
+      existing.upper_bound = (existing.upper_bound || 0) + (item.upper_bound || 0);
+      existing.lower_bound = (existing.lower_bound || 0) + (item.lower_bound || 0);
+      existing.commercial_input = (existing.commercial_input || 0) + (item.commercial_input || 0);
+      existing.fitted_history = (existing.fitted_history || 0) + (item.fitted_history || 0);
+    });
+    
+    // Convert to array and sort by postdate
+    const result = Array.from(aggregatedData.values()).sort((a, b) => 
+      new Date(a.postdate).getTime() - new Date(b.postdate).getTime()
+    );
+
+    console.log(`Returning ${result.length} aggregated records`);
+    res.json(result);
+  } catch (error) {
+    console.error('Get forecast data table error:', error);
+    res.status(500).json({ message: 'Failed to fetch forecast data table' });
+  }
+});
+
+// Update demand_planner value endpoint
+app.put('/api/forecast-data-table/demand-planner', ensureDbConnection, async (req, res) => {
+  try {
+    const { product_id, customer_id, location_id, postdate, demand_planner } = req.body;
+    
+    console.log('Updating demand_planner:', { product_id, customer_id, postdate, demand_planner });
+
+    if (!product_id || !customer_id || !postdate) {
+      return res.status(400).json({ message: 'product_id, customer_id, and postdate are required' });
+    }
+
+    // Build query to find the specific forecast record
+    const query = { 
+      product_id: parseInt(product_id),
+      postdate: new Date(postdate)
+    };
+    
+    // Add customer filter (UUID)
+    try {
+      query.customer_node_id = new UUID(customer_id);
+    } catch (error) {
+      query.customer_node_id = customer_id;
+    }
+    
+    // Add location filter if provided (UUID)
+    if (location_id) {
+      try {
+        query.location_node_id = new UUID(location_id);
+      } catch (error) {
+        query.location_node_id = location_id;
+      }
+    }
+
+    console.log('Update query:', JSON.stringify(query, null, 2));
+
+    // Update the demand_planner field
+    const result = await db.collection('forecast_data').updateMany(
+      query,
+      { 
+        $set: { 
+          demand_planner: parseFloat(demand_planner) || 0,
+          updated_at: new Date()
+        }
+      }
+    );
+
+    console.log('Update result:', result);
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: 'No forecast records found to update' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: `Updated ${result.modifiedCount} records`,
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount
+    });
+  } catch (error) {
+    console.error('Update demand planner error:', error);
+    res.status(500).json({ message: 'Failed to update demand planner value' });
+  }
+});
+
+// Get location details from v_warehouse_node
+app.get('/api/locations/details/:locationId', ensureDbConnection, async (req, res) => {
+  try {
+    const { locationId } = req.params;
+    
+    console.log('Getting location details for:', locationId);
+
+    let locationQuery;
+    try {
+      locationQuery = { location_id: new UUID(locationId) };
+    } catch (error) {
+      locationQuery = { location_id: locationId };
+    }
+
+    const location = await db.collection('v_warehouse_node').findOne(locationQuery);
+    
+    if (!location) {
+      return res.status(404).json({ message: 'Location not found' });
+    }
+
+    const formattedLocation = {
+      location_id: location.location_id,
+      description: location.description,
+      location_code: location.location_code
+    };
+
+    res.json(formattedLocation);
+  } catch (error) {
+    console.error('Get location details error:', error);
+    res.status(500).json({ message: 'Failed to fetch location details' });
+  }
+});
+
+// Get customer details from v_customer_node
+app.get('/api/customers/details/:customerId', ensureDbConnection, async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    
+    console.log('Getting customer details for:', customerId);
+
+    let customerQuery;
+    try {
+      customerQuery = { customer_id: new UUID(customerId) };
+    } catch (error) {
+      customerQuery = { customer_id: customerId };
+    }
+
+    const customer = await db.collection('v_customer_node').findOne(customerQuery);
+    
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+
+    const formattedCustomer = {
+      customer_id: customer.customer_id,
+      description: customer.description,
+      customer_code: customer.customer_code,
+      status: customer.status
+    };
+
+    res.json(formattedCustomer);
+  } catch (error) {
+    console.error('Get customer details error:', error);
+    res.status(500).json({ message: 'Failed to fetch customer details' });
+  }
+});
+
+// History data endpoint
+app.get('/api/history', ensureDbConnection, async (req, res) => {
+  try {
+    const { limit = 100, offset = 0, searchTerm } = req.query;
+    
+    let matchStage = {};
+    if (searchTerm) {
+      matchStage = {
+        $or: [
+          { product_id: { $regex: searchTerm, $options: 'i' } },
+          { location_id: { $regex: searchTerm, $options: 'i' } },
+          { customer_id: { $regex: searchTerm, $options: 'i' } }
+        ]
+      };
+    }
+
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'customers',
+          localField: 'customer_id',
+          foreignField: 'customer_id',
+          as: 'customers'
+        }
+      },
+      {
+        $addFields: {
+          customers: { $arrayElemAt: ['$customers', 0] }
+        }
+      },
+      { $sort: { postdate: -1 } },
+      { $limit: parseInt(limit) },
+      { $skip: parseInt(offset) }
+    ];
+
+    const history = await db.collection('history').aggregate(pipeline).toArray();
+    
+    console.log(`Found ${history.length} history records`);
+    res.json(history);
+  } catch (error) {
+    console.error('Error fetching history:', error);
+    res.status(500).json({ error: 'Failed to fetch history data' });
+  }
+});
+
+// Scenarios endpoints
+app.get('/api/scenarios', ensureDbConnection, async (req, res) => {
+  try {
+    const scenarios = await db.collection('what_if_scenarios')
+      .find({})
+      .sort({ created_at: -1 })
+      .toArray();
+    
+    const formattedScenarios = scenarios.map(scenario => ({
+      id: scenario.id || scenario._id.toString(),
+      scenario_name: scenario.scenario_name,
+      scenario_type: scenario.scenario_type,
+      created_by: scenario.created_by,
+      created_at: scenario.created_at,
+      updated_at: scenario.updated_at,
+      parameters: scenario.parameters,
+      product_id: scenario.product_id,
+      customer_id: scenario.customer_id,
+      location_id: scenario.location_id,
+      description: scenario.description,
+      status: scenario.status,
+      results: scenario.results
+    }));
+    
+    res.json(formattedScenarios);
+  } catch (error) {
+    console.error('Get scenarios error:', error);
+    res.status(500).json({ message: 'Failed to fetch scenarios' });
+  }
+});
+
+app.get('/api/scenarios/:id', ensureDbConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const scenario = await db.collection('what_if_scenarios').findOne(
+      { $or: [{ id: id }, { _id: new ObjectId(id) }] }
+    );
+    
+    if (!scenario) {
+      return res.status(404).json({ message: 'Scenario not found' });
+    }
+    
+    const formattedScenario = {
+      id: scenario.id || scenario._id.toString(),
+      scenario_name: scenario.scenario_name,
+      scenario_type: scenario.scenario_type,
+      created_by: scenario.created_by,
+      created_at: scenario.created_at,
+      updated_at: scenario.updated_at,
+      parameters: scenario.parameters,
+      product_id: scenario.product_id,
+      customer_id: scenario.customer_id,
+      location_id: scenario.location_id,
+      description: scenario.description,
+      status: scenario.status,
+      results: scenario.results
+    };
+    
+    res.json(formattedScenario);
+  } catch (error) {
+    console.error('Get scenario error:', error);
+    res.status(500).json({ message: 'Failed to fetch scenario' });
+  }
+});
+
+app.post('/api/scenarios', ensureDbConnection, async (req, res) => {
+  try {
+    const scenarioData = {
+      ...req.body,
+      id: uuidv4(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    await db.collection('what_if_scenarios').insertOne(scenarioData);
+    res.status(201).json(scenarioData);
+  } catch (error) {
+    console.error('Create scenario error:', error);
+    res.status(500).json({ message: 'Failed to create scenario' });
+  }
+});
+
+app.put('/api/scenarios/:id', ensureDbConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = {
+      ...req.body,
+      updated_at: new Date().toISOString()
+    };
+    
+    await db.collection('what_if_scenarios').updateOne(
+      { $or: [{ id: id }, { _id: new ObjectId(id) }] },
+      { $set: updateData }
+    );
+    
+    const updatedScenario = await db.collection('what_if_scenarios').findOne(
+      { $or: [{ id: id }, { _id: new ObjectId(id) }] }
+    );
+    
+    res.json(updatedScenario);
+  } catch (error) {
+    console.error('Update scenario error:', error);
+    res.status(500).json({ message: 'Failed to update scenario' });
+  }
+});
+
+app.delete('/api/scenarios/:id', ensureDbConnection, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await db.collection('what_if_scenarios').deleteOne(
+      { $or: [{ id: id }, { _id: new ObjectId(id) }] }
+    );
+    res.json({ message: 'Scenario deleted successfully' });
+  } catch (error) {
+    console.error('Delete scenario error:', error);
+    res.status(500).json({ message: 'Failed to delete scenario' });
+  }
+});
+
+
 
 // Initialize database connection and start server
 async function startServer() {
