@@ -11,7 +11,8 @@ import { useCustomers } from '@/hooks/useCustomers';
 // --- Tipos robustos (aceptan ambos nombres de id) ---
 interface Customer {
   customer_code: string;
-  customer_node_id?: string;        // posible nombre
+  customer_node_id?: string; 
+  customer_id?: string;         // posible nombre
 }
 
 interface Location {
@@ -76,9 +77,13 @@ export function ForecastDataTable({
 
   const customerCodeToNodeId = useMemo(() => {
     const m = new Map<string, string>();
+    console.log("customers in memo:", customers);
     for (const c of customers) {
       const id = c.customer_node_id;
       if (c.customer_code && id) m.set(c.customer_code, id);
+      const x = c.customer_code;
+      
+
     }
     return m;
   }, [customers]);
@@ -201,16 +206,26 @@ export function ForecastDataTable({
 
   const saveDemandPlannerValue = async (date: string) => {
     if (!selectedCustomerId || !selectedProductId) return;
-
+    // Obtener el customer_id usando el código
+    const customer = customers.find(c => c.customer_code === selectedCustomerId);
+    const customer_id = customer?.customer_id;
+    console.log("customer_id:", customer_id);
+    // Puedes usar customer_id según lo necesites
     const key = `${date}`;
     const newValue = editingValues[key];
     if (newValue === undefined) return;
-
-    const custNodeId = getCustomerNodeIdFromCode(selectedCustomerId);
+    console.log("newValue:", newValue);
+    console.log("selectedCustomerId:", selectedCustomerId);
+    let custNodeId =  customer_id;// getCustomerNodeIdFromCode(selectedCustomerId);
+    console.log("selectedCustomerId:", selectedCustomerId);
     if (!custNodeId) {
+      
+      
       console.warn('Cannot save: customer node_id not found for code:', selectedCustomerId);
       toast.error('Proveedor seleccionado inválido.');
       return;
+    } else {
+      toast.info('Usando customer_id alternativo para guardar.');
     }
 
     setSavingValues((prev) => ({ ...prev, [key]: true }));
@@ -282,25 +297,38 @@ export function ForecastDataTable({
     const seriesData = [
       { series: 'Historia de ventas', type: 'actual' },
       { series: 'Forecast', type: 'forecast' },
-      { series: 'Plan inicial', type: 'sales_plan' },
+      { series: 'Objetivo de ventas', type: 'sales_plan' },
       { series: 'Demand Planner', type: 'demand_planner' },
       { series: 'Ventas LY', type: 'forecast_ly' },
-      { series: 'KAM input', type: 'commercial_input' },
+      { series: 'Plan comercial', type: 'commercial_input' },
       { series: 'Historia ajustada', type: 'fitted_history' },
     ] as const;
+    
+    // Encuentra el último índice donde actual != 0
+    const lastNonZeroIndex = forecastData.reduce(
+      (acc, d, idx) => (d.actual !== 0 && d.actual !== null ? idx : acc),
+      -1
+    );
+    const historiaVentas = forecastData.map((d, idx) => ({
+      postdate: d.postdate,
+      actual: idx === lastNonZeroIndex ? 0 : d.actual,
+    }));
 
+   
     const tableData = seriesData.map((row) => {
       const rowData: Record<string, any> = { ...row }; // eslint-disable-line @typescript-eslint/no-explicit-any
       uniqueDates.forEach((date) => {
         const d = forecastData.find((it) => it.postdate === date);
         rowData[date] = d ? (d as any)[row.type] ?? null : null; // eslint-disable-line @typescript-eslint/no-explicit-any
       });
+     
       return rowData;
     });
 
     return { tableData, uniqueDates };
   }, [forecastData]);
-
+   
+ 
   const formatNumber = (value: number | null) => {
     if (value === null || value === undefined) return '-';
     return new Intl.NumberFormat('en-US').format(value);
