@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader,  } from "@/components/ui/sidebar";
-import { Repeat2, Folder, Table, ChartSpline, Tag, ChartScatter, Users, Package, Building2, Network, UserPlus, UserCheck, ChevronDown, ChevronRight } from "lucide-react";
+import { Repeat2, Folder, Table, ChartSpline, Tag, ChartScatter, Users, Package, Building2, Network, UserPlus, UserCheck, ChevronDown, ChevronRight,  Target, TrendingUp, Home, Settings, Database, BarChart3, ShoppingCart,  FileText, Calendar, Bell,  Activity, Brain, Warehouse, Rocket, GitBranch, TrendingDown, ArrowLeftRight, Container, Waypoints, LucideGitBranchPlus, LucideToggleRight, CalendarArrowUp, SunSnow, Sparkle, Sparkles, Store, ChartNoAxesColumnIncreasing, PowerOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -10,6 +10,7 @@ interface CompanyConfig {
   company_logo: string;
 }
 const items = [
+  
   {
     title: "Post game analisis",
     url: "/kpi-dashboard",
@@ -39,45 +40,45 @@ const items = [
   {
     title: "KAM - Forecast colaboración",
     url: "/forecast-collaboration",
-    icon: Folder,
+    icon: Target,
     type: "folder",
     children: []
   },
-  {
-    title: "NPI Launch",
-    url: "/launches",
-    icon: Folder,
-    type: "folder",
-    children: []
-  },
+  // {
+  //   title: "NPI Launch",
+  //   url: "/launches",
+  //   icon: Folder,
+  //   type: "folder",
+  //   children: []
+  // },
   {
     title: "NPI Supply Planning",
     url: "/supply-planning",
-    icon: Folder,
+    icon: Container,
     type: "folder",
     children: []
   },
   {
     title: "Seguimiento NPI",
     url: "/npi-followup",
-    icon: Folder,
+    icon: Waypoints,
     type: "folder",
     children: []
   },
   {
     title: "Product introductions",
     url: "/launches",
-    icon: Folder,
+    icon: LucideGitBranchPlus ,
     type: "folder",
     children: []
   },
-  {
-    title: "Events",
-    url: "/events",
-    icon: Folder,
-    type: "folder",
-    children: []
-  }
+  // {
+  //   title: "Events",
+  //   url: "/events",
+  //   icon:  CalendarArrowUp,
+  //   type: "folder",
+  //   children: []
+  // }
 ];
 
 // Seasonality items
@@ -85,49 +86,49 @@ const seasonalityItems = [
   {
     title: "Red de suministro",
     url: "/supply-network",
-    icon: Folder,
+    icon: Network,
     type: "folder",
     children: []
   },
   {
     title: "Inventory management and...",
     url: "/inventory-management",
-    icon: Folder,
+    icon: Warehouse,
     type: "folder",
     children: []
   },
   {
     title: "Season management",
     url: "/season-management",
-    icon: Folder,
+    icon: SunSnow,
     type: "folder",
     children: []
   },
   {
     title: "Promotions",
     url: "/promotions",
-    icon: Folder,
+    icon: Sparkles,
     type: "folder",
     children: []
   },
   {
     title: "New store opening",
     url: "/new-store-opening",
-    icon: Folder,
+    icon: Store,
     type: "folder",
     children: []
   },
   {
     title: "Markdown optimization",
     url: "/markdown-optimization",
-    icon: Folder,
+    icon: ChartNoAxesColumnIncreasing,
     type: "folder",
     children: []
   },
   {
     title: "Temporary store closure",
     url: "/temporary-store-closure",
-    icon: Folder,
+    icon: PowerOff,
     type: "folder",
     children: []
   }
@@ -157,7 +158,9 @@ const npiItems = [{
 const adminItems = [{
   title: "Productos",
   url: "/products-catalog",
-  icon: Tag
+  icon: Tag,
+  type: "folder",
+  children: []
 }, {
   title: "Ventas",
   url: "/historydataview",
@@ -381,7 +384,7 @@ export function AppSidebar() {
                             : 'text-gray-700 hover:text-gray-900'
                         }`}
                       >
-                        <item.icon className="h-4 w-4 mr-2" style={{ color: '#fffcfd' }} />
+                        <item.icon className="h-4 w-4 mr-2" style={{ color: '#716a6cff' }} />
                         <span className="font-normal">{item.title}</span>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
