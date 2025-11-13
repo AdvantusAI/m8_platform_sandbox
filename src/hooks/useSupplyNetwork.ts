@@ -7,6 +7,7 @@ type SupplyNetworkRelationship = Database['m8_schema']['Tables']['supply_network
 type SupplyNetworkNodeInsert = Database['m8_schema']['Tables']['supply_network_nodes']['Insert'];
 type SupplyNetworkNodeUpdate = Database['m8_schema']['Tables']['supply_network_nodes']['Update'];
 type SupplyNetworkRelationshipInsert = Database['m8_schema']['Tables']['supply_network_relationships']['Insert'];
+type SupplyNetworkRelationshipUpdate = Database['m8_schema']['Tables']['supply_network_relationships']['Update'];
 
 export interface NetworkGraphData {
   nodes: SupplyNetworkNode[];
@@ -78,17 +79,17 @@ export const useSupplyNetwork = () => {
       ////console.log('Attempting to create relationship with data:', relationshipData);
       
       // First, try to log the operation
-      try {
-        await supabase
-          .schema('m8_schema')
-          .rpc('log_sql_operation', {
-            operation: 'INSERT',
-            table_name: 'supply_network_relationships',
-            data: relationshipData as any
-          });
-      } catch (logError) {
-        console.warn('Failed to log operation:', logError);
-      }
+      // try {
+      //   await supabase
+      //     .schema('m8_schema')
+      //     .rpc('log_sql_operation', {
+      //       operation: 'INSERT',
+      //       table_name: 'supply_network_relationships',
+      //       data: relationshipData as any
+      //     });
+      // } catch (logError) {
+      //   console.warn('Failed to log operation:', logError);
+      // }
       
       const { data, error } = await supabase
         .schema('m8_schema')
@@ -108,7 +109,26 @@ export const useSupplyNetwork = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supply-network-relationships'] });
     },
+  });// Update relationship mutation
+  const updateRelationshipMutation = useMutation({
+    mutationFn: async (relationshipData: SupplyNetworkRelationshipUpdate & { id: string }) => {
+      const { id, ...updateData } = relationshipData;
+      const { data, error } = await supabase
+        .schema('m8_schema')
+        .from('supply_network_relationships')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['supply-network-relationships'] });
+    },
   });
+
 
   // Update node mutation
   const updateNodeMutation = useMutation({
@@ -178,6 +198,7 @@ export const useSupplyNetwork = () => {
     createNode: createNodeMutation,
     updateNode: updateNodeMutation,
     createRelationship: createRelationshipMutation,
+    updateRelationship: updateRelationshipMutation,
     deleteNode: deleteNodeMutation,
     deleteRelationship: deleteRelationshipMutation,
   };

@@ -24,6 +24,7 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { Wrench, Settings } from 'lucide-react';
+import { toast } from 'sonner';
 
 const nodeTypes: NodeTypes = {
   supplyNetworkNode: SupplyNetworkNode,
@@ -31,9 +32,62 @@ const nodeTypes: NodeTypes = {
 
 const getNodeColor = (nodeTypeCode: string) => {
   // Return default color for all node types
-  return '#21788f'; // Default gray
+  switch (nodeTypeCode?.toLowerCase()) {
+    case 'factory': 
+    case 'Planta de producción':
+    case 'manufacturer': 
+      return '#ef4444'; // Red
+    case 'warehouse': 
+    case 'cedis':
+    case 'Cedis':
+      return '#3b82f6'; // Blue
+    case 'distributor': 
+    case 'distribution_center':
+      return '#10b981'; // Green
+    case 'retailer': 
+    case 'retail':
+    case 'customer':
+    case 'Customer':
+    case 'customers':
+    case 'Tiendas de retail':
+      return '#8b5cf6'; // Purple
+    case 'Proveedor':
+    case 'supplier': 
+      return '#f59e0b'; // Orange
+    default: 
+      return '#21788f'; // Default gray
+  }
 };
 
+
+const getIconNameForType = (typeCode: string) => {
+  switch (typeCode?.toLowerCase()) {
+    case 'factory':
+    case 'manufacturer':
+    case 'Planta de producción':
+      return 'Factory';
+    case 'Cedis':
+    case 'cedis':
+    case 'warehouse':
+      return 'Warehouse';
+    case 'distributor':
+    case 'distribution_center':
+
+      return 'Truck';
+    case 'retailer':
+    case 'Retail':
+    case 'Customer':
+    case 'customer':
+    case 'customers':
+    case 'Tiendas de retail':
+      return 'Store';
+    case 'Supplier':
+    case 'Proveedor':
+      return 'Package';
+    default:
+      return 'Package';
+  }
+};
 // Save/load positions from localStorage
 const saveNodePositions = (nodes: Node[]) => {
   const positions = nodes.reduce((acc, node) => {
@@ -53,30 +107,53 @@ const loadNodePositions = (): Record<string, { x: number; y: number }> => {
 };
 
 export const SupplyNetworkFlow: React.FC = () => {
-    const { nodes: dbNodes, relationships: dbRelationships, isLoading, createRelationship, deleteRelationship } = useSupplyNetwork();
+  const { nodes: dbNodes, relationships: dbRelationships, isLoading, createRelationship, deleteRelationship } = useSupplyNetwork();
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [editingRelationshipId, setEditingRelationshipId] = useState<string | null>(null);
   const [dbNodeTypes, setDbNodeTypes] = useState<Array<{id: string, type_code: string, type_name: string, icon_name: string}>>([]);
+  const [dbRelationshipTypes, setDbRelationshipTypes] = useState<Array<{id: string, type_code: string, type_name: string}>>([]);
   const [contextMenu, setContextMenu] = useState<{
     id: string;
     x: number;
     y: number;
   } | null>(null);
 
-  // Fetch node types
+  // Fetch node types and relationship types
   useEffect(() => {
     const fetchNodeTypes = async () => {
       try {
         const { data, error } = await 
           (supabase as any).schema('m8_schema').rpc('get_supply_network_node_types');
+           // Map the API response to match the expected format
+          const nodeTypes = data;
+          const mappedTypes = nodeTypes.map((type: any) => ({
+            id: type.id,
+            type_code: type.type_code?.toLowerCase() || 'unknown',
+            type_name: type.type_name,
+            icon_name: getIconNameForType(type.type_code)
+          }));
+        console.log('Fetched and mapped node types:', mappedTypes);
         if (error) throw error;
-        setDbNodeTypes(data || []);
+        setDbNodeTypes(mappedTypes || []);
       } catch (error) {
         console.error('Error fetching node types:', error);
       }
     };
 
+    const fetchRelationshipTypes = async () => {
+      try {
+        const { data, error } = await 
+          (supabase as any).schema('m8_schema').rpc('get_supply_network_relationship_types');
+        if (error) throw error;
+        console.log('Fetched relationship types:', data);
+        setDbRelationshipTypes(data || []);
+      } catch (error) {
+        console.error('Error fetching relationship types:', error);
+      }
+    };
+
     fetchNodeTypes();
+    fetchRelationshipTypes();
   }, []);
   
   // Convert database nodes to React Flow nodes
@@ -90,6 +167,33 @@ export const SupplyNetworkFlow: React.FC = () => {
       const nodeTypeInfo = dbNodeTypes.find(nt => nt.id === node.node_type_id);
       const savedPosition = savedPositions[node.id];
       
+      // If not found by ID, try to find by common patterns
+      let finalNodeTypeCode = nodeTypeInfo?.type_code || 'unknown';
+      let finalIconName = nodeTypeInfo?.icon_name || 'Package';
+      
+      // Special handling for known node types based on name patterns
+      if (!nodeTypeInfo && node.node_name) {
+        const nodeName = node.node_name.toLowerCase();
+        if (nodeName.includes('centro') && nodeName.includes('distrib')) {
+          finalNodeTypeCode = 'cedis';
+          finalIconName = 'Warehouse';
+        } else if (nodeName.includes('planta')) {
+          finalNodeTypeCode = 'planta de producción';
+          finalIconName = 'Factory';
+        } else if (nodeName.includes('tienda')) {
+          finalNodeTypeCode = 'tiendas de retail';
+          finalIconName = 'Store';
+        }
+      }
+      
+      console.log(`Processing node ${node.node_name}:`, {
+        nodeTypeId: node.node_type_id,
+        availableTypes: dbNodeTypes.length,
+        foundType: nodeTypeInfo,
+        finalNodeTypeCode,
+        finalIconName
+      });
+      
       return {
         id: node.id,
         type: 'supplyNetworkNode',
@@ -100,11 +204,11 @@ export const SupplyNetworkFlow: React.FC = () => {
         data: {
           label: node.node_name || node.id,
           nodeType: node.node_type_id || 'unknown',
-          nodeTypeCode: nodeTypeInfo?.type_code || 'unknown',
-          iconName: nodeTypeInfo?.icon_name || 'Package',
+          nodeTypeCode: finalNodeTypeCode,
+          iconName: finalIconName,
           properties: node.contact_information || {},
           status: node.status,
-          color: getNodeColor(nodeTypeInfo?.type_code || 'unknown'),
+          color: getNodeColor(finalNodeTypeCode),
         },
       };
     });
@@ -194,16 +298,50 @@ export const SupplyNetworkFlow: React.FC = () => {
   const onConnect = useCallback(
     (params: Connection) => {
       if (params.source && params.target) {
+        console.log('Attempting to connect:', params);
+        console.log('Available relationship types:', dbRelationshipTypes);
+        
+        // Find the SUPPLIES relationship type UUID - try multiple possible codes
+        let suppliesType = dbRelationshipTypes.find(rt => rt.type_code === 'SUPPLIES');
+        if (!suppliesType) {
+          suppliesType = dbRelationshipTypes.find(rt => rt.type_code === 'supplies');
+        }
+        if (!suppliesType) {
+          suppliesType = dbRelationshipTypes.find(rt => rt.type_code?.toUpperCase() === 'SUPPLIES');
+        }
+        // If still not found, use the first available relationship type
+        if (!suppliesType && dbRelationshipTypes.length > 0) {
+          suppliesType = dbRelationshipTypes[0];
+          console.warn('SUPPLIES type not found, using first available type:', suppliesType);
+        }
+        
+        if (!suppliesType) {
+          console.error('No relationship types available');
+          toast.error('No hay tipos de relación disponibles');
+          return;
+        }
+
+        console.log('Using relationship type:', suppliesType);
+
         createRelationship.mutate({
           source_node_id: params.source,
           target_node_id: params.target,
-          relationship_type_id: 'supplies',
+          relationship_type_id: suppliesType.id, // Use the proper UUID
           status: 'active',
           description: 'Auto-created relationship',
+        }, {
+          onSuccess: (data) => {
+            console.log('Relationship created successfully:', data);
+            toast.success('Relación creada exitosamente');
+          },
+          onError: (error) => {
+            console.error('Error creating relationship:', error);
+            toast.error('Error al crear la relación: ' + (error.message || 'Error desconocido'));
+          }
         });
       }
     },
-    [createRelationship]
+    [createRelationship, dbRelationshipTypes]
   );
 
   const onEdgeDoubleClick = useCallback(
@@ -267,12 +405,26 @@ export const SupplyNetworkFlow: React.FC = () => {
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
+        style={{ 
+          backgroundColor: 'hsl(var(--background))',
+        }}
         attributionPosition="top-right"
         className="bg-background"
       >
         <Controls />
-        <MiniMap />
-        <Background />
+        <MiniMap 
+          style={{
+            backgroundColor: 'hsl(var(--muted))',
+          }}
+          nodeColor={(node) => node.style?.background as string || 'hsl(var(--primary))'}
+        />
+        <Background 
+          color="hsl(var(--muted-foreground))" 
+          gap={20}
+          style={{
+            backgroundColor: 'hsl(var(--background))',
+          }}
+        />
       </ReactFlow>
 
       {editingNodeId && (
