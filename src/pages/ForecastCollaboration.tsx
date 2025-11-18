@@ -8,11 +8,12 @@ import { AgGridReact } from 'ag-grid-react';
 import { ColDef, GridReadyEvent, SelectionChangedEvent } from 'ag-grid-community';
 import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus, Package, MapPin, Filter, Truck, X, Calendar, Users } from 'lucide-react';
 import { FilterDropdown, ProductHierarchyItem, LocationItem, CustomerItem, DateRange } from "@/components/filters/FilterDropdown";
+import FilterPanel from "@/components/FilterPanel";
 import { useProducts } from '@/hooks/useProducts';
 import { useLocations } from '@/hooks/useLocations';
 import { useCustomers } from '@/hooks/useCustomers';
 import { ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Scatter } from 'recharts';
-import { ArrowDown, ArrowUp, Droplet, DollarSign } from "lucide-react";
+import { ArrowDown, ArrowUp, Droplet, DollarSign, Weight } from "lucide-react";
 // Interface for commercial_collaboration_view data
 interface CommercialCollaborationData {
   product_id: string;
@@ -35,9 +36,11 @@ interface CustomerData {
   customer_node_id: string;
   customer_name: string;
   product_id?: string;
+  location_node_id?: string; // Added to store location information
   // Product attributes for calculations
   attr_1?: number; // Used for litros and cajas
   attr_2?: number; // Used for peso
+  attr_3?: number // /Used for kilos
   months: { [key: string]: {
     last_year: number;
     forecast_sales_gap: number;
@@ -50,7 +53,10 @@ interface CustomerData {
     sell_out_aa: number;
     sell_out_real: number;
     inventory_days: number;
+    forecast_commercial_input: number; // Original commercial_input from forecast_data (approved_sm_kam)
   }};
+  // Store actual postdate mapping from month name to database postdate
+  monthPostdates?: { [key: string]: string };
 }
 
 
@@ -62,7 +68,7 @@ const ForecastCollaboration: React.FC = () => {
   };
 
   // Helper function to calculate YTD (Year To Date) - sum of all 12 months
-  const calculateCustomerYTD = (customer: CustomerData, attribute: 'attr_1' | 'attr_2'): number => {
+  const calculateCustomerYTD = (customer: CustomerData, attribute: 'attr_1' | 'attr_2' | 'attr_3'): number => {
     if (!customer[attribute]) return 0;
     
     const allRowValues = [
@@ -81,7 +87,7 @@ const ForecastCollaboration: React.FC = () => {
   };
 
   // Helper function to calculate YTG (Year To Go) - sum of last 3 months
-  const calculateCustomerYTG = (customer: CustomerData, attribute: 'attr_1' | 'attr_2'): number => {
+  const calculateCustomerYTG = (customer: CustomerData, attribute: 'attr_1' | 'attr_2' | 'attr_3'): number => {
     if (!customer[attribute]) return 0;
     
     const allRowValues = [
@@ -106,7 +112,7 @@ const ForecastCollaboration: React.FC = () => {
   };
 
   // Helper function to calculate Total (YTD + YTG)
-  const calculateCustomerTotal = (customer: CustomerData, attribute: 'attr_1' | 'attr_2'): number => {
+  const calculateCustomerTotal = (customer: CustomerData, attribute: 'attr_1' | 'attr_2' | 'attr_3'): number => {
     return calculateCustomerYTD(customer, attribute) + calculateCustomerYTG(customer, attribute);
   };
 
@@ -147,13 +153,13 @@ const ForecastCollaboration: React.FC = () => {
       <div className="bg-purple-100 p-1 text-center text-xs">
         <div className="grid grid-cols-3 gap-1">
           <div className="text-right text-xs">
-            {formatValue(customersToUse.reduce((sum, customer) => sum + calculateCustomerYTD(customer, 'attr_1'), 0))}
+            {formatValue(customersToUse.reduce((sum, customer) => sum + calculateCustomerYTD(customer, 'attr_3'), 0))}
           </div>
           <div className="text-right text-xs">
-            {formatValue(customersToUse.reduce((sum, customer) => sum + calculateCustomerYTG(customer, 'attr_1'), 0))}
+            {formatValue(customersToUse.reduce((sum, customer) => sum + calculateCustomerYTG(customer, 'attr_3'), 0))}
           </div>
           <div className="text-right text-xs">
-            {formatValue(customersToUse.reduce((sum, customer) => sum + calculateCustomerTotal(customer, 'attr_1'), 0))}
+            {formatValue(customersToUse.reduce((sum, customer) => sum + calculateCustomerTotal(customer, 'attr_3'), 0))}
           </div>
         </div>
       </div>
@@ -197,13 +203,13 @@ const ForecastCollaboration: React.FC = () => {
       <div className="bg-purple-50 p-1 text-center text-xs">
         <div className="grid grid-cols-3 gap-1">
           <div className="text-right text-xs">
-            {formatValue(calculateCustomerYTD(customer, 'attr_1'))}
+            {formatValue(calculateCustomerYTD(customer, 'attr_3'))}
           </div>
           <div className="text-right text-xs">
-            {formatValue(calculateCustomerYTG(customer, 'attr_1'))}
+            {formatValue(calculateCustomerYTG(customer, 'attr_3'))}
           </div>
           <div className="text-right text-xs">
-            {formatValue(calculateCustomerTotal(customer, 'attr_1'))}
+            {formatValue(calculateCustomerTotal(customer, 'attr_3'))}
           </div>
         </div>
       </div>
@@ -446,7 +452,7 @@ const ForecastCollaboration: React.FC = () => {
     }
   }, [selectedProduct?.product_id, selectedLocation?.location_id, selectedCustomer?.customer_id, selectedDateRange]);
 
-  const processForecastData = useCallback((rawData: CommercialCollaborationData[], customerNamesMap: {[key: string]: string}, dateFilter: DateRange | null = null, sellInDataArray: any[] = [], sellOutDataArray: any[] = [], productAttributesMap: { [key: string]: { attr_1: number; attr_2: number } } = {}) => {
+  const processForecastData = useCallback((rawData: CommercialCollaborationData[], customerNamesMap: {[key: string]: string}, dateFilter: DateRange | null = null, sellInDataArray: any[] = [], sellOutDataArray: any[] = [], productAttributesMap: { [key: string]: { attr_1: number; attr_2: number; attr_3: number } } = {}, kamDataArray: any[] = []) => {
     const groupedData: { [key: string]: CustomerData } = {};
     
     // Pre-define month map for better performance
@@ -463,14 +469,21 @@ const ForecastCollaboration: React.FC = () => {
       const customerProductKey = `${row.customer_node_id}-${row.product_id || 'no-product'}`;
       
       if (!groupedData[customerProductKey]) {
-        const productAttributes = productAttributesMap[row.product_id] || { attr_1: 0, attr_2: 0 };
+        const productAttributes = productAttributesMap[row.product_id] || { attr_1: 0, attr_2: 0, attr_3: 0 };
+        // Get customer name with enhanced fallback logic
+        const customerName = customerNamesMap[row.customer_node_id] || 
+                            `Cliente ${row.customer_node_id.substring(0, 8)}...`;
+        
         groupedData[customerProductKey] = {
           customer_node_id: row.customer_node_id,
-          customer_name: customerNamesMap[row.customer_node_id] || `Customer ${row.customer_node_id}`,
+          customer_name: customerName,
           product_id: row.product_id || 'no-product',
-          attr_1: productAttributes.attr_1,
-          attr_2: productAttributes.attr_2,
-          months: {}
+          location_node_id: row.location_node_id, // Add location information
+            attr_1: productAttributes.attr_1,
+            attr_2: productAttributes.attr_2,
+            attr_3: productAttributes.attr_3, // For cajas, using attr_3 for third attribute
+          months: {},
+          monthPostdates: {} // Initialize postdate mapping
         };
       }
 
@@ -483,6 +496,12 @@ const ForecastCollaboration: React.FC = () => {
       const displayMonth = monthMap[monthKey];
       
       if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
+        // Store the actual postdate for this month
+        if (!groupedData[customerProductKey].monthPostdates) {
+          groupedData[customerProductKey].monthPostdates = {};
+        }
+        groupedData[customerProductKey].monthPostdates![displayMonth] = row.postdate;
+        
         // Initialize month data if it doesn't exist
         if (!groupedData[customerProductKey].months[displayMonth]) {
           groupedData[customerProductKey].months[displayMonth] = {
@@ -496,17 +515,20 @@ const ForecastCollaboration: React.FC = () => {
             sell_in_aa: 0,
             sell_out_aa: 0,
             sell_out_real: 0,
-            inventory_days: 0
+            inventory_days: 0,
+            forecast_commercial_input: 0
           };
         }        // Add the values (this allows aggregation if multiple products exist for same customer/month)
         const monthData = groupedData[customerProductKey].months[displayMonth];
         monthData.last_year += row.forecast_ly || 0;
         monthData.forecast_sales_gap += row.forecast_sales_gap || 0;
         monthData.calculated_forecast += row.forecast || 0;
-        monthData.xamview += row.approved_sm_kam || 0; // This is commercial_input from forecast_data
-        monthData.kam_forecast_correction += row.sm_kam_override || 0; // From commercial_collaboration
+        monthData.xamview += row.approved_sm_kam || 0; // This is from commercial_collaboration
+        monthData.kam_forecast_correction += row.commercial_input || 0; // KAM adjustments from forecast_data.commercial_input
         monthData.sales_manager_view += row.forecast_sales_manager || 0; // From commercial_collaboration
-        monthData.effective_forecast += row.commercial_input || row.forecast || 0; // commercial_input from commercial_collaboration, fallback to forecast
+        monthData.effective_forecast += row.commercial_input || row.forecast || 0; // commercial_input from forecast_data, fallback to forecast
+        monthData.forecast_commercial_input += row.approved_sm_kam || 0; // Original commercial_input from forecast_data
+        // KAM adjustments will be loaded separately from commercial_collaboration table
       }
     });
 
@@ -523,6 +545,14 @@ const ForecastCollaboration: React.FC = () => {
       const displayMonth = monthMap[monthKey];
       
       if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
+        // Store the actual postdate for this month (in case this is the first data for this month)
+        if (!groupedData[customerProductKey].monthPostdates) {
+          groupedData[customerProductKey].monthPostdates = {};
+        }
+        if (!groupedData[customerProductKey].monthPostdates![displayMonth]) {
+          groupedData[customerProductKey].monthPostdates![displayMonth] = sellInRow.postdate;
+        }
+        
         // Initialize month data if it doesn't exist (in case sell-in data exists without forecast data)
         if (!groupedData[customerProductKey].months[displayMonth]) {
           groupedData[customerProductKey].months[displayMonth] = {
@@ -536,7 +566,8 @@ const ForecastCollaboration: React.FC = () => {
             sell_in_aa: 0,
             sell_out_aa: 0,
             sell_out_real: 0,
-            inventory_days: 0
+            inventory_days: 0,
+            forecast_commercial_input: 0
           };
         }
         
@@ -558,6 +589,14 @@ const ForecastCollaboration: React.FC = () => {
       const displayMonth = monthMap[monthKey];
       
       if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
+        // Store the actual postdate for this month (in case this is the first data for this month)
+        if (!groupedData[customerProductKey].monthPostdates) {
+          groupedData[customerProductKey].monthPostdates = {};
+        }
+        if (!groupedData[customerProductKey].monthPostdates![displayMonth]) {
+          groupedData[customerProductKey].monthPostdates![displayMonth] = sellOutRow.postdate;
+        }
+        
         // Initialize month data if it doesn't exist (in case sell-out data exists without forecast data)
         if (!groupedData[customerProductKey].months[displayMonth]) {
           groupedData[customerProductKey].months[displayMonth] = {
@@ -571,7 +610,8 @@ const ForecastCollaboration: React.FC = () => {
             sell_in_aa: 0,
             sell_out_aa: 0,
             sell_out_real: 0,
-            inventory_days: 0
+            inventory_days: 0,
+            forecast_commercial_input: 0
           };
         }
         
@@ -579,6 +619,86 @@ const ForecastCollaboration: React.FC = () => {
         groupedData[customerProductKey].months[displayMonth].sell_out_aa += sellOutRow.value || 0;
       }
     });
+
+    // Process KAM adjustments from commercial_collaboration table
+    console.log('=== PROCESSING KAM DATA ===');
+    console.log(`Processing ${kamDataArray.length} KAM adjustment records`);
+    
+    kamDataArray.forEach((kamRow: any, index: number) => {
+      const customerProductKey = `${kamRow.customer_node_id}-${kamRow.product_id || 'no-product'}`;
+      
+      // Parse postdate to extract month and year
+      const date = new Date(kamRow.postdate);
+      const month = date.getMonth() + 1; // 1-based month
+      const year = date.getFullYear();
+      
+      const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
+      const displayMonth = monthMap[monthKey];
+      
+      if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
+        // Store the actual postdate for this month (in case this is the first data for this month)
+        if (!groupedData[customerProductKey].monthPostdates) {
+          groupedData[customerProductKey].monthPostdates = {};
+        }
+        if (!groupedData[customerProductKey].monthPostdates![displayMonth]) {
+          groupedData[customerProductKey].monthPostdates![displayMonth] = kamRow.postdate;
+        }
+        
+        // Initialize month data if it doesn't exist (in case KAM data exists without forecast data)
+        if (!groupedData[customerProductKey].months[displayMonth]) {
+          groupedData[customerProductKey].months[displayMonth] = {
+            last_year: 0,
+            forecast_sales_gap: 0,
+            calculated_forecast: 0,
+            xamview: 0,
+            kam_forecast_correction: 0,
+            sales_manager_view: 0,
+            effective_forecast: 0,
+            sell_in_aa: 0,
+            sell_out_aa: 0,
+            sell_out_real: 0,
+            inventory_days: 0,
+            forecast_commercial_input: 0
+          };
+        }
+        
+        // Log KAM value assignment for debugging
+        const previousValue = groupedData[customerProductKey].months[displayMonth].kam_forecast_correction;
+        const newValue = kamRow.commercial_input || 0;
+        
+        if (index < 5) { // Log first 5 records to avoid spam
+          console.log(`KAM adjustment ${index + 1}:`, {
+            customer_node_id: kamRow.customer_node_id,
+            product_id: kamRow.product_id,
+            month: displayMonth,
+            postdate: kamRow.postdate,
+            previous_kam_value: previousValue,
+            new_kam_value: newValue,
+            overwriting: previousValue !== 0 ? `${previousValue} → ${newValue}` : 'setting initial value'
+          });
+        }
+        
+        // Set the KAM adjustment value (overwrite, don't add, since this is the adjustment value)
+        groupedData[customerProductKey].months[displayMonth].kam_forecast_correction = newValue;
+      }
+    });
+
+    // Final debug log of all processed KAM values
+    console.log('=== FINAL KAM VALUES SUMMARY ===');
+    const processedCustomers = Object.values(groupedData);
+    let totalKamValues = 0;
+    processedCustomers.forEach(customer => {
+      Object.keys(customer.months).forEach(month => {
+        const kamValue = customer.months[month].kam_forecast_correction;
+        if (kamValue !== 0) {
+          totalKamValues++;
+          if (totalKamValues <= 10) { // Log first 10 non-zero KAM values
+            console.log(`Final KAM value: ${customer.customer_name} - ${month}: ${kamValue}`);
+          }
+        }
+      });
+    });
+    console.log(`Total customers with KAM adjustments: ${totalKamValues}`);
 
     return Object.values(groupedData);
   }, []);
@@ -618,7 +738,9 @@ const ForecastCollaboration: React.FC = () => {
           commercial_input: Math.round(baseValue * 1.2),
           sellIn: Math.round(baseValue * 0.9),
           sellOut: Math.round(baseValue * 0.85),
-          sell_out_real: Math.round(baseValue * 0.82)
+          sell_out_real: Math.round(baseValue * 0.82),
+          forecast_commercial_input: Math.round(baseValue * 1.1),
+          kam_forecast_correction: Math.round(baseValue * 0.95) // Sample KAM adjustments
         };
         return acc;
       }, {} as any)
@@ -653,6 +775,102 @@ const ForecastCollaboration: React.FC = () => {
     });
   };
 
+  // Debug function to check KAM values - accessible from browser console
+  const debugKamValues = useCallback(async (customerId?: string, month?: string) => {
+    console.log('=== KAM VALUES DEBUG ===');
+    console.log('Current UI state for KAM adjustments:');
+    
+    customers.forEach(customer => {
+      if (!customerId || customer.customer_node_id === customerId) {
+        Object.keys(customer.months).forEach(monthKey => {
+          if (!month || monthKey === month) {
+            const monthData = customer.months[monthKey];
+            console.log(`${customer.customer_name} (${customer.customer_node_id}) - ${monthKey}:`, {
+              kam_forecast_correction: monthData.kam_forecast_correction,
+              forecast_commercial_input: monthData.forecast_commercial_input,
+              postdate: customer.monthPostdates?.[monthKey]
+            });
+          }
+        });
+      }
+    });
+    
+    // Also check database directly
+    console.log('Checking database values:');
+    try {
+      let query = (supabase as any).schema('m8_schema')
+        .from('commercial_collaboration')
+        .select('customer_node_id, product_id, postdate, commercial_input, commercial_notes')
+        .order('customer_node_id')
+        .order('postdate');
+      
+      if (customerId) {
+        query = query.eq('customer_node_id', customerId);
+      }
+      
+      const { data, error } = await query.limit(20);
+      
+      if (error) {
+        console.error('Database query error:', error);
+      } else {
+        console.log('Database KAM adjustments:', data);
+      }
+    } catch (error) {
+      console.error('Error querying database:', error);
+    }
+  }, [customers]);
+
+  // Debug function to check customer name mappings
+  const debugCustomerNames = useCallback(async (customerId?: string) => {
+    console.log('=== CUSTOMER NAMES DEBUG ===');
+    console.log('Current customer names state:', customerNames);
+    console.log('Customer names cache:', customerNamesCache);
+    console.log('Customer names loaded:', customerNamesLoaded);
+    
+    if (customerId) {
+      console.log(`Specific customer ${customerId}:`, {
+        name_from_state: customerNames[customerId],
+        name_from_cache: customerNamesCache[customerId],
+        exists_in_state: customerId in customerNames,
+        exists_in_cache: customerId in customerNamesCache
+      });
+    }
+    
+    // Check database directly
+    console.log('Checking database directly...');
+    try {
+      const { data, error } = await (supabase as any)
+        .schema('m8_schema')
+        .from('supply_network_nodes')
+        .select('id, node_name, status, supply_network_node_types!inner(type_code)')
+        .eq('supply_network_node_types.type_code', 'Customer')
+        .eq('status', 'active')
+        .limit(10);
+      
+      if (error) {
+        console.error('Database query error:', error);
+      } else {
+        console.log('Sample database records:', data);
+        if (customerId) {
+          const customerRecord = data?.find(c => c.id === customerId);
+          console.log(`Customer ${customerId} in database:`, customerRecord);
+        }
+      }
+    } catch (error) {
+      console.error('Error querying database:', error);
+    }
+  }, [customerNames, customerNamesCache, customerNamesLoaded]);
+
+  // Make debug functions available globally
+  useEffect(() => {
+    (window as any).debugKamValues = debugKamValues;
+    (window as any).debugCustomerNames = debugCustomerNames;
+    return () => {
+      delete (window as any).debugKamValues;
+      delete (window as any).debugCustomerNames;
+    };
+  }, [debugKamValues, debugCustomerNames]);
+
   const fetchForecastData = useCallback(async (isFilterOperation = false) => {
     try {
       if (isFilterOperation) {
@@ -684,6 +902,20 @@ const ForecastCollaboration: React.FC = () => {
         setCustomerNames(customerNamesMap);
         setCustomerNamesCache(customerNamesMap);
         setCustomerNamesLoaded(true);
+        
+        // Debug: Log customer names mapping
+        console.log('=== CUSTOMER NAMES LOADED ===');
+        console.log(`Total customers loaded: ${Object.keys(customerNamesMap).length}`);
+        console.log('Sample customer mappings:', Object.entries(customerNamesMap).slice(0, 5));
+        console.log('Query used:', 'SELECT id, node_name FROM m8_schema.supply_network_nodes WHERE supply_network_node_types.type_code = \'Customer\' AND status = \'active\'');
+        
+        // Check specific customer if exists
+        const specificCustomerId = '036952da-be05-4d87-bc94-1405100988de';
+        if (customerNamesMap[specificCustomerId]) {
+          console.log(`✓ Customer ${specificCustomerId} mapped to: "${customerNamesMap[specificCustomerId]}"`);
+        } else {
+          console.log(`⚠️ Customer ${specificCustomerId} not found in customer names mapping`);
+        }
       }
 
       // Fetch product attributes from product table
@@ -697,11 +929,12 @@ const ForecastCollaboration: React.FC = () => {
       }
 
       // Create product attributes map
-      const productAttributesMap: { [key: string]: { attr_1: number; attr_2: number } } = {};
+      const productAttributesMap: { [key: string]: { attr_1: number; attr_2: number; attr_3: number } } = {};
       productData?.forEach(product => {
         productAttributesMap[product.id] = {
           attr_1: product.attr_1 || 0,
-          attr_2: product.attr_2 || 0
+          attr_2: product.attr_2 || 0,
+          attr_3: product.attr_3 || 0
         };
       });
 
@@ -716,30 +949,51 @@ const ForecastCollaboration: React.FC = () => {
         .order('postdate', { ascending: true })
         .limit(10000); // Add reasonable limit to prevent excessive data loading
 
-      // Apply filters
+      // Also fetch KAM adjustments from commercial_collaboration table
+      let kamQuery = (supabase as any)
+        .schema('m8_schema')
+        .from('commercial_collaboration')
+        .select('product_id,customer_node_id,location_node_id,postdate,commercial_input,commercial_notes')
+        .gte('postdate', '2024-10-01')
+        .lte('postdate', '2025-12-31')
+        .order('customer_node_id', { ascending: true })
+        .order('postdate', { ascending: true });
+
+      // Apply filters to both queries
       if (selectedProduct?.product_id) {
         query = query.eq('product_id', selectedProduct.product_id);
+        kamQuery = kamQuery.eq('product_id', selectedProduct.product_id);
       }
       if (selectedLocation?.location_id) {
         query = query.eq('location_node_id', selectedLocation.location_id);
+        kamQuery = kamQuery.eq('location_node_id', selectedLocation.location_id);
       }
       if (selectedCustomer?.customer_id) {
         query = query.eq('customer_node_id', selectedCustomer.customer_id);
+        kamQuery = kamQuery.eq('customer_node_id', selectedCustomer.customer_id);
       }
       
       // Apply date range filter if selected
       if (selectedDateRange?.from && selectedDateRange?.to) {
-        query = query.gte('postdate', selectedDateRange.from.toISOString().split('T')[0])
-                   .lte('postdate', selectedDateRange.to.toISOString().split('T')[0]);
+        const fromDate = selectedDateRange.from.toISOString().split('T')[0];
+        const toDate = selectedDateRange.to.toISOString().split('T')[0];
+        query = query.gte('postdate', fromDate).lte('postdate', toDate);
+        kamQuery = kamQuery.gte('postdate', fromDate).lte('postdate', toDate);
       }
 
-      const { data, error } = await query;
+      // Execute both queries
+      const [{ data, error }, { data: kamData, error: kamError }] = await Promise.all([
+        query,
+        kamQuery
+      ]);
 
       if (error) throw error;
+      if (kamError) throw kamError;
 
       // Debug logging to understand data flow
       console.log('=== FORECAST COLLABORATION DEBUG ===');
-      console.log('Loaded records:', data?.length || 0);
+      console.log('Loaded forecast records:', data?.length || 0);
+      console.log('Loaded KAM adjustment records:', kamData?.length || 0);
       console.log('Applied filters:', {
         product: selectedProduct?.product_id,
         location: selectedLocation?.location_id,
@@ -748,8 +1002,13 @@ const ForecastCollaboration: React.FC = () => {
       });
       
       if (data && data.length > 0) {
-        console.log('Sample raw data (first 2 rows):', data.slice(0, 2));
+        console.log('Sample forecast data (first 2 rows):', data.slice(0, 2));
         console.log('All available fields in first row:', Object.keys(data[0]));
+      }
+      
+      if (kamData && kamData.length > 0) {
+        console.log('Sample KAM data (first 2 rows):', kamData.slice(0, 2));
+        console.log('KAM data fields:', Object.keys(kamData[0]));
       }
 
       // Store raw data for filtering
@@ -761,8 +1020,8 @@ const ForecastCollaboration: React.FC = () => {
       // Fetch sell-out data
       const sellOutDataArray = await fetchSellOutData();
 
-      // Process the data using the new function
-      const allCustomersData = processForecastData(data || [], customerNamesMap, selectedDateRange, sellInDataArray, sellOutDataArray, productAttributesMap);
+      // Process the data using the new function with KAM data
+      const allCustomersData = processForecastData(data || [], customerNamesMap, selectedDateRange, sellInDataArray, sellOutDataArray, productAttributesMap, kamData || []);
       console.log('Processed customers:', allCustomersData.length);
       
       // If no data or insufficient data, add hardcoded sample data
@@ -881,29 +1140,381 @@ const ForecastCollaboration: React.FC = () => {
     return `${fullYear}-${monthNum}-01`;
   };
 
-  // Function to save KAM Forecast to database
+  // Function to save KAM Forecast to commercial_collaboration table
   const saveKamForecastToDatabase = async (customerId: string, month: string, value: number) => {
     try {
       setSaving(true);
-      const postdate = monthToDate(month);
       
-      const { error } = await (supabase as any).schema('m8_schema')
-        .from('commercial_collaboration')
-        .upsert({
-          product_id: selectedProduct?.product_id,
-          customer_node_id: customerId,
-          location_node_id: selectedLocation?.location_id || null,
-          postdate: postdate,
-          commercial_input: value
+      // Find the exact customer object from our loaded data to get the correct values
+      let actualProductId: string | null = null;
+      let actualLocationId: string | null = null;
+      let actualPostdate: string | null = null;
+      
+      if (customerId === 'all') {
+        // For aggregate "all customers", use filter values and get postdate from first customer
+        actualProductId = selectedProduct?.product_id;
+        actualLocationId = selectedLocation?.location_id;
+        
+        // Get postdate from first customer that has data for this month
+        const customerWithMonth = customers.find(c => c.monthPostdates && c.monthPostdates[month]);
+        actualPostdate = customerWithMonth?.monthPostdates?.[month] || null;
+        
+        // If no filters, get from first customer
+        if ((!actualProductId || !actualLocationId) && customers.length > 0) {
+          actualProductId = actualProductId || customers[0].product_id;
+          actualLocationId = actualLocationId || customers[0].location_node_id;
+        }
+      } else {
+        // For individual customers, find the exact customer object and validate all required fields
+        const customerObj = customers.find(c => c.customer_node_id === customerId);
+        if (customerObj) {
+          actualProductId = customerObj.product_id;
+          actualLocationId = customerObj.location_node_id;
+          // Get the actual postdate from customer data
+          actualPostdate = customerObj.monthPostdates?.[month] || null;
+          
+          // Enhanced validation for individual customers
+          console.log('=== INDIVIDUAL CUSTOMER KAM VALIDATION ===');
+          console.log('Customer validation data:', {
+            customer_node_id: customerId,
+            customer_name: customerObj.customer_name,
+            product_id: actualProductId,
+            location_node_id: actualLocationId,
+            month: month,
+            actualPostdate: actualPostdate,
+            commercial_input_value: value,
+            hasMonthData: !!customerObj.months[month],
+            monthPostdates: customerObj.monthPostdates
+          });
+          
+          // Validate required fields for individual customer
+          const missingFields = [];
+          if (!actualProductId) missingFields.push('product_id');
+          if (!actualLocationId) missingFields.push('location_node_id');
+          if (!customerId) missingFields.push('customer_node_id');
+          
+          if (missingFields.length > 0) {
+            console.error('Missing required fields for individual customer KAM adjustment:', {
+              customer_node_id: customerId,
+              customer_name: customerObj.customer_name,
+              month: month,
+              missing_fields: missingFields,
+              available_data: {
+                product_id: actualProductId,
+                location_node_id: actualLocationId,
+                customer_node_id: customerId
+              }
+            });
+            alert(`Cannot save KAM adjustment for ${customerObj.customer_name}: Missing required fields (${missingFields.join(', ')})`);
+            return;
+          }
+        } else {
+          console.error('Customer object not found in customers array:', {
+            searched_customer_id: customerId,
+            available_customers: customers.map(c => c.customer_node_id),
+            total_customers: customers.length
+          });
+          alert(`Customer not found: ${customerId}`);
+          return;
+        }
+      }
+      
+      // Fallback to monthToDate conversion if no actual postdate found
+      const postdate = actualPostdate || monthToDate(month);
+      
+      // Ensure postdate is in correct format (YYYY-MM-DD)
+      const formattedPostdate = postdate.includes('T') ? postdate.split('T')[0] : postdate;
+      
+      console.log('Date formatting debug:', {
+        originalMonth: month,
+        actualPostdate,
+        convertedPostdate: monthToDate(month),
+        finalPostdate: postdate,
+        formattedPostdate
+      });
+      
+      // If we still don't have the values, try to get them from the database
+      if (!actualProductId || !actualLocationId) {
+        console.log('=== FALLBACK DATABASE QUERY ===');
+        console.log('Missing fields - trying database fallback:', {
+          missing_product_id: !actualProductId,
+          missing_location_id: !actualLocationId,
+          search_criteria: {
+            customer_node_id: customerId,
+            postdate: formattedPostdate
+          }
         });
 
-      if (error) {
-        console.error('Error saving KAM Forecast to database:', error);
-        throw error;
+        const { data: existingData, error: fetchError } = await (supabase as any).schema('m8_schema')
+          .from('commercial_collaboration')
+          .select('product_id, location_node_id, customer_node_id, postdate')
+          .eq('customer_node_id', customerId)
+          .eq('postdate', formattedPostdate)
+          .limit(5); // Get a few records to see what's available
+        
+        console.log('Fallback database query result:', {
+          error: fetchError,
+          found_records: existingData?.length || 0,
+          sample_records: existingData?.slice(0, 2)
+        });
+
+        if (!fetchError && existingData && existingData.length > 0) {
+          const record = existingData[0];
+          actualProductId = actualProductId || record.product_id;
+          actualLocationId = actualLocationId || record.location_node_id;
+          
+          console.log('Updated values from database fallback:', {
+            actualProductId,
+            actualLocationId,
+            used_record: record
+          });
+        } else {
+          console.error('Database fallback failed:', {
+            error: fetchError,
+            no_records_found: !existingData || existingData.length === 0,
+            search_criteria: {
+              customer_node_id: customerId,
+              postdate: formattedPostdate
+            }
+          });
+        }
       }
+      
+      // Enhanced logging for KAM adjustment with field validation
+      const kamAdjustmentData = {
+        product_id: actualProductId,
+        customer_node_id: customerId,
+        location_node_id: actualLocationId,
+        postdate: postdate,
+        formattedPostdate: formattedPostdate,
+        actualPostdate: actualPostdate,
+        month: month,
+        commercial_input: value,
+        postdateSource: actualPostdate ? 'customer_data' : 'converted_from_month'
+      };
+      
+      console.log('=== KAM ADJUSTMENT DATA VALIDATION ===');
+      console.log('Saving KAM Adjustment (commercial_input):', kamAdjustmentData);
+      
+      // Comprehensive validation of all required fields before database operation
+      const validationResults = {
+        product_id: { value: actualProductId, valid: !!actualProductId },
+        customer_node_id: { value: customerId, valid: !!customerId },
+        location_node_id: { value: actualLocationId, valid: !!actualLocationId },
+        postdate: { value: formattedPostdate, valid: !!formattedPostdate },
+        commercial_input: { value: value, valid: typeof value === 'number' }
+      };
+      
+      console.log('Field validation results:', validationResults);
+      
+      const invalidFields = Object.entries(validationResults)
+        .filter(([_, validation]) => !validation.valid)
+        .map(([field, validation]) => ({ field, value: validation.value }));
+      
+      if (invalidFields.length > 0) {
+        console.error('Validation failed - Missing/invalid required values for KAM adjustment:', {
+          invalid_fields: invalidFields,
+          all_data: kamAdjustmentData,
+          customer_type: customerId === 'all' ? 'aggregate' : 'individual'
+        });
+        
+        const fieldNames = invalidFields.map(f => f.field).join(', ');
+        const customerName = customerId === 'all' ? 'Todos los clientes' : 
+          (customers.find(c => c.customer_node_id === customerId)?.customer_name || customerId);
+        
+        alert(`Cannot save KAM adjustment for ${customerName}: Missing/invalid required fields (${fieldNames})`);
+        return;
+      }
+      
+      console.log('✓ All required fields validated successfully');
+      
+      // Compare values with existing database record before update
+      console.log('=== PRE-UPDATE COMPARISON ===');
+      const comparisonCriteria = {
+        customer_node_id: customerId,
+        postdate: formattedPostdate,
+        product_id: actualProductId,
+        location_node_id: actualLocationId
+      };
+      console.log('Database lookup criteria:', comparisonCriteria);
+      
+      // First, check existing record to compare values before upsert
+      const { data: existingRecord, error: selectError } = await (supabase as any).schema('m8_schema')
+        .from('commercial_collaboration')
+        .select('customer_node_id, product_id, location_node_id, postdate, commercial_input')
+        .eq('customer_node_id', customerId)
+        .eq('postdate', formattedPostdate)
+        .eq('product_id', actualProductId)
+        .eq('location_node_id', actualLocationId)
+        .limit(1);
+
+      if (selectError) {
+        console.error('Error checking existing record:', selectError);
+      } else if (existingRecord && existingRecord.length > 0) {
+        const existing = existingRecord[0];
+        console.log('Found existing record for comparison:', {
+          existing_values: {
+            customer_node_id: existing.customer_node_id,
+            product_id: existing.product_id,
+            location_node_id: existing.location_node_id,
+            postdate: existing.postdate,
+            commercial_input: existing.commercial_input
+          },
+          new_values: {
+            customer_node_id: customerId,
+            product_id: actualProductId,
+            location_node_id: actualLocationId,
+            postdate: formattedPostdate,
+            commercial_input: value
+          },
+          changes: {
+            commercial_input: existing.commercial_input !== value ? 
+              `${existing.commercial_input} → ${value}` : 'no change'
+          }
+        });
+      } else {
+        console.warn('No existing record found with the specified criteria:', comparisonCriteria);
+      }
+
+      // Before executing UPSERT, let's check if records exist with these exact criteria
+      console.log('=== PRE-UPSERT RECORD CHECK ===');
+      const { data: checkData, error: checkError } = await (supabase as any).schema('m8_schema')
+        .from('commercial_collaboration')
+        .select('customer_node_id, product_id, location_node_id, postdate, commercial_input')
+        .eq('customer_node_id', customerId)
+        .eq('postdate', formattedPostdate)
+        .eq('product_id', actualProductId)
+        .eq('location_node_id', actualLocationId);
+
+      console.log('Records matching exact criteria:', {
+        error: checkError,
+        found_records: checkData?.length || 0,
+        records: checkData
+      });
+
+      // If no exact match, try broader searches to understand what's in the database
+      if (!checkData || checkData.length === 0) {
+        console.log('=== BROADER SEARCH FOR DEBUGGING ===');
+        
+        // Search by customer only
+        const { data: customerOnlyData } = await (supabase as any).schema('m8_schema')
+          .from('commercial_collaboration')
+          .select('customer_node_id, product_id, location_node_id, postdate, commercial_input')
+          .eq('customer_node_id', customerId)
+          .limit(3);
+        
+        console.log('Records for customer only:', {
+          found: customerOnlyData?.length || 0,
+          sample: customerOnlyData?.slice(0, 2)
+        });
+
+        // Search by customer and date
+        const { data: customerDateData } = await (supabase as any).schema('m8_schema')
+          .from('commercial_collaboration')
+          .select('customer_node_id, product_id, location_node_id, postdate, commercial_input')
+          .eq('customer_node_id', customerId)
+          .eq('postdate', formattedPostdate)
+          .limit(3);
+        
+        console.log('Records for customer and date:', {
+          found: customerDateData?.length || 0,
+          sample: customerDateData?.slice(0, 2)
+        });
+      }
+
+      // Execute UPSERT query to commercial_collaboration table
+      console.log('=== EXECUTING UPSERT QUERY ===');
+      console.log('UPSERT data:', {
+        customer_node_id: customerId,
+        postdate: formattedPostdate,
+        product_id: actualProductId,
+        location_node_id: actualLocationId,
+        commercial_input: value
+      });
+
+      // Use UPSERT (INSERT ... ON CONFLICT) to handle both insert and update
+      let { data: upsertData, error: upsertError } = await (supabase as any).schema('m8_schema')
+        .from('commercial_collaboration')
+        .upsert({
+          product_id: actualProductId,
+          customer_node_id: customerId,
+          location_node_id: actualLocationId,
+          postdate: formattedPostdate,
+          commercial_input: value,
+          commercial_notes: `KAM adjustment updated at ${new Date().toISOString()}`
+        }, {
+          onConflict: 'product_id,customer_node_id,location_node_id,postdate'
+        })
+        .select('*'); // Add select to see what was upserted
+
+      console.log('UPSERT query result:', {
+        upsertData,
+        upsertError,
+        affectedRows: upsertData?.length || 0
+      });
+
+      if (upsertError) {
+        console.error('Error saving KAM Adjustment to commercial_collaboration:', upsertError);
+        alert(`Error saving KAM adjustment: ${upsertError.message}`);
+        throw upsertError;
+      }
+
+      // Success - log detailed results
+      console.log('=== KAM ADJUSTMENT SAVED SUCCESSFULLY ===');
+      console.log('UPSERT operation completed:', {
+        affected_records: upsertData?.length || 0,
+        upserted_record: upsertData?.[0],
+        operation_summary: {
+          customer_name: customers.find(c => c.customer_node_id === customerId)?.customer_name || customerId,
+          customer_id: customerId,
+          month: month,
+          new_commercial_input: value,
+          table: 'commercial_collaboration'
+        }
+      });
+      
+      // Show success feedback with details
+      const customerName = customers.find(c => c.customer_node_id === customerId)?.customer_name || customerId;
+      console.log(`✓ KAM adjustment saved successfully: ${value} for ${customerName} in ${month}`);
+      
+      // Verify saved value by re-querying the database
+      console.log('=== POST-SAVE VERIFICATION ===');
+      const { data: verificationData, error: verificationError } = await (supabase as any).schema('m8_schema')
+        .from('commercial_collaboration')
+        .select('commercial_input')
+        .eq('customer_node_id', customerId)
+        .eq('postdate', formattedPostdate)
+        .eq('product_id', actualProductId)
+        .eq('location_node_id', actualLocationId)
+        .limit(1);
+
+      if (verificationError) {
+        console.error('Error verifying saved value:', verificationError);
+      } else if (verificationData && verificationData.length > 0) {
+        const savedValue = verificationData[0].commercial_input;
+        console.log('Verification result:', {
+          expected_value: value,
+          saved_value: savedValue,
+          match: savedValue === value ? '✓ MATCH' : '✗ MISMATCH',
+          customer: customerName,
+          month: month
+        });
+        
+        if (savedValue !== value) {
+          console.warn(`Display value does not match saved value! Expected: ${value}, Saved: ${savedValue}`);
+        }
+      } else {
+        console.warn('No record found during verification - this might indicate a save issue');
+      }
+      
+      // Refresh the data to ensure UI reflects the latest database state
+      console.log('Refreshing forecast data to reflect saved changes...');
+      await fetchForecastData(true);
+      
     } catch (error) {
-      console.error('Error saving KAM Forecast to database:', error);
-      // You might want to show a toast notification here
+      console.error('Error saving KAM Adjustment to database:', error);
+      // Show user-friendly error message
+      alert(`Failed to save KAM adjustment. Please try again.`);
     } finally {
       setSaving(false);
     }
@@ -974,17 +1585,22 @@ const ForecastCollaboration: React.FC = () => {
   const handleInlineEditSave = useCallback(async (customerId: string, month: string) => {
     const newValue = parseFloat(inlineEditingValue) || 0;
     
-    // Use setTimeout to defer the heavy computation and prevent blocking the UI
-    setTimeout(async () => {
-      const updatedCustomers = await new Promise<CustomerData[]>((resolve) => {
-        setCustomers(prevCustomers => {
-          // If editing the "all" level, apply fair share formula to individual customers
-          if (customerId === 'all') {
+    try {
+      setSaving(true);
+      
+      // If editing the "all" level, apply fair share formula to individual customers
+      if (customerId === 'all') {
+        console.log(`Distributing total KAM adjustment of ${newValue} across all customers for ${month}`);
+        
+        const updatedCustomers = await new Promise<CustomerData[]>((resolve) => {
+          setCustomers(prevCustomers => {
             // Calculate total effective forecast for all customers in this month
             const totalEffectiveForecast = prevCustomers.reduce((total, customer) => {
               const monthData = customer.months[month];
               return total + (monthData ? monthData.effective_forecast : 0);
             }, 0);
+            
+            console.log(`Total effective forecast for ${month}: ${totalEffectiveForecast}`);
             
             // Apply fair share formula to each customer
             const updatedCustomers = prevCustomers.map(customer => {
@@ -995,7 +1611,12 @@ const ForecastCollaboration: React.FC = () => {
               let fairShareValue = 0;
               if (totalEffectiveForecast > 0) {
                 fairShareValue = (customerEffectiveForecast / totalEffectiveForecast) * newValue;
+              } else {
+                // If no effective forecast, distribute equally
+                fairShareValue = newValue / prevCustomers.length;
               }
+              
+              console.log(`Customer ${customer.customer_name}: ${customerEffectiveForecast}/${totalEffectiveForecast} * ${newValue} = ${fairShareValue}`);
               
               return {
                 ...customer,
@@ -1003,7 +1624,7 @@ const ForecastCollaboration: React.FC = () => {
                   ...customer.months,
                   [month]: {
                     ...monthData,
-                    kam_forecast_correction: Math.ceil(fairShareValue) // Round up to ensure integer numbers
+                    kam_forecast_correction: Math.round(fairShareValue) // Round to ensure integer numbers
                   }
                 }
               };
@@ -1011,48 +1632,61 @@ const ForecastCollaboration: React.FC = () => {
             
             resolve(updatedCustomers);
             return updatedCustomers;
-          } else {
-            // Individual customer edit - update only that customer
-            const updatedCustomers = prevCustomers.map(customer => {
-              if (customer.customer_node_id === customerId) {
-                return {
-                  ...customer,
-                  months: {
-                    ...customer.months,
-                    [month]: {
-                      ...customer.months[month],
-                      kam_forecast_correction: newValue
-                    }
-                  }
-                };
-              }
-              return customer;
-            });
-            
-            resolve(updatedCustomers);
-            return updatedCustomers;
-          }
+          });
         });
-      });
-      
-      // Save all updated values to database
-      if (customerId === 'all') {
+        
         // Save all customer values to database
+        console.log(`Saving KAM adjustments for ${updatedCustomers.length} customers...`);
+        let savedCount = 0;
         for (const customer of updatedCustomers) {
           const monthData = customer.months[month];
-          if (monthData) {
-            await saveKamForecastToDatabase(customer.customer_node_id, month, monthData.kam_forecast_correction);
+          if (monthData && monthData.kam_forecast_correction !== undefined) {
+            try {
+              await saveKamForecastToDatabase(customer.customer_node_id, month, monthData.kam_forecast_correction);
+              savedCount++;
+            } catch (error) {
+              console.error(`Failed to save KAM adjustment for customer ${customer.customer_name}:`, error);
+            }
           }
         }
+        console.log(`✓ Successfully saved KAM adjustments to ${savedCount} customers`);
+        
       } else {
+        // Individual customer edit - update only that customer
+        console.log(`Saving individual KAM adjustment: ${newValue} for customer ${customerId} in ${month}`);
+        
+        setCustomers(prevCustomers => 
+          prevCustomers.map(customer => {
+            if (customer.customer_node_id === customerId) {
+              return {
+                ...customer,
+                months: {
+                  ...customer.months,
+                  [month]: {
+                    ...customer.months[month],
+                    kam_forecast_correction: newValue
+                  }
+                }
+              };
+            }
+            return customer;
+          })
+        );
+        
         // Save individual customer value to database
         await saveKamForecastToDatabase(customerId, month, newValue);
+        console.log(`✓ Successfully saved individual KAM adjustment`);
       }
-    }, 0);
-    
-    setInlineEditingCell(null);
-    setInlineEditingValue('');
-  }, [inlineEditingValue, selectedProduct?.product_id, selectedLocation?.location_id]);
+      
+    } catch (error) {
+      console.error('Error saving KAM adjustments:', error);
+      alert('Failed to save KAM adjustments. Please try again.');
+    } finally {
+      setSaving(false);
+      setInlineEditingCell(null);
+      setInlineEditingValue('');
+    }
+  }, [inlineEditingValue, saveKamForecastToDatabase]);
 
   const handleInlineEditCancel = useCallback(() => {
     setInlineEditingCell(null);
@@ -1061,8 +1695,10 @@ const ForecastCollaboration: React.FC = () => {
 
   const handleInlineKeyPress = useCallback((e: React.KeyboardEvent, customerId: string, month: string) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleInlineEditSave(customerId, month);
     } else if (e.key === 'Escape') {
+      e.preventDefault();
       handleInlineEditCancel();
     }
   }, [handleInlineEditSave, handleInlineEditCancel]);
@@ -1444,7 +2080,7 @@ const ForecastCollaboration: React.FC = () => {
                 {/* KPI Summary Card with Real Data */}
                 <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-6 mb-6">
                   {/* Top Section */}
-                  <div className="grid grid-cols-2 gap-4 border-b pb-6">
+                  <div className="grid grid-cols-3 gap-4 border-b pb-6">
                     {/* PESOS - Using calculated_forecast totals */}
                     <div className="flex items-center gap-4 border-r pr-4">
                       <div className="bg-green-100 p-3 rounded-full">
@@ -1473,7 +2109,7 @@ const ForecastCollaboration: React.FC = () => {
                     </div>
 
                     {/* LITROS - Using product attr_1 calculations */}
-                    <div className="flex items-center gap-4 pl-4">
+                    <div className="flex items-center gap-4 border-r pr-4">
                       <div className="bg-orange-100 p-3 rounded-full">
                         <Droplet className="text-orange-600 w-6 h-6" />
                       </div>
@@ -1500,6 +2136,38 @@ const ForecastCollaboration: React.FC = () => {
                             {lastYearTotal > 0 ? (((kamForecastTotal - lastYearTotal) / lastYearTotal) * 100).toFixed(1) : '0.0'}%
                           </p>
                           <p className="text-gray-500 text-xs">vs KAM</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* KILOS - Using product attr_2 calculations */}
+                    <div className="flex items-center gap-4 pl-4">
+                      <div className="bg-purple-100 p-3 rounded-full">
+                        <Weight className="text-purple-600 w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-3xl font-bold text-purple-600">
+                          {(customers.reduce((total, customer) => {
+                            return total + months.reduce((monthTotal, month) => {
+                              const monthData = customer.months[month];
+                              return monthTotal + (monthData ? (monthData.effective_forecast * (customer.attr_2 || 0)) : 0);
+                            }, 0);
+                          }, 0) / 1000000).toFixed(0)} M
+                        </p>
+                        <p className="text-gray-600 text-sm font-medium">KILOS</p>
+                        <p className={`text-sm font-semibold mt-1 ${
+                          salesTrends.growthPercentage >= 0 ? 'text-green-600' : 'text-red-500'
+                        }`}>
+                          {salesTrends.growthPercentage >= 0 ? '+' : ''}{(salesTrends.growthPercentage * 0.9).toFixed(1)}% vs AA
+                        </p>
+                        <div className="mt-2 border-dotted border-2 border-blue-200 rounded-full text-center w-20 py-1">
+                          <p className={`text-sm font-semibold ${
+                            (effectiveForecastTotal - kamForecastTotal) >= 0 ? 'text-green-500' : 'text-red-500'
+                          }`}>
+                            {(effectiveForecastTotal - kamForecastTotal) >= 0 ? '+' : ''}
+                            {kamForecastTotal > 0 ? (((effectiveForecastTotal - kamForecastTotal) / kamForecastTotal) * 100).toFixed(1) : '0.0'}%
+                          </p>
+                          <p className="text-gray-500 text-xs">vs Eff</p>
                         </div>
                       </div>
                     </div>
@@ -2056,6 +2724,25 @@ const ForecastCollaboration: React.FC = () => {
           </CollapsibleContent>
         </Card>
       </Collapsible>
+
+      {/* Additional Filter Panel */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Filter className="h-5 w-5 text-blue-600" />
+            Filtros Avanzados
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FilterPanel 
+            customers={customers} 
+            onFiltersChange={(filters) => {
+              console.log('Advanced filters changed:', filters);
+              // Here you can implement additional filtering logic based on the advanced filters
+            }}
+          />
+        </CardContent>
+      </Card>
       
       <Card className="mb-6">
         <CardHeader>
@@ -2086,9 +2773,21 @@ const ForecastCollaboration: React.FC = () => {
             {saving && (
               <div className="flex items-center space-x-2 text-sm text-blue-600">
                 <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-                <span>Guardando...</span>
+                <span>Guardando ajustes del KAM...</span>
               </div>
             )}
+          </div>
+          <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-2">
+              <div className="text-blue-600 mt-0.5">
+                ℹ️
+              </div>
+              <div className="text-sm text-blue-800">
+                <strong>Ajustes del KAM:</strong> Haz doble clic en las celdas de "Ajustes del KAM" ✏️ para editarlas. 
+                Los cambios se guardan automáticamente en la base de datos. 
+                Al editar el total, los valores se distribuyen proporcionalmente entre todos los clientes.
+              </div>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -2117,16 +2816,16 @@ const ForecastCollaboration: React.FC = () => {
               }}
             >
               {/* Header Row */}
-              <div className="sticky top-0 left-0 bg-gray-200 border-gray-300 p-2 text-left font-semibold text-xs z-20">
+              <div className="sticky top-0 bg-gray-200 border-gray-300 p-2 text-left font-semibold text-xs z-10">
                 Cliente
               </div>
-              <div className="sticky top-0 left-[150px] bg-gray-200 border-gray-300 p-2 text-left font-semibold text-xs z-20">
+              <div className="sticky top-0 bg-gray-200 border-gray-300 p-2 text-left font-semibold text-xs z-10">
                 Producto
               </div>
-              <div className="sticky top-0 left-[270px] bg-gray-200 border-gray-300 p-2 text-left font-semibold text-xs z-20">
+              <div className="sticky top-0 bg-gray-200 border-gray-300 p-2 text-left font-semibold text-xs z-10">
                 Tipo
               </div>
-              <div className="sticky top-0 left-[390px] bg-gray-200 border-gray-300 p-2 text-center font-semibold text-xs z-20">
+              <div className="sticky top-0 bg-gray-200 border-gray-300 p-2 text-center font-semibold text-xs z-10">
                 Detalle
               </div>
               {months.map(month => (
@@ -2172,16 +2871,16 @@ const ForecastCollaboration: React.FC = () => {
               <>
                 {/* Row 1: Año pasado (LY) */}
                 <div className="contents">
-                  <div className="sticky left-0 bg-gray-100 p-2 font-bold text-sm z-10">
+                  <div className="bg-gray-100 p-2 font-bold text-sm">
                     Todos los clientes
                   </div>
-                  <div className="sticky left-[150px] bg-gray-100 p-1 text-xs z-10">
+                  <div className="bg-gray-100 p-1 text-xs">
                     {selectedProduct?.product_id ? selectedProduct.product_id : 'Todos los productos'}
                   </div>
-                  <div className="sticky left-[270px] bg-gray-100 p-1 text-xs z-10">
+                  <div className="bg-gray-100 p-1 text-xs">
                     Año pasado (LY)
                   </div>
-                  <div className="sticky left-[390px] bg-gray-100 p-1 text-xs z-10">
+                  <div className="bg-gray-100 p-1 text-xs">
                     Histórico
                   </div>
                   {(() => {
@@ -2217,10 +2916,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-gray-100 p-1 text-xs z-10">
+                  <div className="bg-gray-100 p-1 text-xs">
                     {/* Gap Forecast vs ventas */} Sell in AA
                   </div>
-                  <div className="sticky left-[390px] bg-gray-100 p-1 text-xs z-10">
+                  <div className="bg-gray-100 p-1 text-xs">
                     Sell-in quantity
                   </div>
                   {(() => {
@@ -2256,10 +2955,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Sell Out AA
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Sell-out value
                   </div>
                   {(() => {
@@ -2294,10 +2993,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Sell Out real
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Sell-out real value
                   </div>
                   {(() => {
@@ -2332,11 +3031,11 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-purple-100 p-1 text-xs z-10">
+                  <div className=" bg-purple-100 p-1 text-xs z-10">
                     Proyectado - Equipo CPFR
                   </div>
-                  <div className="sticky left-[390px] bg-purple-100 p-1 text-xs z-10">
-                    Commercial Input (Forecast Data)
+                  <div className=" bg-purple-100 p-1 text-xs z-10">
+                   -
                   </div>
                   {(() => {
                     const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
@@ -2355,14 +3054,10 @@ const ForecastCollaboration: React.FC = () => {
                           
                           return (
                             <div key={`all-${month}-cpfr-forecast`} 
-                                 className="p-1 text-right text-xs relative cursor-pointer"
+                                 className="p-1 text-right text-xs"
                                  style={{ 
-                                   backgroundColor: totalValue > 0 ? '#7df6ff' : (month.includes('24') ? '#fef3c7' : '#dbeafe')
-                                 }}
-                                 onDoubleClick={() => handleInlineEditStart('all', month, totalValue)}>
-                              {totalValue > 0 && (
-                                <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full transform translate-x-1 -translate-y-1 z-10"></div>
-                              )}
+                                   backgroundColor: totalValue > 0 ? '#c3e7eeff' : (month.includes('24') ? '#fef3c7' : '#dbeafe')
+                                 }}>
                               {isEditing ? (
                                 <input
                                   type="number"
@@ -2390,10 +3085,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-purple-100 p-1 text-xs z-10">
+                  <div className=" bg-purple-100 p-1 text-xs z-10">
                     Días de inventario
                   </div>
-                  <div className="sticky left-[390px] bg-purple-100 p-1 text-xs z-10">
+                  <div className=" bg-purple-100 p-1 text-xs z-10">
                     Plan de ventas (SM)
                   </div>
                   {(() => {
@@ -2429,10 +3124,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-green-100 p-1 text-xs z-10">
+                  <div className=" bg-green-100 p-1 text-xs z-10">
                     Periodo Frezze
                   </div>
-                  <div className="sticky left-[390px] bg-green-100 p-1 text-xs z-10">
+                  <div className=" bg-green-100 p-1 text-xs z-10">
                     Forecast
                   </div>
                   {(() => {
@@ -2468,10 +3163,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Last estimate
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Estimado
                   </div>
                   {(() => {
@@ -2506,10 +3201,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Fcst Estadístico - BY
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Statistical Forecast
                   </div>
                   {(() => {
@@ -2544,10 +3239,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     PPTO
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Presupuesto
                   </div>
                   {(() => {
@@ -2582,10 +3277,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Comparativas vs AA y vs PPTO
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Comparatives
                   </div>
                   {(() => {
@@ -2620,10 +3315,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Volumen 3 meses anteriores
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Volume 3M Previous
                   </div>
                   {(() => {
@@ -2658,65 +3353,65 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#dbeafe] p-1 text-xs z-10">
+                  <div className=" bg-blue-100 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">
                     Ajustes del KAM
                   </div>
-                  <div className="sticky left-[390px] bg-[#dbeafe] p-1 text-xs z-10">
+                  <div className=" bg-blue-100 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">
                     KAM Adjustments
                   </div>
-                  {(() => {
+                  {months.map(month => {
                     const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
                       ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                       : customers;
                     
+                    // Show the original forecast commercial_input values from forecast_data
+                    const totalForecastCommercialInput = customersToUse.reduce((sum, customer) => {
+                      const monthData = customer.months[month];
+                      return sum + (monthData ? monthData.forecast_commercial_input : 0);
+                    }, 0);
+                    
+                    // For display, use the current KAM adjustment values
+                    const totalKamValue = customersToUse.reduce((sum, customer) => {
+                      const monthData = customer.months[month];
+                      return sum + (monthData ? monthData.kam_forecast_correction : 0);
+                    }, 0);
+                    
                     return (
-                      <>
-                        {months.map(month => {
-                          const totalValue = customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.kam_forecast_correction : 0);
-                          }, 0);
-                          const isEditing = inlineEditingCell?.customerId === 'all' && inlineEditingCell?.month === month;
-                          
-                          return (
-                            <div key={`all-${month}-kam-ajustes`} 
-                                 className="p-1 text-right text-xs border cursor-pointer hover:bg-blue-50 relative"
-                                 style={{ backgroundColor: totalValue > 0 ? '#7df6ff' : (month.includes('24') ? '#bfdbfe' : '#dbeafe') }}
-                                 onDoubleClick={() => handleInlineEditStart('all', month, totalValue)}>
-                              {totalValue > 0 && (
-                                <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full transform translate-x-1 -translate-y-1 z-10"></div>
-                              )}
-                              {isEditing ? (
-                                <input
-                                  type="number"
-                                  value={inlineEditingValue}
-                                  onChange={(e) => setInlineEditingValue(e.target.value)}
-                                  onKeyDown={(e) => handleInlineKeyPress(e, 'all', month)}
-                                  onBlur={() => handleInlineEditSave('all', month)}
-                                  className="w-full text-xs border-0 bg-transparent focus:outline-none focus:ring-0 text-right"
-                                  autoFocus
-                                />
-                              ) : (
-                                formatValue(totalValue)
-                              )}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse)}
-                      </>
+                      <div 
+                        key={`all-${month}-kam-adjustments`} 
+                        className={`p-1 text-right text-xs ${
+                          month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
+                        }`}
+                        title={`Total KAM Adjustments: ${totalKamValue.toLocaleString('es-MX')}`}
+                      >
+                        <div className="space-y-1">
+                          {/* <div className="text-gray-600 text-xs">
+                            Orig: {totalForecastCommercialInput ? totalForecastCommercialInput.toLocaleString('es-MX') : '0'}
+                          </div> */}
+                          <div className="inline-flex items-center gap-1 font-medium">
+                            {totalKamValue ? totalKamValue.toLocaleString('es-MX') : '0'}
+                            {totalKamValue > 0 && <span className="text-blue-600 opacity-75">📊</span>}
+                          </div>
+                        </div>
+                      </div>
                     );
-                  })()}
+                  })}
+                  
+                  {renderSummaryColumns(
+                    selectedCustomerId && selectedCustomerId !== 'all' 
+                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
+                      : customers
+                  )}
                 </div>
 
                 {/* Row 14: Building blocks */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Building blocks
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Building Blocks
                   </div>
                   {(() => {
@@ -2751,10 +3446,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     PCI diferenciado por canal
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     PCI by Channel
                   </div>
                   {(() => {
@@ -2785,14 +3480,14 @@ const ForecastCollaboration: React.FC = () => {
                   })()}
                 </div>
 
-                {/* Row 16: KAM Approval */}
+              {/*  Row 16: KAM Approval
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-purple-100 p-1 text-xs z-10">
+                  <div className=" bg-purple-100 p-1 text-xs z-10">
                     KAM aprobado
                   </div>
-                  <div className="sticky left-[390px] bg-purple-100 p-1 text-xs z-10">
+                  <div className=" bg-purple-100 p-1 text-xs z-10">
                     Aprobación
                   </div>
                   {(() => {
@@ -2821,7 +3516,7 @@ const ForecastCollaboration: React.FC = () => {
                           </div>
                         ))}
                         
-                        {/* Summary columns for KAM Approval - showing approvals count */}
+                         Summary columns for KAM Approval - showing approvals count
                         <div className="bg-green-200 border-gray-300 p-2 text-center text-xs">
                           <div className="grid grid-cols-3 gap-1 text-xs">
                             <div>-</div>
@@ -2845,10 +3540,11 @@ const ForecastCollaboration: React.FC = () => {
                         </div>
                       </>
                     );
-                  })()}
-                </div>
+                  })()} 
+                </div>*/}
               </>
-            )}
+            )} 
+            
 
 
             {/* Individual customer sections */}
@@ -2856,16 +3552,16 @@ const ForecastCollaboration: React.FC = () => {
               <React.Fragment key={`${customer.customer_node_id}-${customer.product_id}`}>
                 {/* Row 1: Año pasado (LY) */}
                 <div className="contents">
-                  <div className="sticky left-0 bg-gray-100 p-2 font-bold text-sm z-10">
+                  <div className="bg-gray-100 p-2 font-bold text-sm">
                     {customer.customer_name}
                   </div>
-                  <div className="sticky left-[150px] bg-gray-100 p-1 text-xs z-10">
+                  <div className="bg-gray-100 p-1 text-xs">
                     {customer.product_id || 'No producto'}
                   </div>
-                  <div className="sticky left-[270px] bg-gray-100 p-1 text-xs z-10">
+                  <div className="bg-gray-100 p-1 text-xs">
                     Año pasado (LY)
                   </div>
-                  <div className="sticky left-[390px] bg-gray-100 p-1 text-xs z-10">
+                  <div className="bg-gray-100 p-1 text-xs">
                     Histórico
                   </div>
                   {months.map(month => {
@@ -2889,10 +3585,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-gray-100 p-1 text-xs z-10">
+                  <div className=" bg-gray-100 p-1 text-xs z-10">
                     Sell in AA
                   </div>
-                  <div className="sticky left-[390px] bg-gray-100 p-1 text-xs z-10">
+                  <div className=" bg-gray-100 p-1 text-xs z-10">
                     Sell-in quantity
                   </div>
                   {months.map(month => {
@@ -2916,10 +3612,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Sell Out AA
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Sell-out value
                   </div>
                   {months.map(month => {
@@ -2942,10 +3638,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Sell Out real
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Real Sell-out
                   </div>
                   {months.map(month => {
@@ -2968,10 +3664,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Proyectado - Equipo CPFR
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     CPFR Projection
                   </div>
                   {months.map(month => {
@@ -2994,10 +3690,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Días de inventario
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Inventory Days
                   </div>
                   {months.map(month => {
@@ -3020,10 +3716,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Periodo Frezze
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Freeze Period
                   </div>
                   {months.map(month => {
@@ -3046,10 +3742,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Last estimate
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Estimado
                   </div>
                   {months.map(month => {
@@ -3072,10 +3768,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Fcst Estadístico - BY
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Statistical Forecast
                   </div>
                   {months.map(month => {
@@ -3098,10 +3794,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     PPTO
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Presupuesto
                   </div>
                   {months.map(month => {
@@ -3124,10 +3820,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Comparativas vs AA y vs PPTO
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Comparatives
                   </div>
                   {months.map(month => {
@@ -3150,10 +3846,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Volumen 3 meses anteriores
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Volume 3M Previous
                   </div>
                   {months.map(month => {
@@ -3176,37 +3872,48 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#dbeafe] p-1 text-xs z-10">
-                    Ajustes del KAM
+                  <div className=" bg-blue-100 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">
+                    Ajustes del KAM ✏️
                   </div>
-                  <div className="sticky left-[390px] bg-[#dbeafe] p-1 text-xs z-10">
-                    KAM Adjustments
+                  <div className=" bg-blue-100 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">
+                    KAM Adjustments ✏️
                   </div>
                   {months.map(month => {
                     const monthData = customer.months[month];
-                    const value = monthData ? monthData.kam_forecast_correction : 0;
+                    const kamValue = monthData ? monthData.kam_forecast_correction : 0;
+                    const forecastCommercialInput = monthData ? monthData.forecast_commercial_input : 0;
                     const isEditing = inlineEditingCell?.customerId === customer.customer_node_id && inlineEditingCell?.month === month;
                     
                     return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-ajustes`} 
-                           className="p-1 text-right text-xs border cursor-pointer hover:bg-blue-50 relative"
-                           style={{ backgroundColor: value > 0 ? '#7df6ff' : (month.includes('24') ? '#bfdbfe' : '#dbeafe') }}
-                           onDoubleClick={() => handleInlineEditStart(customer.customer_node_id, month, value)}>
-                        {value > 0 && (
-                          <div className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full transform translate-x-1 -translate-y-1 z-10"></div>
-                        )}
+                      <div 
+                        key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-adjustments`} 
+                        className={`p-1 text-right text-xs cursor-pointer hover:bg-blue-200 transition-colors ${
+                          month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
+                        }`}
+                        onDoubleClick={() => handleInlineEditStart(customer.customer_node_id, month, kamValue)}
+                        title={`Original Forecast Commercial Input: ${forecastCommercialInput.toLocaleString('es-MX')} | Double-click to edit KAM adjustment for ${customer.customer_name}`}
+                      >
                         {isEditing ? (
                           <input
                             type="number"
                             value={inlineEditingValue}
                             onChange={(e) => setInlineEditingValue(e.target.value)}
-                            onKeyDown={(e) => handleInlineKeyPress(e, customer.customer_node_id, month)}
                             onBlur={() => handleInlineEditSave(customer.customer_node_id, month)}
-                            className="w-full text-xs border-0 bg-transparent focus:outline-none focus:ring-0 text-right"
+                            onKeyPress={(e) => handleInlineKeyPress(e, customer.customer_node_id, month)}
+                            className="w-full bg-white border border-blue-500 rounded px-1 py-0 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-300"
                             autoFocus
+                            disabled={saving}
                           />
                         ) : (
-                          formatValue(value)
+                          <div className="space-y-1">
+                            {/* <div className="text-gray-600 text-xs" style={{ display: 'none' }}>
+                              Orig: {forecastCommercialInput !== undefined && forecastCommercialInput !== null ? forecastCommercialInput.toLocaleString('es-MX') : '0'}
+                            </div> */}
+                            <div className="inline-flex items-center gap-1 font-medium">
+                              {kamValue ? kamValue.toLocaleString('es-MX') : '0'}
+                              {kamValue > 0 && <span className="text-blue-600 opacity-75">✏️</span>}
+                            </div>
+                          </div>
                         )}
                       </div>
                     );
@@ -3219,10 +3926,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Building blocks
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     Building Blocks
                   </div>
                   {months.map(month => {
@@ -3245,10 +3952,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     PCI diferenciado por canal
                   </div>
-                  <div className="sticky left-[390px] bg-[#ffebd4] p-1 text-xs z-10">
+                  <div className=" bg-[#ffebd4] p-1 text-xs z-10">
                     PCI by Channel
                   </div>
                   {months.map(month => {
@@ -3271,10 +3978,10 @@ const ForecastCollaboration: React.FC = () => {
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="sticky left-[270px] bg-purple-100 p-1 text-xs z-10">
+                  <div className=" bg-purple-100 p-1 text-xs z-10">
                     KAM aprobado
                   </div>
-                  <div className="sticky left-[390px] bg-purple-100 p-1 text-xs z-10">
+                  <div className=" bg-purple-100 p-1 text-xs z-10">
                     Aprobación
                   </div>
                   {months.map(month => {
