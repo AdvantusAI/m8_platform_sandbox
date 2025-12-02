@@ -17,6 +17,8 @@ interface FilterState {
   // Add product information for table display
   selectedProducts: string[];
   productDetails: {[key: string]: {product_id: string, product_name?: string}};
+  // Add supply network node IDs for commercial collaboration filtering
+  selectedSupplyNetworkNodeIds: string[];
 }
 
 interface Brand {
@@ -47,7 +49,8 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     selectedBrands: [],
     selectedLocations: [],
     selectedProducts: [],
-    productDetails: {}
+    productDetails: {},
+    selectedSupplyNetworkNodeIds: []
   });
 
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -158,7 +161,15 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
       setProductLines(uniqueProductLines);
       setBrandProductLineMap(brandProductLineMapping);
       
-      console.log('Brand-ProductLine mapping:', brandProductLineMapping);
+      console.log('Brand-ProductLine mapping created:', {
+        totalBrands: Object.keys(brandProductLineMapping).length,
+        sampleMappings: Object.entries(brandProductLineMapping).slice(0, 3).map(([brandId, productLines]) => ({
+          brandId,
+          productLinesCount: productLines.length,
+          productLineNames: productLines.map(pl => pl.class_name)
+        })),
+        allProductLinesCount: uniqueProductLines.length
+      });
     } catch (err) {
       console.error('Error fetching product lines:', err);
     } finally {
@@ -221,6 +232,175 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     }
   };
 
+  // Fetch products using JOIN query exactly like the SQL example
+  const fetchProductsFromSupplyNetworkFilters = async () => {
+    try {
+      // Only fetch if any supply network filters are selected
+      if (filters.clientHierarchy.length === 0 && filters.canal.length === 0 && 
+          filters.agente.length === 0 && filters.umn.length === 0) {
+        return;
+      }
+
+      console.log('=== SUPPLY NETWORK JOIN FILTERING ===');
+      console.log('Applied filters:', {
+        clientHierarchy: filters.clientHierarchy,
+        canal: filters.canal,
+        agente: filters.agente,
+        umn: filters.umn
+      });
+
+      // Execute the exact same logic as the SQL query:
+      // SELECT p.product_id, p.attr_1, p.attr_2, p.attr_3, p.subcategory_name, p.subcategory_id
+      // FROM supply_network_nodes snn
+      // JOIN commercial_collaboration_view ccv ON ccv.location_node_id = snn.id  
+      // JOIN products p ON p.product_id = ccv.product_id
+      // WHERE snn.client_hierarchy = 'TEST'
+
+      // Step 1: Get supply_network_nodes that match our filters
+      let supplyQuery = (supabase as any)
+        .schema('m8_schema')
+        .from('supply_network_nodes')
+        .select('id');
+
+      // Apply filter conditions
+      if (filters.clientHierarchy.length > 0) {
+        console.log('Applying client_hierarchy filter:', filters.clientHierarchy);
+        supplyQuery = supplyQuery.in('client_hierarchy', filters.clientHierarchy);
+      }
+      if (filters.canal.length > 0) {
+        console.log('Applying channel filter:', filters.canal);
+        supplyQuery = supplyQuery.in('channel', filters.canal);
+      }
+      if (filters.agente.length > 0) {
+        console.log('Applying agent filter:', filters.agente);
+        // Try both agent and agent_name fields to handle different schema versions
+        supplyQuery = supplyQuery.or(`agent.in.(${filters.agente.map(a => `"${a}"`).join(',')}),agent_name.in.(${filters.agente.map(a => `"${a}"`).join(',')})`);
+      }
+      if (filters.umn.length > 0) {
+        console.log('Applying udn filter:', filters.umn);
+        supplyQuery = supplyQuery.in('udn', filters.umn);
+      }
+
+      const { data: supplyNodes, error: supplyError } = await supplyQuery;
+
+      if (supplyError) {
+        console.error('Error fetching supply network nodes:', supplyError);
+        return;
+      }
+
+      if (!supplyNodes || supplyNodes.length === 0) {
+        console.log('No supply network nodes found for selected filters');
+        setFilters(prev => ({
+          ...prev,
+          selectedProducts: [],
+          productDetails: {},
+          selectedSupplyNetworkNodeIds: []
+        }));
+        return;
+      }
+
+      const nodeIds = supplyNodes.map(node => node.id);
+      console.log('Found supply network node IDs:', nodeIds.length, 'nodes');
+
+      // Step 2: Join with commercial_collaboration_view and products in one query
+      // This mimics: JOIN commercial_collaboration_view ccv ON ccv.location_node_id = snn.id  
+      //              JOIN products p ON p.product_id = ccv.product_id
+      const { data: joinedData, error: joinError } = await (supabase as any)
+        .schema('m8_schema')
+        .from('commercial_collaboration_view')
+        .select(`
+          product_id,
+          products!inner(
+            product_id,
+            product_name,
+            attr_1,
+            attr_2,
+            attr_3,
+            subcategory_name,
+            subcategory_id,
+            class_id,
+            class_name
+          )
+        `)
+        .in('location_node_id', nodeIds);
+
+      if (joinError) {
+        console.error('Error executing join query:', joinError);
+        return;
+      }
+
+      if (!joinedData || joinedData.length === 0) {
+        console.log('No products found in commercial_collaboration_view for selected supply network nodes');
+        setFilters(prev => ({
+          ...prev,
+          selectedProducts: [],
+          productDetails: {},
+          selectedSupplyNetworkNodeIds: nodeIds
+        }));
+        return;
+      }
+
+      // Extract unique products - only those that exist in commercial_collaboration_view
+      const uniqueProducts = new Map();
+      joinedData.forEach((item: any) => {
+        if (item.products && item.product_id) {
+          uniqueProducts.set(item.product_id, {
+            product_id: item.product_id,
+            product_name: item.products.product_name,
+            attr_1: item.products.attr_1,
+            attr_2: item.products.attr_2,
+            attr_3: item.products.attr_3,
+            subcategory_name: item.products.subcategory_name,
+            subcategory_id: item.products.subcategory_id,
+            class_id: item.products.class_id,
+            class_name: item.products.class_name
+          });
+        }
+      });
+
+      const productsArray = Array.from(uniqueProducts.values());
+      const uniqueProductIds = Array.from(uniqueProducts.keys());
+
+      // Create product details map
+      const productDetails: {[key: string]: {product_id: string, product_name?: string}} = {};
+      productsArray.forEach((product: any) => {
+        productDetails[product.product_id] = {
+          product_id: product.product_id,
+          product_name: product.product_name
+        };
+      });
+
+      console.log('✅ Supply network JOIN filtering complete:', {
+        supplyNodeCount: nodeIds.length,
+        collaborationRecords: joinedData.length,
+        uniqueProducts: uniqueProductIds.length,
+        sampleProductIds: uniqueProductIds.slice(0, 5),
+        sampleProducts: productsArray.slice(0, 3).map((p: any) => ({
+          id: p.product_id,
+          name: p.product_name,
+          subcategory: p.subcategory_name
+        })),
+        appliedFilters: {
+          clientHierarchy: filters.clientHierarchy,
+          canal: filters.canal,
+          agente: filters.agente,
+          umn: filters.umn
+        }
+      });
+
+      // Update filters with the found products that exist in commercial_collaboration_view
+      setFilters(prev => ({
+        ...prev,
+        selectedProducts: uniqueProductIds,
+        productDetails: productDetails,
+        selectedSupplyNetworkNodeIds: nodeIds
+      }));
+
+    } catch (err) {
+      console.error('Error in supply network JOIN filtering:', err);
+    }
+  };
+
   // Fetch supply network data
   const fetchSupplyNetworkData = async () => {
     try {
@@ -228,7 +408,7 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
       const { data, error } = await (supabase as any)
         .schema('m8_schema')
         .from('supply_network_nodes')
-        .select('client_hierarchy, channel, agente, agent_name, udn')
+        .select('client_hierarchy, channel, agente, agent_name, udn, id')
         .order('client_hierarchy');
 
       if (error) throw error;
@@ -246,7 +426,7 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
       )].sort() as string[];
       
       const uniqueAgents = [...new Set(
-        data?.map((item: any) => item.agent_name).filter(Boolean) || []
+        data?.map((item: any) =>  item.agent_name).filter(Boolean) || []
       )].sort() as string[];
 
       const uniqueUdn = [...new Set(
@@ -299,6 +479,22 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     }
   }, [filters.selectedBrands, filters.productLine]);
 
+  // Fetch products from commercial_collaboration_view when supply network filters change
+  useEffect(() => {
+    if (filters.clientHierarchy.length > 0 || filters.canal.length > 0 || 
+        filters.agente.length > 0 || filters.umn.length > 0) {
+      fetchProductsFromSupplyNetworkFilters();
+    } else if (filters.selectedBrands.length === 0 && filters.productLine.length === 0) {
+      // Clear products when no supply network filters and no brand/product line filters
+      setFilters(prev => ({
+        ...prev,
+        selectedProducts: [],
+        productDetails: {},
+        selectedSupplyNetworkNodeIds: []
+      }));
+    }
+  }, [filters.clientHierarchy, filters.canal, filters.agente, filters.umn]);
+
   // Get customer hierarchy from supply_network_nodes
   const getCustomerHierarchy = () => {
     return clientHierarchyOptions.length > 0 ? clientHierarchyOptions : [];
@@ -329,7 +525,7 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
       )].sort() as string[];
 
       const relatedAgents = [...new Set(
-        relatedData.map(item => item.agent_name).filter(Boolean)
+        relatedData.map(item =>  item.agent_name).filter(Boolean)
       )].sort() as string[];
 
       const relatedUdn = [...new Set(
@@ -382,7 +578,11 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
 
   useEffect(() => {
     if (onFiltersChange) {
-      console.log('FilterPanel: Sending filter changes:', filters);
+      console.log('FilterPanel: Sending filter changes:', {
+        ...filters,
+        selectedProductsCount: filters.selectedProducts.length,
+        selectedSupplyNetworkNodeIdsCount: filters.selectedSupplyNetworkNodeIds.length
+      });
       onFiltersChange(filters);
     }
   }, [filters, onFiltersChange]);
@@ -419,16 +619,28 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     } else {
       // Show only product lines that belong to selected brands
       const filteredProductLines: ProductLine[] = [];
+      const processedClassIds = new Set<string>();
+      
       filters.selectedBrands.forEach(brandId => {
         const brandProductLines = brandProductLineMap[brandId] || [];
         
         brandProductLines.forEach(pl => {
-          // Add if not already exists
-          const exists = filteredProductLines.find(existing => existing.class_id === pl.class_id);
-          if (!exists) {
+          // Add if not already processed (using Set for better performance)
+          if (!processedClassIds.has(pl.class_id)) {
+            processedClassIds.add(pl.class_id);
             filteredProductLines.push(pl);
           }
         });
+      });
+      
+      console.log('Filtering product lines by selected brands:', {
+        selectedBrands: filters.selectedBrands,
+        brandProductLineMap: filters.selectedBrands.map(brandId => ({
+          brandId,
+          productLines: brandProductLineMap[brandId]?.map(pl => pl.class_name) || []
+        })),
+        filteredProductLines: filteredProductLines.map(pl => pl.class_name),
+        totalFiltered: filteredProductLines.length
       });
       
       const sortedFilteredProductLines = filteredProductLines.sort((a, b) => a.class_name.localeCompare(b.class_name));
@@ -512,11 +724,25 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
               <button
                 key={brand.subcategory_id}
                 onClick={() => {
-                  toggleFilter('marca', brand.subcategory_name);
+                  console.log('Brand clicked:', {
+                    subcategory_id: brand.subcategory_id,
+                    subcategory_name: brand.subcategory_name,
+                    currentSelectedBrands: filters.selectedBrands,
+                    currentMarca: filters.marca
+                  });
                   
-                  // Update selectedBrands and clear invalid product line selections
+                  // Update both marca (for display) and selectedBrands (for filtering)
                   setFilters(prev => {
-                    const isRemoving = prev.selectedBrands.includes(brand.subcategory_id);
+                    const isRemovingFromMarca = prev.marca.includes(brand.subcategory_name);
+                    const isRemovingFromSelectedBrands = prev.selectedBrands.includes(brand.subcategory_id);
+                    
+                    // Both should be in sync - if one is selected, both should be selected
+                    const isRemoving = isRemovingFromMarca || isRemovingFromSelectedBrands;
+                    
+                    const newMarca = isRemoving
+                      ? prev.marca.filter(name => name !== brand.subcategory_name)
+                      : [...prev.marca, brand.subcategory_name];
+                      
                     const newSelectedBrands = isRemoving
                       ? prev.selectedBrands.filter(id => id !== brand.subcategory_id)
                       : [...prev.selectedBrands, brand.subcategory_id];
@@ -542,15 +768,23 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
                       plName => validProductLines.includes(plName)
                     );
                     
+                    console.log('Updated brand selection:', {
+                      newMarca,
+                      newSelectedBrands,
+                      validProductLines: validProductLines.slice(0, 5), // Show first 5
+                      filteredProductLineSelections
+                    });
+                    
                     return {
                       ...prev,
+                      marca: newMarca,
                       selectedBrands: newSelectedBrands,
                       productLine: filteredProductLineSelections
                     };
                   });
                 }}
                 className={`rounded-md px-2 py-1 text-sm text-left transition-all ${
-                  isSelected('marca', brand.subcategory_name)
+                  isSelected('marca', brand.subcategory_name) || filters.selectedBrands.includes(brand.subcategory_id)
                     ? 'bg-blue-200 text-blue-900 font-semibold'
                     : 'bg-white text-blue-900 hover:bg-blue-50'
                 }`}
@@ -776,6 +1010,7 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
           {Object.values(filters).some(items => Array.isArray(items) && items.length > 0) && (
             <button
               onClick={() => {
+                console.log('Clearing all filters');
                 setFilters({ 
                   canal: [], 
                   marca: [], 
@@ -788,7 +1023,8 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
                   selectedBrands: [],
                   selectedLocations: [],
                   selectedProducts: [],
-                  productDetails: {}
+                  productDetails: {},
+                  selectedSupplyNetworkNodeIds: []
                 });
                 // Reset product lines to show all when filters are cleared
                 setProductLines(allProductLines);
