@@ -1,5 +1,5 @@
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader,  } from "@/components/ui/sidebar";
-import { Repeat2, Folder, Table, ChartSpline, Tag, ChartScatter, Users, Package, Building2, Network, UserPlus, UserCheck, ChevronDown, ChevronRight,  Target, TrendingUp, Home, Settings, Database, BarChart3, ShoppingCart,  FileText, Calendar, Bell,  Activity, Brain, Warehouse, Rocket, GitBranch, TrendingDown, ArrowLeftRight, Container, Waypoints, LucideGitBranchPlus, LucideToggleRight, CalendarArrowUp, SunSnow, Sparkle, Sparkles, Store, ChartNoAxesColumnIncreasing, PowerOff } from "lucide-react";
+import { LucideThumbsUp, Repeat2, Folder, Table, ChartSpline, Tag, ChartScatter, Users, Package, Building2, Network, UserPlus, UserCheck, ChevronDown, ChevronRight,  Target, TrendingUp, Home, Settings, Database, BarChart3, ShoppingCart,  FileText, Calendar, Bell,  Activity, Brain, Warehouse, Rocket, GitBranch, TrendingDown, ArrowLeftRight, Container, Waypoints, LucideGitBranchPlus, LucideToggleRight, CalendarArrowUp, SunSnow, Sparkle, Sparkles, Store, ChartNoAxesColumnIncreasing, PowerOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -23,6 +23,13 @@ const items = [
     icon: ChartSpline,
     type: "table"
   },
+
+  {
+    title: "Planner Dashboard",
+    url: "/planner-dashboard",
+    icon: TrendingUp,
+    type: "table"
+  },
   /*{
     title: "Demand workbench",
     url: "/demand-workbench",
@@ -41,6 +48,13 @@ const items = [
     title: "KAM - Forecast colaboración",
     url: "/forecast-collaboration",
     icon: Target,
+    type: "folder",
+    children: []
+  },
+    {
+    title: "KAM - Aprobar Kam",
+    url: "/forecast-collaboration-approve",
+    icon: LucideThumbsUp,
     type: "folder",
     children: []
   },

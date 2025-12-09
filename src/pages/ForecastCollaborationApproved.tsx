@@ -14,8 +14,6 @@ import FilterPanel from "@/components/FilterPanel";
 import { useProducts } from '@/hooks/useProducts';
 import { useLocations } from '@/hooks/useLocations';
 import { useCustomers } from '@/hooks/useCustomers';
-import { ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Scatter } from 'recharts';
-import { ArrowDown, ArrowUp, Droplet, DollarSign, Weight } from "lucide-react";
 // Interface for commercial_collaboration_view data
 interface CommercialCollaborationData {
   product_id: string;
@@ -539,7 +537,7 @@ const ForecastCollaboration: React.FC = () => {
 
     return (
       <>
-        {/* Cajas column */}
+        {/* Cajas column only */}
         <div className="bg-purple-200 border-gray-300 p-2 text-center text-xs">
           <div className="grid grid-cols-3 gap-3">
             <div className="text-right text-[10px]">
@@ -550,36 +548,6 @@ const ForecastCollaboration: React.FC = () => {
             </div>
             <div className="text-right text-[10px]">
               {formatValue(sumCajasTotal)}
-            </div>
-          </div>
-        </div>
-        
-        {/* Litros column */}
-        <div className="bg-green-200 border-gray-300 p-2 text-center text-xs">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-right text-[10px]">
-              {formatValue(sumLitrosYTD)}
-            </div>
-            <div className="text-right text-[10px]">
-              {formatValue(sumLitrosYTG)}
-            </div>
-            <div className="text-right text-[10px]">
-              {formatValue(sumLitrosTotal)}
-            </div>
-          </div>
-        </div>
-        
-        {/* Pesos column */}
-        <div className="bg-orange-200 border-gray-300 p-2 text-center text-xs">
-          <div className="grid grid-cols-3 gap-3">
-            <div className="text-right text-[10px]">
-              {formatValue(sumPesosYTD)}
-            </div>
-            <div className="text-right text-[10px]">
-              {formatValue(sumPesosYTG)}
-            </div>
-            <div className="text-right text-[10px]">
-              {formatValue(sumPesosTotal)}
             </div>
           </div>
         </div>
@@ -652,7 +620,7 @@ const ForecastCollaboration: React.FC = () => {
     
     return (
       <>
-        {/* Cajas column */}
+        {/* Cajas column only */}
         <div className="bg-purple-50 p-1 text-center text-xs">
           <div className="grid grid-cols-3 gap-2">
             <div className="text-right text-xs">
@@ -663,36 +631,6 @@ const ForecastCollaboration: React.FC = () => {
             </div>
             <div className="text-right text-xs">
               {formatValue(calculateWithYearFilter(customer, 'attr_3', 'Total'))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Litros column */}
-        <div className="bg-green-50 p-1 text-center text-xs">
-          <div className="grid grid-cols-3 gap-2">
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_1', 'YTD'))}
-            </div>
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_1', 'YTG'))}
-            </div>
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_1', 'Total'))}
-            </div>
-          </div>
-        </div>
-        
-        {/* Pesos column */}
-        <div className="bg-orange-50 p-1 text-center text-xs">
-          <div className="grid grid-cols-3 gap-2">
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_2', 'YTD'))}
-            </div>
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_2', 'YTG'))}
-            </div>
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_2', 'Total'))}
             </div>
           </div>
         </div>
@@ -713,13 +651,7 @@ const ForecastCollaboration: React.FC = () => {
   const [editingValue, setEditingValue] = useState<string>('');
   const [inlineEditingCell, setInlineEditingCell] = useState<{customerId: string, month: string} | null>(null);
   const [inlineEditingValue, setInlineEditingValue] = useState<string>('');
-  const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
-  const [salesTrends, setSalesTrends] = useState({
-    currentPeriod: 0,
-    lastYearPeriod: 0,
-    growthPercentage: 0,
-    trendDirection: 'neutral' as 'up' | 'down' | 'neutral'
-  });
+
   const [kamApprovals, setKamApprovals] = useState<{[key: string]: {[key: string]: string}}>({});
   const [saving, setSaving] = useState(false);
   // Removed noResultsFound and noResultsMessageDismissed - no longer needed
@@ -790,75 +722,7 @@ const ForecastCollaboration: React.FC = () => {
   });
 
 
-  // Chart series visibility state
-  const [chartSeriesVisible, setChartSeriesVisible] = useState({
-    m8Predict: true,
-    kamForecast: true,
-    effectiveForecast: false, // Hidden by default
-    lastYear: false, // Hidden by default
-    m8PredictArea: true,
-    pci26Area: true,
-    kamAdjustmentsArea: true,
-    pptoA1Area: true,
-    sellInLine: true,
-    sellInActualLine: true,
-    sellOutAALine: true,
-    sellOutActualLine: true,
-    ddiBar: true
-  });
 
-  // Chart series colors state
-  const [chartSeriesColors, setChartSeriesColors] = useState({
-    m8Predict: '#ea580c', // orange-600
-    kamForecast: '#f59e0b', // purple-600
-    effectiveForecast: '#059669', // green-600
-    lastYear: '#2563eb', // blue-600
-    m8PredictArea: '#f97316', // orange-500
-    pci26Area: '#0ea5e9', // sky-500
-    kamAdjustmentsArea: '#9333ea',  // violet-500
-    pptoA1Area: '#ec4899', // pink-500
-    sellInLine: '#71537fff', // violet-500
-    sellInActualLine:'#ef669dff', // purple-500
-    sellOutAALine: '#10b981', // emerald-500
-    sellOutActualLine: '#14b8a6', // teal-500
-    ddiBar: '#fb923c' // orange-400
-  });
-
-  // Show color picker state
-  const [showColorPicker, setShowColorPicker] = useState<string | null>(null);
-
-  // Toggle series visibility
-  const toggleSeriesVisibility = useCallback((seriesName: keyof typeof chartSeriesVisible) => {
-    setChartSeriesVisible(prev => ({
-      ...prev,
-      [seriesName]: !prev[seriesName]
-    }));
-  }, []);
-
-  // Update series color
-  const updateSeriesColor = useCallback((seriesName: keyof typeof chartSeriesColors, color: string) => {
-    setChartSeriesColors(prev => ({
-      ...prev,
-      [seriesName]: color
-    }));
-  }, []);
-
-  // Close color picker when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest('.color-picker-container')) {
-        setShowColorPicker(null);
-      }
-    };
-
-    if (showColorPicker) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => {
-        document.removeEventListener('mousedown', handleClickOutside);
-      };
-    }
-  }, [showColorPicker]);
 
   // Helper function to check if a month is within the selected date range
   const isMonthInDateRange = useCallback((monthKey: string, dateRange: DateRange | null): boolean => {
@@ -1108,7 +972,7 @@ const ForecastCollaboration: React.FC = () => {
         .schema('m8_schema')
         .from('v_sales_transaction_in')
         .select('product_id, location_node_id, customer_node_id, postdate, quantity')
-        .gte('postdate', '2023-10-01')
+        .gte('postdate', '2025-01-01')
         .lte('postdate', '2025-12-31')
         .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true });
@@ -1136,7 +1000,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_sales_in_by_marca', {
             marca_names: advancedFilters.marca,
-            date_from: '2023-10-01',
+            date_from: '2025-01-01',
             date_to: '2025-12-31'
           });
         
@@ -1164,7 +1028,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_sales_in_by_product_line', {
             product_line_names: advancedFilters.productLine,
-            date_from: '2023-10-01',
+            date_from: '2025-01-01',
             date_to: '2025-12-31'
           });
         
@@ -1213,7 +1077,7 @@ const ForecastCollaboration: React.FC = () => {
         .schema('m8_schema')
         .from('v_sales_transaction_out')
         .select('product_id, location_node_id, customer_node_id, postdate, quantity')
-        .gte('postdate', '2024-10-01')
+        .gte('postdate', '2025-01-01')
         .lte('postdate', '2025-12-31')
         .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true });
@@ -1245,7 +1109,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_sales_out_by_marca', {
             marca_names: advancedFilters.marca,
-            date_from: '2024-10-01',
+            date_from: '2025-01-01',
             date_to: '2025-12-31'
           });
         
@@ -1273,7 +1137,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_sales_out_by_product_line', {
             product_line_names: advancedFilters.productLine,
-            date_from: '2024-10-01',
+            date_from: '2025-01-01',
             date_to: '2025-12-31'
           });
         
@@ -1330,7 +1194,7 @@ const ForecastCollaboration: React.FC = () => {
         .schema('m8_schema')
         .from('inventory_transactions')
         .select('product_id, location_node_id, customer_node_id, postdate, eoh')
-        .gte('postdate', '2024-10-01')
+        .gte('postdate', '2025-01-01')
         .lte('postdate', '2025-12-31')
         .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true });
@@ -1359,7 +1223,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_inventory_by_marca', {
             marca_names: advancedFilters.marca,
-            date_from: '2024-10-01',
+            date_from: '2025-01-01',
             date_to: '2025-12-31'
           });
         
@@ -1387,7 +1251,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_inventory_by_product_line', {
             product_line_names: advancedFilters.productLine,
-            date_from: '2024-10-01',
+            date_from: '2025-01-01',
             date_to: '2025-12-31'
           });
         
@@ -1430,6 +1294,24 @@ const ForecastCollaboration: React.FC = () => {
 
   const processForecastData = useCallback((rawData: CommercialCollaborationData[], customerNamesMap: {[key: string]: string}, dateFilter: DateRange | null = null, sellInDataArray: any[] = [], sellOutDataArray: any[] = [], productAttributesMap: { [key: string]: { attr_1: number; attr_2: number; attr_3: number } } = {}, kamDataArray: any[] = [], inventoryDataArray: any[] = []) => {
     const groupedData: { [key: string]: CustomerData } = {};
+    
+    // Debug: Check if our specific record is in the processing data
+    console.log('🔄 Starting processForecastData with', rawData.length, 'records');
+    const targetRecord = rawData.find(row => 
+      row.product_id === '100083' && 
+      row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de'
+    );
+    if (targetRecord) {
+      console.log('✅ Target record found in processing:', {
+        product_id: targetRecord.product_id,
+        customer_node_id: targetRecord.customer_node_id,
+        postdate: targetRecord.postdate,
+        sm_kam_override: targetRecord.sm_kam_override,
+        actual: targetRecord.actual
+      });
+    } else {
+      console.log('❌ Target record NOT found in processing data');
+    }
     
     // Counters for skipped rows to avoid console spam
     let skippedMainRows = 0;
@@ -1497,6 +1379,23 @@ const ForecastCollaboration: React.FC = () => {
       const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
       const displayMonth = monthMap[monthKey];
       
+      // DEBUG: Log date parsing for the target record
+      if ((row.product_id === '100083' || row.product_id === '100042') && row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de') {
+        console.log('🔍 DATE PARSING DEBUG:', {
+          product_id: row.product_id,
+          raw_postdate: row.postdate,
+          parsed_date: date,
+          month: month,
+          year: year,
+          monthKey: monthKey,
+          displayMonth: displayMonth,
+          monthMapKeys: Object.keys(monthMap),
+          actual_value: row.actual,
+          forecast_value: row.forecast,
+          sm_kam_override: row.sm_kam_override
+        });
+      }
+      
       if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
         // Store the actual postdate for this month
         if (!groupedData[customerProductKey].monthPostdates) {
@@ -1557,6 +1456,37 @@ const ForecastCollaboration: React.FC = () => {
         // TEMPORARY FIX: Try using forecast field if actual is empty
         const m8PredictValue = row.actual || row.forecast || 0;
         monthData.actual_by_m8 += m8PredictValue;
+
+        // Debug: Log data mapping for your target record
+        if ((row.product_id === '100083' || row.product_id === '100042') && row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de') {
+          console.log('🎯 TARGET RECORD PROCESSING:', {
+            product_id: row.product_id,
+            customer_node_id: row.customer_node_id,
+            postdate: row.postdate,
+            month_key: displayMonth,
+            actual: row.actual,
+            forecast: row.forecast,
+            sm_kam_override: row.sm_kam_override,
+            m8PredictValue: m8PredictValue,
+            monthData_after: {
+              actual_by_m8: monthData.actual_by_m8,
+              kam_forecast_correction: monthData.kam_forecast_correction,
+              calculated_forecast: monthData.calculated_forecast
+            }
+          });
+        }
+        
+        // Debug: Log data mapping for your example record
+        if (row.sm_kam_override && row.sm_kam_override > 3) {
+          console.log('🔍 KAM A+1 Data Found:', {
+            product_id: row.product_id,
+            customer_node_id: row.customer_node_id,
+            postdate: row.postdate,
+            month_key: displayMonth,
+            sm_kam_override: row.sm_kam_override,
+            kam_forecast_correction_total: monthData.kam_forecast_correction
+          });
+        }
         
         // Debug: Log actual_by_m8 data when it's non-zero  
         if (m8PredictValue !== 0) {
@@ -1658,7 +1588,6 @@ const ForecastCollaboration: React.FC = () => {
           groupedData[customerProductKey].months[displayMonth].sell_in_aa += sellInRow.quantity || 0;
         } else if (year === 2025) {
           // Current year (2025) data goes to sell_in_actual
-          groupedData[customerProductKey].months[displayMonth].sell_in_actual += sellInRow.quantity || 0;
         }
       }
     });
@@ -1749,6 +1678,16 @@ const ForecastCollaboration: React.FC = () => {
     // Process KAM adjustments from commercial_collaboration table
 
     
+    // DEBUG: Log KAM data array summary
+    console.log('🔍 KAM DATA ARRAY:', {
+      total_kam_records: kamDataArray.length,
+      sample_kam_record: kamDataArray[0],
+      target_customer_kam_records: kamDataArray.filter(row => 
+        row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && 
+        (row.product_id === '100042' || row.product_id === '100083')
+      )
+    });
+
     kamDataArray.forEach((kamRow: any, index: number) => {
       // Skip rows with null customer_node_id to prevent errors
       if (!kamRow.customer_node_id) {
@@ -1765,6 +1704,20 @@ const ForecastCollaboration: React.FC = () => {
       
       const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
       const displayMonth = monthMap[monthKey];
+      
+      // DEBUG: Log KAM processing for target records
+      if (kamRow.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && 
+          (kamRow.product_id === '100042' || kamRow.product_id === '100083')) {
+        console.log('🔥 KAM DATA PROCESSING:', {
+          product_id: kamRow.product_id,
+          customer_node_id: kamRow.customer_node_id,
+          postdate: kamRow.postdate,
+          month_key: displayMonth,
+          sm_kam_override: kamRow.sm_kam_override,
+          commercial_input: kamRow.commercial_input,
+          initial_sales_plan: kamRow.initial_sales_plan
+        });
+      }
       
       if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
         // Store the actual postdate for this month (in case this is the first data for this month)
@@ -1821,7 +1774,19 @@ const ForecastCollaboration: React.FC = () => {
         const previousValue = groupedData[customerProductKey].months[displayMonth].kam_forecast_correction;
         const newValue = kamRow.sm_kam_override || kamRow.commercial_input || 0;
         
-
+        // DEBUG: Log KAM value assignment for target records
+        if (kamRow.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && 
+            (kamRow.product_id === '100042' || kamRow.product_id === '100083')) {
+          console.log('💎 KAM VALUE ASSIGNMENT:', {
+            product_id: kamRow.product_id,
+            customer_node_id: kamRow.customer_node_id,
+            month_key: displayMonth,
+            sm_kam_override: kamRow.sm_kam_override,
+            commercial_input: kamRow.commercial_input,
+            calculated_new_value: newValue,
+            previous_value: previousValue
+          });
+        }
         
         // Set the KAM adjustment value (overwrite, don't add, since this is the adjustment value)
         // Priority: sm_kam_override > commercial_input for KAM adjustments
@@ -1933,6 +1898,56 @@ const ForecastCollaboration: React.FC = () => {
 
     const finalCustomers = Object.values(groupedData);
 
+    // Debug: Check if our target customer is in the final processed data
+    const targetCustomer = finalCustomers.find(customer => 
+      customer.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && 
+      (customer.product_id === '100083' || customer.product_id === '100042')
+    );
+    
+    if (targetCustomer) {
+      console.log('✅ Target customer found in final processed data:', {
+        customer_name: targetCustomer.customer_name,
+        product_id: targetCustomer.product_id,
+        february_data: {
+          kam_forecast_correction: targetCustomer.months['feb-25']?.kam_forecast_correction,
+          actual_by_m8: targetCustomer.months['feb-25']?.actual_by_m8,
+          calculated_forecast: targetCustomer.months['feb-25']?.calculated_forecast,
+        },
+        all_month_keys: Object.keys(targetCustomer.months || {}),
+        sample_month_data: targetCustomer.months[Object.keys(targetCustomer.months)[0]]
+      });
+    } else {
+      console.log('❌ Target customer NOT found in final processed data');
+      console.log('Available customers:', finalCustomers.length);
+      
+      // Check if we have the right customer but different product
+      const sameCustomerDifferentProduct = finalCustomers.filter(customer => 
+        customer.customer_node_id === '036952da-be05-4d87-bc94-1405100988de'
+      );
+      
+      if (sameCustomerDifferentProduct.length > 0) {
+        console.log('📍 Same customer found with different products:', 
+          sameCustomerDifferentProduct.map(c => ({
+            product_id: c.product_id,
+            month_keys: Object.keys(c.months || {}),
+            feb_data: {
+              kam_forecast_correction: c.months['feb-25']?.kam_forecast_correction,
+              actual_by_m8: c.months['feb-25']?.actual_by_m8,
+              calculated_forecast: c.months['feb-25']?.calculated_forecast,
+            }
+          }))
+        );
+      }
+      
+      if (finalCustomers.length > 0) {
+        console.log('Sample customer structure:', {
+          customer_node_id: finalCustomers[0].customer_node_id,
+          product_id: finalCustomers[0].product_id,
+          sample_month_keys: Object.keys(finalCustomers[0].months || {}).slice(0, 3)
+        });
+      }
+    }
+
     return Object.values(groupedData);
   }, []);
 
@@ -2015,6 +2030,15 @@ const ForecastCollaboration: React.FC = () => {
   // ...existing code...
 
   const fetchForecastData = useCallback(async (isFilterOperation = false) => {
+    // DEBUG: Track function calls
+    console.log('🔥 fetchForecastData called with isFilterOperation:', isFilterOperation);
+    console.log('📊 Current state:', {
+      selectedProduct: selectedProduct,
+      selectedLocation: selectedLocation, 
+      selectedCustomer: selectedCustomer,
+      selectedDateRange: selectedDateRange
+    });
+    
     // Only show loading indicator after a delay to avoid aggressive UI updates
     // This makes the experience smoother when selecting multiple filters
     let loadingTimer: NodeJS.Timeout | null = null;
@@ -2065,6 +2089,7 @@ const ForecastCollaboration: React.FC = () => {
         .from('products')
         .select('product_id, attr_1, attr_2, attr_3');
 
+
       if (productError) {
         console.error('Error fetching product attributes:', productError);
       }
@@ -2084,13 +2109,13 @@ const ForecastCollaboration: React.FC = () => {
 
       // Try to fetch forecast data using commercial_collaboration_view with error handling
       
-      // OPTIMIZATION: Use more focused date range to improve performance  
+      // OPTIMIZATION: Use 2025 date range only to improve performance and avoid timeouts
       const optimizedDateFrom = selectedDateRange?.from ? 
         selectedDateRange.from.toISOString().split('T')[0] : 
-        '2025-01-01'; // Include more historical data for BY M8 Predict
+        '2025-01-01'; // Focus on 2025 data only to prevent timeouts
       const optimizedDateTo = selectedDateRange?.to ? 
         selectedDateRange.to.toISOString().split('T')[0] : 
-        '2026-12-31';
+        '2025-12-31'; // Focus on 2025 data only to prevent timeouts
 
       let query = (supabase as any)
         .schema('m8_schema')
@@ -2100,7 +2125,7 @@ const ForecastCollaboration: React.FC = () => {
         .lte('postdate', optimizedDateTo)
         .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true })
-        .limit(1000); // Add reasonable limit to prevent runaway queries
+        .limit(2000); // Further reduced limit to improve performance and prevent timeouts
      
       // Also fetch KAM adjustments and PPTO data from commercial_collaboration table
       let kamQuery = (supabase as any)
@@ -2111,7 +2136,7 @@ const ForecastCollaboration: React.FC = () => {
         .lte('postdate', optimizedDateTo)
         .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true })
-        .limit(500); // Smaller limit for KAM data
+        .limit(1000); // Further reduced limit for KAM data to improve performance
 
       // Apply filters to both queries
       if (selectedProduct?.product_id) {
@@ -2413,11 +2438,11 @@ const ForecastCollaboration: React.FC = () => {
               .schema('m8_schema')
               .from('commercial_collaboration')
               .select('customer_node_id,postdate,product_id,location_node_id,commercial_input')
-              .gte('postdate', '2024-01-01') // Reduced date range for fallback
+              .gte('postdate', '2025-01-01') // Reduced date range for fallback
               .lte('postdate', '2025-12-31')
               .order('customer_node_id', { ascending: true })
               .order('postdate', { ascending: true })
-              .limit(500); // Increased limit but still reasonable
+              .limit(300); // Very conservative limit for fallback query
             
             const fallbackResult = await fallbackQuery;
             if (fallbackResult.error) {
@@ -2492,6 +2517,35 @@ const ForecastCollaboration: React.FC = () => {
       // Fetch inventory data for DDI Totales
       const inventoryDataArray = await fetchInventoryData();
 
+
+      // Debug: Check raw data before processing
+      console.log('📊 Raw data before processing:', {
+        totalRecords: data?.length || 0,
+        sampleRecord: data?.[0],
+      });
+      
+      // Check if your specific record is in the data
+      const yourRecord = data?.find(row => 
+        row.product_id === '100083' && 
+        row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de'
+      );
+      if (yourRecord) {
+        console.log('✅ Found your specific record in raw data:', {
+          product_id: yourRecord.product_id,
+          customer_node_id: yourRecord.customer_node_id,
+          postdate: yourRecord.postdate,
+          sm_kam_override: yourRecord.sm_kam_override,
+          actual: yourRecord.actual,
+          forecast: yourRecord.forecast
+        });
+      } else {
+        console.log('❌ Your specific record not found in raw data');
+        // Show what we do have
+        const uniqueProducts = [...new Set(data?.map(r => r.product_id) || [])];
+        const uniqueCustomers = [...new Set(data?.map(r => r.customer_node_id) || [])];
+        console.log('Available products (first 10):', uniqueProducts.slice(0, 10));
+        console.log('Available customers (first 5):', uniqueCustomers.slice(0, 5));
+      }
 
       // Process the data using the new function with KAM and inventory data
       const allCustomersData = processForecastData(data || [], customerNamesMap, selectedDateRange, sellInDataArray, sellOutDataArray, productAttributesMap, kamData || [], inventoryDataArray);
@@ -2612,100 +2666,46 @@ const ForecastCollaboration: React.FC = () => {
   // Automatic data fetching when filters change
   // This provides real-time filtering functionality - only runs when filters are actually applied
   useEffect(() => {
+    // DEBUG: Log component load state
+    console.log('🚀 COMPONENT LOAD: Checking if should fetch data');
+    console.log('📋 Current filters state:', {
+      selectedProduct: selectedProduct,
+      selectedLocation: selectedLocation,
+      selectedCustomer: selectedCustomer,
+      selectedDateRange: selectedDateRange,
+      advancedFilters: advancedFilters
+    });
+    
     // Only fetch data when filters are actually set (not initial null state)
     const hasActiveFilters = selectedProduct !== null || selectedLocation !== null || 
                            selectedCustomer !== null || selectedDateRange !== null || 
                            Object.values(advancedFilters).some(arr => Array.isArray(arr) && arr.length > 0);
     
+    console.log('🔍 Has active filters?', hasActiveFilters);
+    
     if (hasActiveFilters) {
       // Debounce the filter changes to avoid excessive API calls
       const timeoutId = setTimeout(() => {
-
+        console.log('📞 About to call fetchForecastData(true)');
         fetchForecastData(true);
       }, 300); // 300ms debounce to allow multiple filter selections
 
+      return () => clearTimeout(timeoutId);
+    } else {
+      // DEBUG: Load some initial data even without filters to see what's available
+      console.log('🔄 No filters set, loading initial data...');
+      const timeoutId = setTimeout(() => {
+        fetchForecastData(false);
+      }, 500);
       return () => clearTimeout(timeoutId);
     }
   }, [selectedProduct?.product_id, selectedLocation?.location_id, selectedCustomer?.customer_id, selectedDateRange, JSON.stringify(advancedFilters), fetchForecastData]);
 
 
   
-  const calculateTotal = useCallback((field: string) => {
-    // Use filtered customers (already filtered by advanced filters in fetchForecastData)
-    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-      : customers;
-      
-    return customersToUse.reduce((total, customer) => {
-      return total + months.reduce((monthTotal, month) => {
-        const monthData = customer.months[month];
-        return monthTotal + (monthData ? (monthData as Record<string, number>)[field] || 0 : 0);
-      }, 0);
-    }, 0);
-  }, [customers, months, selectedCustomerId]);
 
-  const calculateSalesTrends = useCallback(() => {
-    const currentPeriod = calculateTotal('effective_forecast');
-    const lastYearPeriod = calculateTotal('last_year');
-    
-    let growthPercentage = 0;
-    let trendDirection: 'up' | 'down' | 'neutral' = 'neutral';
-    
-    if (lastYearPeriod > 0) {
-      growthPercentage = ((currentPeriod - lastYearPeriod) / lastYearPeriod) * 100;
-      trendDirection = growthPercentage > 0 ? 'up' : growthPercentage < 0 ? 'down' : 'neutral';
-    }
-    
-    setSalesTrends({
-      currentPeriod,
-      lastYearPeriod,
-      growthPercentage,
-      trendDirection
-    });
-  }, [calculateTotal]);
 
-  // Helper function to check if there's meaningful data to show metrics, trends, and charts
-  const hasDataForMetricsAndCharts = useCallback(() => {
-    if (customers.length === 0) return false;
-    
-    // Calculate key totals
-    const m8PredictTotal = calculateTotal('actual_by_m8');
-    const kamForecastTotal = calculateTotal('kam_forecast_correction');
-    const effectiveForecastTotal = calculateTotal('effective_forecast');
-    const lastYearTotal = calculateTotal('last_year');
-    const sellInTotal = calculateTotal('sell_in_aa');
-    const sellOutTotal = calculateTotal('sell_out_aa');
-    
-    // Check if BY M8 Predict has meaningful current-year-only data
-    const currentYear = new Date().getFullYear();
-    const hasCurrentYearM8Data = customers.some(customer => {
-      return Object.keys(customer.months).some(monthKey => {
-        if (shouldShowValueForYear(monthKey, currentYear-1)) {
-          const monthData = customer.months[monthKey];
-          return monthData && (monthData.actual_by_m8 || 0) > 0;
-        }
-        return false;
-      });
-    });
-    
-    // Check if any of the main metrics have non-zero values
-    const hasMainData = m8PredictTotal > 0 || kamForecastTotal > 0 || effectiveForecastTotal > 0 || 
-                       lastYearTotal > 0 || sellInTotal > 0 || sellOutTotal > 0;
-    
-    // For metrics to show, we need both main data AND current year M8 data
-    // This ensures the metrics section only appears when BY M8 Predict actually has current year values
-    const hasRelevantData = hasMainData && hasCurrentYearM8Data;
-    
-    // Also check if any customer has meaningful values for the general data availability
-    const hasCustomerData = customers.some(customer => customerHasValues(customer));
-    
-    return hasRelevantData || (hasMainData && hasCustomerData);
-  }, [customers, calculateTotal, customerHasValues, shouldShowValueForYear]);
 
-  // Calculate sales trends when filters change
-  useEffect(() => {
-    calculateSalesTrends();
-  }, [customers, selectedCustomerId]);
 
   const handleDoubleClick = useCallback((customerId: string, month: string, currentValue: number) => {
     setEditingCell({ customerId, month });
@@ -2775,7 +2775,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_sales_in_by_marca', {
             marca_names: advancedFilters.marca,
-            date_from: '2023-10-01',
+            date_from: '2025-01-01',
             date_to: '2025-12-31'
           });
 
@@ -2815,7 +2815,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_sales_in_by_product_line', {
             product_line_names: advancedFilters.productLine,
-            date_from: '2023-10-01',
+            date_from: '2025-01-01',
             date_to: '2025-12-31'
           });
 
@@ -2928,7 +2928,8 @@ const ForecastCollaboration: React.FC = () => {
           .from('products')
           .select('product_id')
           .in('subcategory_id', advancedFilters.selectedBrands)
-          .limit(100);
+          .limit(100); // Limit to prevent overload
+          
         if (!marcaError && marcaProducts) {
           productIds = marcaProducts.map(p => p.product_id);
         }
@@ -3553,989 +3554,15 @@ const ForecastCollaboration: React.FC = () => {
       </Card>
 
 
-      {/* Sales Trends Collapsible Panel - Only show when there's meaningful data */}
-      {hasDataForMetricsAndCharts() && (
-        <Collapsible 
-          open={isCollapsibleOpen} 
-          onOpenChange={setIsCollapsibleOpen}
-          className="mb-6"
-        >
-        <Card>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Tendencias de Ventas</CardTitle>
-                {isCollapsibleOpen ? (
-                  <ChevronUp className="h-5 w-5 text-gray-500" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 text-gray-500" />
-                )}
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Current Period Sales */}
-                <Card className="border-l-4 border-l-blue-500">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Ventas Período Actual</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {salesTrends.currentPeriod.toLocaleString('es-MX')}
-                        </p>
-                      </div>
-                      <div className="text-blue-500">
-                        <TrendingUp className="h-8 w-8" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
 
-                {/* Last Year Sales */}
-                <Card className="border-l-4 border-l-gray-500">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Ventas Año Anterior</p>
-                        <p className="text-2xl font-bold text-gray-900">
-                          {salesTrends.lastYearPeriod.toLocaleString('es-MX')}
-                        </p>
-                      </div>
-                      <div className="text-gray-500">
-                        <Minus className="h-8 w-8" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Growth Percentage */}
-                <Card className={`border-l-4 ${
-                  salesTrends.trendDirection === 'up' 
-                    ? 'border-l-green-500' 
-                    : salesTrends.trendDirection === 'down' 
-                    ? 'border-l-red-500' 
-                    : 'border-l-gray-500'
-                }`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">Crecimiento vs Año Anterior</p>
-                        <p className={`text-2xl font-bold ${
-                          salesTrends.trendDirection === 'up' 
-                            ? 'text-green-600' 
-                            : salesTrends.trendDirection === 'down' 
-                            ? 'text-red-600' 
-                            : 'text-gray-600'
-                        }`}>
-                          {salesTrends.growthPercentage.toFixed(1)}%
-                        </p>
-                      </div>
-                      <div className={`${
-                        salesTrends.trendDirection === 'up' 
-                          ? 'text-green-500' 
-                          : salesTrends.trendDirection === 'down' 
-                          ? 'text-red-500' 
-                          : 'text-gray-500'
-                      }`}>
-                        {salesTrends.trendDirection === 'up' ? (
-                          <TrendingUp className="h-8 w-8" />
-                        ) : salesTrends.trendDirection === 'down' ? (
-                          <TrendingDown className="h-8 w-8" />
-                        ) : (
-                          <Minus className="h-8 w-8" />
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-        </Collapsible>
-      )}
-
-      {/* Show message when metrics and charts are hidden due to no data */}
-      {!hasDataForMetricsAndCharts() && customers.length > 0 && (
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">Datos disponibles sin métricas principales</h3>
-              <p className="text-gray-600 mb-4">
-                Los datos están disponibles en la tabla de colaboración, pero las métricas principales (M8 Predict, KAM Forecast, etc.) no tienen valores para mostrar gráficos y tendencias.
-              </p>
-              <div className="text-sm text-gray-500">
-                Las secciones de "Forecast Collaboration Metrics" y "Tendencias de Ventas" se ocultan automáticamente cuando no hay datos de pronóstico disponibles.
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
       
-      {/* Forecast Metrics Card - Only show when there's meaningful data */}
-      {hasDataForMetricsAndCharts() && (
-        <Card className="w-full max-w-full mb-6">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-              Forecast Collaboration Metrics
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 sm:px-6">
-          {/* Mixed Chart with Multiple Y-Axis */}
-          {(() => {
-            // Use filtered customers (already filtered by advanced filters in fetchForecastData)
-            const filteredCustomers = customers;
-            
-            const m8PredictTotal = calculateTotal('actual_by_m8');
-            const kamForecastTotal = calculateTotal('kam_forecast_correction');
-            const effectiveForecastTotal = calculateTotal('effective_forecast');
-            const lastYearTotal = calculateTotal('last_year');
-            
-            // Calculate totals for BY M8 Predict using the same logic as data table
-            // Only calculate these if there's actual current-year M8 data to avoid showing misleading zero-based calculations
-            const currentYear = new Date().getFullYear();
-            const hasRealM8Data = filteredCustomers.some(customer => 
-              Object.keys(customer.months).some(monthKey => {
-                if (shouldShowValueForYear(monthKey, currentYear -1)) {
-                  const monthData = customer.months[monthKey];
-                  return monthData && (monthData.actual_by_m8 || 0) > 0;
-                }
-                return false;
-              })
-            );
-            
-            const m8PredictCajasTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_3', 'Total', 'actual_by_m8') : 0;
-            const m8PredictLitrosTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_1', 'Total', 'actual_by_m8') : 0;
-            const m8PredictPesosTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_2', 'Total', 'actual_by_m8') : 0;
-            
-            // Calculate monthly data for the chart using filtered customers
-            // Note: filteredCustomers is already filtered by advanced filters (marca, productLine, etc.)
-            // via the applyAdvancedFilters function in fetchForecastData
-            const chartData = months.map(month => {
-              const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                ? filteredCustomers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                : filteredCustomers;
-              
-              const lastYear = customersToUse.reduce((sum, customer) => {
-                const monthData = customer.months[month];
-                return sum + (monthData ? (monthData.last_year || 0) : 0);
-              }, 0);
-              
-              const m8Predict = customersToUse.reduce((sum, customer) => {
-                const monthData = customer.months[month];
-                return sum + (monthData ? (monthData.actual_by_m8 || 0) : 0);
-              }, 0);
 
-              return {
-                month,
-                displayMonth: month.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' '),
-                // BY M8 Predict - Using actual_by_m8 (from commercial_collaboration_view.actual)
-                m8Predict,
-                // PCI 26 - Using pci_26 field
-                pci26: customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.pci_26 || 0) : 0);
-                }, 0),
-                // Ajustes KAM - Using kam_forecast_correction
-                kamAdjustments: customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.kam_forecast_correction || 0) : 0);
-                }, 0),
-                // PPTO A + 1 - Using ppto_2026 field
-                pptoA1: customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.ppto_2026 || 0) : 0);
-                }, 0),
-                // DDI Totales - Using inventory_days field
-                ddi: customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.inventory_days || 0) : 0);
-                }, 0),
-                // SI AA - Using sell_in_aa field (only show for year-1/2024 months)
-                sellInAA: shouldShowValueForYear(month, new Date().getFullYear() - 1) ? customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.sell_in_aa || 0) : 0);
-                }, 0) : null,
-                // SI Actual - Using sell_in_aa field (only show for current year/2025 months)
-                sellInActual: shouldShowValueForYear(month, new Date().getFullYear()) ? customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.sell_in_aa || 0) : 0);
-                }, 0) : null,
-                // SO AA - Using sell_out_aa field (only show for year-1/2024 months)
-                sellOutAA: shouldShowValueForYear(month, new Date().getFullYear() - 1) ? customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.sell_out_aa || 0) : 0);
-                }, 0) : null,
-                // SO Actual - Using sell_out_real field (only show for current year/2025 months)
-                sellOutActual: shouldShowValueForYear(month, new Date().getFullYear()) ? customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.sell_out_real || monthData.sell_out_aa || 0) : 0);
-                }, 0) : null,
-                // Legacy fields for backward compatibility
-                kamForecast: customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.kam_forecast_correction || 0) : 0);
-                }, 0),
-                effectiveForecast: customersToUse.reduce((sum, customer) => {
-                  const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.effective_forecast || 0) : 0);
-                }, 0),
-                lastYear
-              };
-            });
-
-            // Find max values for scaling (filtering out null values)
-            const maxForecastValue = Math.max(
-              ...chartData.map(d => Math.max(
-                d.m8Predict, 
-                d.pci26, 
-                d.kamAdjustments, 
-                d.pptoA1, 
-                d.ddi, 
-                ...[d.sellInAA, d.sellOutAA, d.sellInActual, d.sellOutActual].filter(val => val !== null)
-              ))
-            );
-
-
-
-            return (
-              <div className="space-y-6">
-                {/* KPI Summary Card with Real Data */}
-                <div className="w-full max-w-full bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
-                  {/* Top Section - Using BY M8 Predict (actual_by_m8) totals from data table */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-b pb-6">
-                    {/* CAJAS - Using BY M8 Predict (actual_by_m8) with attr_3 for cajas */}
-                    <div className="flex items-center gap-4 sm:border-r sm:pr-4 border-b sm:border-b-0 pb-4 sm:pb-0">
-                      <div className="bg-blue-100 p-3 rounded-full">
-                        <Package className="text-blue-700 w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="text-3xl font-bold text-blue-700">
-                          {m8PredictCajasTotal > 0 ? (m8PredictCajasTotal / 1000000).toFixed(0) + ' M' : '0 M'}
-                        </p>
-                        <p className="text-gray-600 text-sm font-medium">CAJAS</p>
-                        <p className={`text-sm font-semibold mt-1 ${
-                          salesTrends.growthPercentage >= 0 ? 'text-green-600' : 'text-red-500'
-                        }`}>
-                          {salesTrends.growthPercentage >= 0 ? '+' : ''}{salesTrends.growthPercentage.toFixed(1)}% vs AA
-                        </p>
-                     
-                      </div>
-                    </div>
-
-                    {/* LITROS - Using BY M8 Predict (actual_by_m8) with attr_1 for litros */}
-                    <div className="flex items-center gap-4 sm:border-r sm:pr-4 border-b sm:border-b-0 pb-4 sm:pb-0">
-                      <div className="bg-orange-100 p-3 rounded-full">
-                        <Droplet className="text-orange-600 w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="text-3xl font-bold text-orange-600">
-                          {m8PredictLitrosTotal > 0 ? (m8PredictLitrosTotal / 1000000).toFixed(0) + ' M' : '0 M'}
-                        </p>
-                        <p className="text-gray-600 text-sm font-medium">LITROS</p>
-                        <p className={`text-sm font-semibold mt-1 ${
-                          salesTrends.growthPercentage >= 0 ? 'text-green-600' : 'text-red-500'
-                        }`}>
-                          {salesTrends.growthPercentage >= 0 ? '+' : ''}{(salesTrends.growthPercentage * 0.8).toFixed(1)}% vs AA
-                        </p>
-                   
-                      </div>
-                    </div>
-
-                    {/* PESOS - Using BY M8 Predict (actual_by_m8) with attr_2 for pesos */}
-                    <div className="flex items-center gap-4 sm:pl-4">
-                      <div className="bg-green-100 p-3 rounded-full">
-                        <DollarSign className="text-green-700 w-6 h-6" />
-                      </div>
-                      <div>
-                        <p className="text-3xl font-bold text-green-700">
-                          {hasRealM8Data ? (m8PredictPesosTotal / 1000000).toFixed(0) : '0'} M
-                        </p>
-                        <p className="text-gray-600 text-sm font-medium">PESOS</p>
-                        <p className={`text-sm font-semibold mt-1 ${
-                          salesTrends.growthPercentage >= 0 ? 'text-green-600' : 'text-red-500'
-                        }`}>
-                          {salesTrends.growthPercentage >= 0 ? '+' : ''}{(salesTrends.growthPercentage * 0.9).toFixed(1)}% vs AA
-                        </p>
-                       
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bottom Table - Quarterly Breakdown */}
-                  <div className="mt-6 w-full overflow-x-auto">
-                    <table className="w-full min-w-[600px] text-center border-collapse">
-                      <thead>
-                        <tr className="bg-blue-900 text-white text-sm">
-                          <th className="py-2">Q1</th>
-                          <th className="py-2">Q2</th>
-                          <th className="py-2">Q3</th>
-                          <th className="py-2">Q4</th>
-                          <th className="py-2">TOTAL</th>
-                        </tr>
-                      </thead>
-                      <tbody className="text-gray-700">
-                        {/* Effective Forecast Row */}
-                        <tr>
-                          <td className="py-2">
-                            {chartData.length >= 3 ? (chartData.slice(0, 3).reduce((sum, data) => sum + data.effectiveForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 6 ? (chartData.slice(3, 6).reduce((sum, data) => sum + data.effectiveForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 9 ? (chartData.slice(6, 9).reduce((sum, data) => sum + data.effectiveForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 12 ? (chartData.slice(9, 12).reduce((sum, data) => sum + data.effectiveForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2 font-semibold">
-                            {(effectiveForecastTotal / 1000).toFixed(0)}
-                          </td>
-                        </tr>
-                        {/* KAM Forecast Row */}
-                        <tr>
-                          <td className="py-2">
-                            {chartData.length >= 3 ? (chartData.slice(0, 3).reduce((sum, data) => sum + data.kamForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 6 ? (chartData.slice(3, 6).reduce((sum, data) => sum + data.kamForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 9 ? (chartData.slice(6, 9).reduce((sum, data) => sum + data.kamForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 12 ? (chartData.slice(9, 12).reduce((sum, data) => sum + data.kamForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2 font-semibold">
-                            {(kamForecastTotal / 1000).toFixed(0)}
-                          </td>
-                        </tr>
-                        {/* Last Year Row */}
-                        <tr>
-                          <td className="py-2">
-                            {chartData.length >= 3 ? (chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 6 ? (chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 9 ? (chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 12 ? (chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2 font-semibold">
-                            {(lastYearTotal / 1000).toFixed(0)}
-                          </td>
-                        </tr>
-                        {/* Growth Percentage Row */}
-                        <tr className="text-sm">
-                          <td className="py-2">
-                            <div className={`flex items-center justify-center gap-1 ${
-                              chartData.length >= 3 && chartData.slice(0, 3).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                              chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0) ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {chartData.length >= 3 && chartData.slice(0, 3).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                               chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0) ? 
-                               <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                              {chartData.length >= 3 ? ((chartData.slice(0, 3).reduce((sum, data) => sum + data.effectiveForecast, 0) - 
-                                 chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0)) /
-                                 Math.max(chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0), 1) * 100).toFixed(1) : '0.0'}%
-                            </div>
-                          </td>
-                          <td className="py-2">
-                            <div className={`flex items-center justify-center gap-1 ${
-                              chartData.length >= 6 && chartData.slice(3, 6).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                              chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0) ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {chartData.length >= 6 && chartData.slice(3, 6).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                               chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0) ? 
-                               <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                              {chartData.length >= 6 ? ((chartData.slice(3, 6).reduce((sum, data) => sum + data.effectiveForecast, 0) - 
-                                 chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0)) /
-                                 Math.max(chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0), 1) * 100).toFixed(1) : '0.0'}%
-                            </div>
-                          </td>
-                          <td className="py-2">
-                            <div className={`flex items-center justify-center gap-1 ${
-                              chartData.length >= 9 && chartData.slice(6, 9).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                              chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0) ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {chartData.length >= 9 && chartData.slice(6, 9).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                               chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0) ? 
-                               <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                              {chartData.length >= 9 ? ((chartData.slice(6, 9).reduce((sum, data) => sum + data.effectiveForecast, 0) - 
-                                 chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0)) /
-                                 Math.max(chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0), 1) * 100).toFixed(1) : '0.0'}%
-                            </div>
-                          </td>
-                          <td className="py-2">
-                            <div className={`flex items-center justify-center gap-1 ${
-                              chartData.length >= 12 && chartData.slice(9, 12).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                              chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0) ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {chartData.length >= 12 && chartData.slice(9, 12).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                               chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0) ? 
-                               <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                              {chartData.length >= 12 ? ((chartData.slice(9, 12).reduce((sum, data) => sum + data.effectiveForecast, 0) - 
-                                 chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0)) /
-                                 Math.max(chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0), 1) * 100).toFixed(1) : '0.0'}%
-                            </div>
-                          </td>
-                          <td className={`py-2 font-semibold ${
-                            salesTrends.growthPercentage >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {salesTrends.growthPercentage >= 0 ? '+' : ''}{salesTrends.growthPercentage.toFixed(1)}%
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Summary Cards */}
-                <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-orange-700">M8.predict</div>
-                      <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                    </div>
-                    <div className="text-xl font-bold text-orange-800">
-                      {m8PredictTotal.toLocaleString('es-MX')}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-purple-700">KAM Forecast</div>
-                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                    </div>
-                    <div className="text-xl font-bold text-purple-800">
-                      {kamForecastTotal.toLocaleString('es-MX')}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-green-700">Effective</div>
-                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    </div>
-                    <div className="text-xl font-bold text-green-800">
-                      {effectiveForecastTotal.toLocaleString('es-MX')}
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-blue-700">Growth vs LY</div>
-                      <div className={`h-3 w-3 rounded-full ${
-                        salesTrends.trendDirection === 'up' ? 'bg-green-500' : 
-                        salesTrends.trendDirection === 'down' ? 'bg-red-500' : 'bg-gray-500'
-                      }`}></div>
-                    </div>
-                    <div className={`text-xl font-bold ${
-                      salesTrends.trendDirection === 'up' ? 'text-green-600' : 
-                      salesTrends.trendDirection === 'down' ? 'text-red-600' : 'text-gray-600'
-                    }`}>
-                      {salesTrends.growthPercentage >= 0 ? '+' : ''}{salesTrends.growthPercentage.toFixed(1)}%
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recharts ComposedChart with Multiple Y-Axis */}
-                <div className="w-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 p-2 sm:p-4 lg:p-6 rounded-xl border border-slate-200 shadow-sm">
-                  <div className="mb-3 sm:mb-4 lg:mb-6">
-                    <div>
-                      <h3 className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 mb-1">Forecast Analysis with Multiple Y-Axis</h3>
-                      <p className="text-xs sm:text-sm text-gray-600">
-                        <span className="hidden md:inline">Bars & Area: Valores absolutos (Left) | Line: Crecimiento vs año anterior % (Right)</span>
-                        <span className="md:hidden">Valores absolutos y crecimiento</span>
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Recharts ComposedChart */}
-                  <div className="w-full bg-white rounded-lg p-1 sm:p-2 lg:p-4 border border-gray-200 overflow-x-auto">
-                    <div className="w-full min-w-[320px] sm:min-w-[600px] lg:min-w-[800px]" style={{ minHeight: '250px' }}>
-                      <ComposedChart
-                        width={
-                          typeof window !== 'undefined' 
-                            ? Math.max(
-                                Math.min(window.innerWidth - 80, window.innerWidth * 0.95), 
-                                window.innerWidth < 640 ? 320 : window.innerWidth < 1024 ? 600 : 800
-                              )
-                            : 800
-                        }
-                        height={
-                          typeof window !== 'undefined' 
-                            ? window.innerWidth < 640 ? 280 : window.innerWidth < 1024 ? 350 : 450
-                            : 400
-                        }
-                        data={chartData}
-                        margin={{
-                          top: typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 20,
-                          right: typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : window.innerWidth < 1024 ? 25 : 40,
-                          bottom: typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : 20,
-                          left: typeof window !== 'undefined' && window.innerWidth < 640 ? 15 : window.innerWidth < 1024 ? 25 : 40,
-                        }}
-                      >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis 
-                        dataKey="displayMonth" 
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ 
-                          fontSize: typeof window !== 'undefined' 
-                            ? window.innerWidth < 640 ? 8 : window.innerWidth < 1024 ? 10 : 12
-                            : 12, 
-                          fill: '#64748b' 
-                        }}
-                        angle={typeof window !== 'undefined' 
-                          ? window.innerWidth < 640 ? -75 : window.innerWidth < 1024 ? -60 : -45
-                          : -45
-                        }
-                        textAnchor="end"
-                        height={typeof window !== 'undefined' 
-                          ? window.innerWidth < 640 ? 80 : window.innerWidth < 1024 ? 70 : 60
-                          : 60
-                        }
-                      />
-                      
-                      {/* Left Y-Axis for Values */}
-                      <YAxis 
-                        yAxisId="left"
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ 
-                          fontSize: typeof window !== 'undefined' 
-                            ? window.innerWidth < 640 ? 8 : window.innerWidth < 1024 ? 10 : 12
-                            : 12, 
-                          fill: '#3b82f6' 
-                        }}
-                        tickFormatter={(value) => value.toLocaleString('es-MX', { notation: 'compact' })}
-                        label={{ 
-                          value: typeof window !== 'undefined' 
-                            ? window.innerWidth < 640 ? '$' : window.innerWidth < 1024 ? 'MX$' : 'Values (MX$)'
-                            : 'Values (MX$)', 
-                          angle: -90, 
-                          position: 'insideLeft', 
-                          style: { 
-                            textAnchor: 'middle', 
-                            fill: '#3b82f6', 
-                            fontSize: typeof window !== 'undefined' 
-                              ? window.innerWidth < 640 ? '8px' : window.innerWidth < 1024 ? '10px' : '12px'
-                              : '12px', 
-                            fontWeight: 'bold' 
-                          } 
-                        }}
-                      />
-                      
-
-                      
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px',
-                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
-                          fontSize: '12px'
-                        }}
-                        labelStyle={{ color: '#1f2937', fontWeight: 'bold' }}
-                        formatter={(value, name) => [
-                          typeof value === 'number' ? value.toLocaleString('es-MX') : value,
-                          name
-                        ]}
-                      />
-                      
-
-
-
-
-                      {/* Area Chart for M8.predict */}
-                      {chartSeriesVisible.m8PredictArea && (
-                        <Area
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="m8Predict"
-                          stroke={chartSeriesColors.m8PredictArea}
-                          fill={`${chartSeriesColors.m8PredictArea}50`}
-                          strokeWidth={2}
-                          fillOpacity={0.4}
-                          name="BY M8 Predict"
-                        />
-                      )}
-
-                      {/* Area Chart for PCI 26 */}
-                      {chartSeriesVisible.pci26Area && (
-                        <Area
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="pci26"
-                          stroke={chartSeriesColors.pci26Area}
-                          fill={`${chartSeriesColors.pci26Area}50`}
-                          strokeWidth={2}
-                          fillOpacity={0.4}
-                          name="PCI Actual"
-                        />
-                      )}
-
-                      {/* Area Chart for Ajustes del KAM */}
-                      {chartSeriesVisible.kamAdjustmentsArea && (
-                        <Area
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="kamAdjustments"
-                          stroke={chartSeriesColors.kamAdjustmentsArea}
-                          fill={`${chartSeriesColors.kamAdjustmentsArea}50`}
-                          strokeWidth={2}
-                          fillOpacity={0.4}
-                          name="Ajustes KAM"
-                        />
-                      )}
-
-                      {/* Area Chart for PPTO A + 1 */}
-                      {chartSeriesVisible.pptoA1Area && (
-                        <Area
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="pptoA1"
-                          stroke={chartSeriesColors.pptoA1Area}
-                          fill={`${chartSeriesColors.pptoA1Area}50`}
-                          strokeWidth={2}
-                          fillOpacity={0.4}
-                          name={`PPTO ${new Date().getFullYear() + 1}`}
-                        />
-                      )}
-
-
-
-                      {/* Bar Chart for DDI Totales (Días de inventario) */}
-                      {chartSeriesVisible.ddiBar && (
-                        <Bar
-                          yAxisId="left"
-                          dataKey="ddi"
-                          fill={chartSeriesColors.ddiBar}
-                          name="DDI Totales"
-                          radius={[2, 2, 0, 0]}
-                          opacity={0.7}
-                        />
-                      )}
-
-
-
-                      {/* Sell-In AA Line (continuous) */}
-                      {chartSeriesVisible.sellInLine && (
-                        <Line
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="sellInAA"
-                          stroke={chartSeriesColors.sellInLine}
-                          strokeWidth={2}
-                          connectNulls={false}
-                          dot={{ 
-                            fill: chartSeriesColors.sellInLine, 
-                            strokeWidth: 2, 
-                            r: 4 
-                          }}
-                          activeDot={{ 
-                            r: 6, 
-                            fill: chartSeriesColors.sellInLine
-                          }}
-                          name="SI AA"
-                        />
-                      )}
-
-                      {/* Sell-In Actual Line (continuous) */}
-                      {chartSeriesVisible.sellInActualLine && (
-                        <Line
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="sellInActual"
-                          stroke={chartSeriesColors.sellInActualLine}
-                          strokeWidth={2}
-                          connectNulls={false}
-                          dot={{ 
-                            fill: chartSeriesColors.sellInActualLine, 
-                            strokeWidth: 2, 
-                            r: 4 
-                          }}
-                          activeDot={{ 
-                            r: 6, 
-                            fill: chartSeriesColors.sellInActualLine
-                          }}
-                          name="SI Actual"
-                        />
-                      )}
-
-                      {/* Sell-Out AA Line (dotted) */}
-                      {chartSeriesVisible.sellOutAALine && (
-                        <Line
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="sellOutAA"
-                          stroke={chartSeriesColors.sellOutAALine}
-                          strokeWidth={2}
-                          strokeDasharray="5 5"
-                          connectNulls={false}
-                          dot={{ 
-                            fill: chartSeriesColors.sellOutAALine, 
-                            strokeWidth: 2, 
-                            r: 4 
-                          }}
-                          activeDot={{ 
-                            r: 6, 
-                            fill: chartSeriesColors.sellOutAALine
-                          }}
-                          name="SO AA"
-                        />
-                      )}
-
-                      {/* Sell-Out Actual Line (dotted) */}
-                      {chartSeriesVisible.sellOutActualLine && (
-                        <Line
-                          yAxisId="left"
-                          type="monotone"
-                          dataKey="sellOutActual"
-                          stroke={chartSeriesColors.sellOutActualLine}
-                          strokeWidth={2}
-                          strokeDasharray="5 5"
-                          connectNulls={false}
-                          dot={{ 
-                            fill: chartSeriesColors.sellOutActualLine, 
-                            strokeWidth: 2, 
-                            r: 4 
-                          }}
-                          activeDot={{ 
-                            r: 6, 
-                            fill: chartSeriesColors.sellOutActualLine
-                          }}
-                          name="SO Actual"
-                        />
-                      )}
-
-
-                      </ComposedChart>
-                    </div>
-                  </div>
-
-                  {/* Legend-style Series Toggle - Similar to Demand Forecast */}
-                  <div className="mt-4 pt-4 border-t border-gray-200 w-full">
-                    <div className="flex flex-col gap-4">
-                      {/* All Control and Series Buttons in Single Container */}
-                      <div className="flex flex-wrap justify-center gap-1 sm:gap-2">
-                        {/* Control Buttons */}
-                        <button
-                          onClick={() => {
-                            // Hide all series
-                            Object.keys(chartSeriesVisible).forEach(seriesKey => {
-                              setChartSeriesVisible(prev => ({ ...prev, [seriesKey]: false }));
-                            });
-                          }}
-                          className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 rounded-md transition-all duration-200 shadow-sm"
-                        >
-                          <div 
-                            className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                            style={{ 
-                              backgroundColor: '#ef4444'
-                            }}
-                          ></div>
-                          <span>
-                            Quitar Todos
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            // Show all series
-                            Object.keys(chartSeriesVisible).forEach(seriesKey => {
-                              setChartSeriesVisible(prev => ({ ...prev, [seriesKey]: true }));
-                            });
-                          }}
-                          className="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 hover:bg-green-100 rounded-md transition-all duration-200 shadow-sm"
-                        >
-                          <div 
-                            className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                            style={{ 
-                              backgroundColor: '#22c55e'
-                            }}
-                          ></div>
-                          <span>
-                            Mostrar Todos
-                          </span>
-                        </button>
-                        
-                        {/* Series Legend */}
-                        {/* All Series with Smaller Circle Indicators */}
-                        <button
-                        onClick={() => toggleSeriesVisibility('m8PredictArea')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.m8PredictArea ? chartSeriesColors.m8PredictArea : '#e5e7eb',
-                            opacity: chartSeriesVisible.m8PredictArea ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.m8PredictArea ? 'text-gray-700' : 'text-gray-400'}`}>
-                          BY M8 Predict
-                        </span>
-                      </button>
-                      
-                      <button
-                        onClick={() => toggleSeriesVisibility('pci26Area')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.pci26Area ? chartSeriesColors.pci26Area : '#e5e7eb',
-                            opacity: chartSeriesVisible.pci26Area ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.pci26Area ? 'text-gray-700' : 'text-gray-400'}`}>
-                          PCI Actual
-                        </span>
-                      </button>
-                      
-                      <button
-                        onClick={() => toggleSeriesVisibility('kamAdjustmentsArea')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.kamAdjustmentsArea ? chartSeriesColors.kamAdjustmentsArea : '#e5e7eb',
-                            opacity: chartSeriesVisible.kamAdjustmentsArea ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.kamAdjustmentsArea ? 'text-gray-700' : 'text-gray-400'}`}>
-                          Ajustes KAM
-                        </span>
-                      </button>
-                      
-                      <button
-                        onClick={() => toggleSeriesVisibility('pptoA1Area')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.pptoA1Area ? chartSeriesColors.pptoA1Area : '#e5e7eb',
-                            opacity: chartSeriesVisible.pptoA1Area ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.pptoA1Area ? 'text-gray-700' : 'text-gray-400'}`}>
-                          PPTO {new Date().getFullYear() + 1}
-                        </span>
-                      </button>
-
-                      <button
-                        onClick={() => toggleSeriesVisibility('sellInLine')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.sellInLine ? chartSeriesColors.sellInLine : '#e5e7eb',
-                            opacity: chartSeriesVisible.sellInLine ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.sellInLine ? 'text-gray-700' : 'text-gray-400'}`}>
-                          SI AA
-                        </span>
-                      </button>
-                      
-                      <button
-                        onClick={() => toggleSeriesVisibility('sellInActualLine')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.sellInActualLine ? chartSeriesColors.sellInActualLine : '#e5e7eb',
-                            opacity: chartSeriesVisible.sellInActualLine ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.sellInActualLine ? 'text-gray-700' : 'text-gray-400'}`}>
-                          SI Actual
-                        </span>
-                      </button>
-                      
-                      <button
-                        onClick={() => toggleSeriesVisibility('sellOutAALine')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.sellOutAALine ? chartSeriesColors.sellOutAALine : '#e5e7eb',
-                            opacity: chartSeriesVisible.sellOutAALine ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.sellOutAALine ? 'text-gray-700' : 'text-gray-400'}`}>
-                          SO AA
-                        </span>
-                      </button>
-                      
-                      <button
-                        onClick={() => toggleSeriesVisibility('sellOutActualLine')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.sellOutActualLine ? chartSeriesColors.sellOutActualLine : '#e5e7eb',
-                            opacity: chartSeriesVisible.sellOutActualLine ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.sellOutActualLine ? 'text-gray-700' : 'text-gray-400'}`}>
-                          SO Actual
-                        </span>
-                      </button>
-
-                      <button
-                        onClick={() => toggleSeriesVisibility('ddiBar')}
-                        className="flex items-center gap-1.5 px-2 py-1.5 text-xs hover:bg-gray-100 rounded-md border border-gray-200 transition-all duration-200 shadow-sm"
-                      >
-                        <div 
-                          className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                          style={{ 
-                            backgroundColor: chartSeriesVisible.ddiBar ? chartSeriesColors.ddiBar : '#e5e7eb',
-                            opacity: chartSeriesVisible.ddiBar ? 1 : 0.4
-                          }}
-                        ></div>
-                        <span className={`font-medium ${chartSeriesVisible.ddiBar ? 'text-gray-700' : 'text-gray-400'}`}>
-                          DDI Totales
-                        </span>
-                      </button>
-
-
-                      </div>
-                    </div>
-                  </div>
-                  
-                </div>
-              </div>
-            );
-          })()}
-
-         
-        </CardContent>
-        </Card>
-      )}
 
       <Card className="w-full max-w-full mb-6">
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-base sm:text-lg">
-              Forecast Collaboration Data
+              Forecast Collaboration
               {(selectedProduct || selectedLocation || selectedCustomer) ? (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
                   - Filtrado por: 
@@ -4556,6 +3583,9 @@ const ForecastCollaboration: React.FC = () => {
                   )}
                 </span>
               ) : null}
+              <div className="text-xs text-gray-500 mt-1">
+                Loaded {customers.length} customer-product combinations
+              </div>
             </CardTitle>
             {saving && (
               <div className="flex items-center space-x-2 text-sm text-blue-600">
@@ -4570,9 +3600,14 @@ const ForecastCollaboration: React.FC = () => {
                 ℹ️
               </div>
               <div className="text-sm text-blue-800">
-                <strong>Ajustes del KAM:</strong> Haz doble clic en las celdas de "Ajustes del KAM" ✏️ para editarlas. 
-                Los cambios se guardan automáticamente en la base de datos. 
-                Al editar el total, los valores se distribuyen proporcionalmente entre todos los clientes.
+                <strong>Data Info:</strong> 
+                <div>• KAM A+1 shows <code>sm_kam_override</code> values from commercial_collaboration</div>
+                <div>• M8 Predict shows <code>actual</code> values from commercial_collaboration_view</div>
+                <div>• M8 Predict is filtered to show 2024 data (year-1)</div>
+                <div>• KAM A+1 shows all data regardless of year</div>
+                <div className="mt-2">
+                  <strong>Debug:</strong> Check browser console for detailed data logs when data is loaded
+                </div>
               </div>
             </div>
           </div>
@@ -4620,10 +3655,10 @@ const ForecastCollaboration: React.FC = () => {
             ) : (
               /* Grid Container - Only show when filters are active */
               <div 
-                className="forecast-grid min-w-[1800px]" 
+                className="forecast-grid min-w-[1200px]" 
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: `150px 120px 120px 180px repeat(12, 90px) 270px 270px 270px`,
+                  gridTemplateColumns: `150px 120px 120px 180px repeat(12, 90px) 270px`,
                   gap: '1px',
                   backgroundColor: '#d1d5db' // Border color
                 }}
@@ -4652,7 +3687,7 @@ const ForecastCollaboration: React.FC = () => {
                 </div>
               ))}
               
-              {/* New summary columns */}
+              {/* Cajas summary column only */}
               <div className="sticky top-0 bg-purple-200 border-gray-300 p-2 text-center font-semibold text-xs z-10">
                 <div className="grid grid-cols-3 gap-2">
                   <div className="text-center">YTD</div>
@@ -4660,22 +3695,6 @@ const ForecastCollaboration: React.FC = () => {
                   <div className="text-center">Total</div>
                 </div>
                 <div className="text-center mt-1 font-bold">Cajas</div>
-              </div>
-              <div className="sticky top-0 bg-green-200 border-gray-300 p-2 text-center font-semibold text-xs z-10">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">YTD</div>
-                  <div className="text-center">YTG</div>
-                  <div className="text-center">Total</div>
-                </div>
-                <div className="text-center mt-1 font-bold">Litros</div>
-              </div>
-              <div className="sticky top-0 bg-orange-200 border-gray-300 p-2 text-center font-semibold text-xs z-10">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">YTD</div>
-                  <div className="text-center">YTG</div>
-                  <div className="text-center">Total</div>
-                </div>
-                <div className="text-center mt-1 font-bold">Pesos</div>
               </div>
               
               {/* Grid Body Content - properly structured */}
@@ -4780,7 +3799,7 @@ const ForecastCollaboration: React.FC = () => {
                 </div> */}
 
                
-                {/* Row 1: SI VENTA 2024 */}
+                {/* Row 1: Customer Header */}
                 <div className="contents">
                   <div className="bg-gray-100 p-2 font-bold text-sm">
                     {(() => {
@@ -4802,348 +3821,30 @@ const ForecastCollaboration: React.FC = () => {
                       return selectedProduct?.product_id ? selectedProduct.product_id : 'Todos los productos';
                     })()}
                   </div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    SI A-2 
+                  <div className="bg-gray-100 p-1 text-xs">
+                    
                   </div>
-                    <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    Sell-in {new Date().getFullYear() - 2}
-                    </div>
+                  <div className="bg-gray-100 p-1 text-xs">
+                    
+                  </div>
+                  {Array.from({ length: 12 }, (_, index) => (
+                    <div key={`header-${index}`} className="bg-gray-100 p-1 text-xs"></div>
+                  ))}
                   
-                      {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({ length: 12 }, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          // Only show values for year-2 (2023) months
-                          const shouldShowValue = shouldShowValueForYear(month, new Date().getFullYear() - 2);
-                          const totalValue = shouldShowValue ? customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.sell_in_aa : 0);
-                          }, 0) : 0;
-                          
-                          return (
-                            <div key={`all-${month}-sell-in-aa`} 
-                                 className="p-1 text-right text-xs bg-[#e8f4fd]">
-                              {shouldShowValue ? formatValue(totalValue) : ''}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "Sell in 23")}
-                      </>
-               
-                    );
-                  })()}
-                </div>
-
-                {/* Row 2: SI 2025 */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    SI  AA
-                  </div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                     Sell-in {new Date().getFullYear() -1}
-                  </div>
-                 
-                      {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({ length: 12 }, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          // Only show values for year-1 (2024) months
-                          const shouldShowValue = shouldShowValueForYear(month, new Date().getFullYear() - 1);
-                          const totalValue = shouldShowValue ? customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.sell_in_aa : 0);
-                          }, 0) : 0;
-                          
-                          return (
-                            <div key={`all-${month}-sell-in-aa`} 
-                                 className="p-1 text-right text-xs bg-[#e8f4fd]">
-                              {shouldShowValue ? formatValue(totalValue) : ''}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "Sell in AA")}
-                   
-               
-                       
-                      </>
-                    );
-                  })()}
-                </div>
-
-
-
-                {/* Row 3: SI 2025 */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    SI Actual
-                  </div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                     Sell-in {new Date().getFullYear() }
-                  </div>
-                 
-                      {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({ length: 12 }, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          // Only show values for current year (2025) months
-                          const shouldShowValue = shouldShowValueForYear(month, new Date().getFullYear());
-                          const totalValue = shouldShowValue ? customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.sell_in_actual : 0);
-                          }, 0) : 0;
-                          
-                          return (
-                            <div key={`all-${month}-sell-in-aa`} 
-                                 className="p-1 text-right text-xs bg-[#e8f4fd]">
-                              {shouldShowValue ? formatValue(totalValue) : ''}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "Sell in Actual")}
-                   
-               
-                       
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* Row 4: SO 2024 */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    SO AA Total
-                  </div>
-                    <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    Sell-out {new Date().getFullYear() - 1}
-                    </div>
-                   {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({length: 12}, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          const totalValue = customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.sell_out_aa : 0);
-                          }, 0);
-                          
-                          return (
-                            <div key={`all-${month}-sell-out-aa`} 
-                                 className="p-1 text-right text-xs bg-[#fef3c7]">
-                              {formatValue(totalValue)}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "Sell Out AA")}
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* Row 19: SO 2025 */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    SO Actual
-                  </div>
-                    <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    Sell-out {new Date().getFullYear()}
-                    </div>
-                     {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({length: 12}, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          // Only show values for current year (2025) months
-                          const shouldShowValue = shouldShowValueForYear(month, new Date().getFullYear());
-                          const totalValue = shouldShowValue ? customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.sell_out_actual : 0);
-                          }, 0) : 0;
-                          
-                          return (
-                            <div key={`all-${month}-sell-out-actual`} 
-                                 className="p-1 text-right text-xs bg-[#fef3c7]"
-                                 style={{ color: shouldShowValue ? '#374151' : '#d1d5db' }}>
-                              {shouldShowValue ? formatValue(totalValue) : ''}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "Sell Out Actual")}
-                      </>
-                    );
-                  })()}
-                  
-                  
-                </div>
-
-                {/* Row 20: DDI Totales */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    DDI Totales !
-                  </div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    Días de inventario totales
-                  </div>
-                  {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({length: 12}, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          const totalValue = customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? (monthData.ddi_totales || monthData.inventory_days || 0) : 0);
-                          }, 0);
-                          
-                          return (
-                            <div key={`all-${month}-inventory-days`} 
-                                 className={`p-1 text-right text-xs ${
-                                   month.includes('24') ? 'bg-green-100' : 'bg-green-50'
-                                 }`}>
-                              {formatValue(totalValue)}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "DDI Totales")}
-                      </>
-                    );
-                  })()}
-                </div>
-
-                {/* Row 25: PPTO 2025 (Actual Budget) */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    PPTO Actual
-                  </div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    Budget {new Date().getFullYear()} (Initial Sales Plan)
-                  </div>
-                  {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({length: 12}, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          // Only show values for 2025 months
-                          const shouldShowValue = shouldShowValueForYear(month, 2025);
-                          const totalValue = shouldShowValue ? customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.ppto_2025 || 0 : 0);
-                          }, 0) : 0;
-                          
-                          return (
-                            <div key={`all-${month}-ppto-2025`} 
-                                 className="p-1 text-right text-xs bg-[#dcfce7]"
-                                 style={{ color: shouldShowValue ? '#374151' : '#d1d5db' }}>
-                              {shouldShowValue ? formatValue(totalValue) : ''}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "PPTO 2025")}
-                      </>
-                    );
-                  })()}
-                </div>
-
-            
-                {/* Row 26: PPTO 2026 */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    PPTO A + 1
-                  </div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    Budget {new Date().getFullYear() +1} (Initial Sales Plan)
-                  </div>
-                  {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({length: 12}, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          // Only show values for 2026 months
-                          const shouldShowValue = shouldShowValueForYear(month, 2026);
-                          const totalValue = shouldShowValue ? customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.ppto_2026 || 0 : 0);
-                          }, 0) : 0;
-                          
-                          return (
-                            <div key={`all-${month}-ppto-2026`} 
-                                 className="p-1 text-right text-xs bg-[#dcfce7]"
-                                 style={{ color: shouldShowValue ? '#374151' : '#d1d5db' }}>
-                              {shouldShowValue ? formatValue(totalValue) : ''}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "PPTO 2026")}
-                      </>
-                    );
-                  })()}
+                  {/* Summary columns placeholder */}
+                  <div className="bg-gray-100 p-1 text-xs"></div>
                 </div>
 
              
-                {/* Row 31: KAM 26 */}
+                {/* Row 2: KAM A+1 (Non-editable) */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
                   <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    KAM A + 1 ✏️!
+                    KAM A + 1
                   </div>
                   <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    KAM {new Date().getFullYear() + 1} ✏️
+                    KAM {new Date().getFullYear() + 1}
                   </div>
                   {Array.from({length: 12}, (_, index) => {
                     const month = getMonthKeyForIndex(index);
@@ -5151,50 +3852,25 @@ const ForecastCollaboration: React.FC = () => {
                       ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                       : customers;
                     
-                    // Show the original forecast commercial_input values from forecast_data
-                    const totalForecastCommercialInput = customersToUse.reduce((sum, customer) => {
-                      const monthData = customer.months[month];
-                      return sum + (monthData ? monthData.forecast_commercial_input : 0);
-                    }, 0);
-                    
-                    // For display, use the current KAM adjustment values
+                    // For display, use the current KAM adjustment values (non-editable) - show all data regardless of year
                     const totalKamValue = customersToUse.reduce((sum, customer) => {
                       const monthData = customer.months[month];
                       return sum + (monthData ? monthData.kam_forecast_correction : 0);
                     }, 0);
-
-                    // Check if this cell is being edited (use 'all' as customerId for aggregate editing)
-                    const isEditing = inlineEditingCell?.customerId === 'all' && inlineEditingCell?.month === month;
                     
                     return (
                       <div 
                         key={`all-${month}-kam-adjustments`} 
-                        className={`p-1 text-right text-xs cursor-pointer hover:bg-blue-200 transition-colors ${
+                        className={`p-1 text-right text-xs ${
                           month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
                         }`}
-                        onDoubleClick={() => handleInlineEditStart('all', month, totalKamValue)}
-                        title={`Total KAM Adjustments: ${totalKamValue.toLocaleString('es-MX')} | Double-click to edit and distribute across ${customersToUse.length} customer-product combinations`}
+                        title={`Total KAM Value: ${totalKamValue.toLocaleString('es-MX')} (Read-only)`}
                       >
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={inlineEditingValue}
-                            onChange={(e) => setInlineEditingValue(e.target.value)}
-                            onBlur={() => handleInlineEditSave('all', month)}
-                            onKeyPress={(e) => handleInlineKeyPress(e, 'all', month)}
-                            className="w-full bg-white border border-blue-500 rounded px-1 py-0 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-300"
-                            autoFocus
-                            disabled={saving}
-                          />
-                        ) : (
-                          <div className="space-y-1">
-                            <div className="inline-flex items-center gap-1 font-medium">
-                              {totalKamValue ? totalKamValue.toLocaleString('es-MX') : '0'}
-                              {totalKamValue > 0 && <span className="text-blue-600 opacity-75">✏️</span>}
-                              <span className="text-blue-600 opacity-75">�</span>
-                            </div>
+                        <div className="space-y-1">
+                          <div className="inline-flex items-center gap-1 font-medium">
+                            {totalKamValue ? totalKamValue.toLocaleString('es-MX') : '0'}
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })}
@@ -5202,11 +3878,11 @@ const ForecastCollaboration: React.FC = () => {
                   {renderSummaryColumns(
                     selectedCustomerId && selectedCustomerId !== 'all' 
                       ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers
+                      : customers, "KAM A + 1"
                   )}
                 </div>
 
-                {/* Row 32: BY M8 Predict - Using actual_by_m8 (from commercial_collaboration_view.actual) */}
+                {/* Row 3: M8 Predict */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
@@ -5215,7 +3891,6 @@ const ForecastCollaboration: React.FC = () => {
                   </div>
                   <div className="bg-[#fef3c7] p-1 text-xs z-10">
                      M8 forecast {new Date().getFullYear() + 1}
-                   
                   </div>
                   
                    {(() => {
@@ -5224,13 +3899,12 @@ const ForecastCollaboration: React.FC = () => {
                       : customers;
                     
                     return (
-                      
-                          <>
+                      <>
                         {Array.from({ length: 12 }, (_, index) => {
                           const month = getMonthKeyForIndex(index);
-                          // BY M8 Predict - Show values for current year (2025)
-                          const shouldShow = shouldShowValueForYear(month, new Date().getFullYear()-1);
-
+                          // BY M8 Predict - Show values for year-1 (2025) to match individual customer view
+                          const shouldShow = shouldShowValueForYear(month, new Date().getFullYear());
+                          console.log("BY M8 Predict - Month:", month, "Should Show:", shouldShow);
                           const totalValue = shouldShow ? customersToUse.reduce((sum, customer) => {
                             const monthData = customer.months[month];
                             return sum + (monthData ? monthData.actual_by_m8 : 0);
@@ -5242,29 +3916,26 @@ const ForecastCollaboration: React.FC = () => {
                                    index === 11 ? 'bg-yellow-100' : 'bg-green-100'
                                  } ${!shouldShow ? 'opacity-50' : ''}`}>
                               {shouldShow ? formatValue(totalValue) : '-'}
-                              
                             </div>
                           );
                         })}
                         
-                        
-                        {/* Summary columns for BY M8 Predict - now correctly filtered to current year only */}
+                        {/* Summary columns for BY M8 Predict */}
                         {renderSummaryColumns(customersToUse, "BY M8 Predict")}
                       </>
                     );
                   })()}
                 </div>
 
-             
-                {/* Row 34: PCI  */}
+                {/* Row 4: KAM Approval */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="bg-[#e0e7ff] p-1 text-xs z-10">
-                    PCI Actual
+                  <div className="bg-purple-100 p-1 text-xs z-10">
+                    KAM Approval
                   </div>
-                  <div className="bg-[#e0e7ff] p-1 text-xs z-10">
-                    PCI {new Date().getFullYear() }
+                  <div className="bg-purple-100 p-1 text-xs z-10">
+                    KAM Approval
                   </div>
                   {(() => {
                     const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
@@ -5275,23 +3946,37 @@ const ForecastCollaboration: React.FC = () => {
                       <>
                         {Array.from({length: 12}, (_, index) => {
                           const month = getMonthKeyForIndex(index);
-                          const totalValue = customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.pci_26 || 0 : 0);
-                          }, 0);
-                          
                           return (
-                            <div key={`all-${month}-pci-26`} 
-                                 className="p-1 text-right text-xs bg-[#e0e7ff]">
-                              {formatValue(totalValue)}
-                            </div>
+                          <div key={`all-${month}-kam-approval`} 
+                               className="p-1 text-center text-xs bg-purple-50">
+                            <select 
+                              className="w-full text-xs border-0 bg-transparent focus:outline-none focus:ring-0"
+                              defaultValue=""
+                              onChange={(e) => {
+                                customersToUse.forEach(customer => {
+                                  handleKamApprovalChange(customer.customer_node_id, month, e.target.value);
+                                });
+                              }}
+                            >
+                              <option value="">-</option>
+                              <option value="Si">Si</option>
+                              <option value="No">No</option>
+                            </select>
+                          </div>
                           );
                         })}
-                        
-                        {renderSummaryColumns(customersToUse)}
+                       
+                        {/* Summary columns for KAM Approval - showing approvals count */}
+                        <div className="bg-purple-200 border-gray-300 p-2 text-center text-xs">
+                          <div className="grid grid-cols-3 gap-2 text-xs">
+                            <div>-</div>
+                            <div>-</div>
+                            <div>-</div>
+                          </div>
+                        </div>
                       </>
                     );
-                  })()}
+                  })()} 
                 </div>
 
               {/*  Row 35: KAM Approval  */}
@@ -5474,10 +4159,8 @@ const ForecastCollaboration: React.FC = () => {
                 {/* Row 14: Building blocks */}
             
 
-                {/* Row 16: SI VENTA 2024 */}
+                {/* Row 1: Customer Header */}
                 <div className="contents">
-                 
-                  
                   <div className="bg-gray-100 p-2 font-bold text-sm">
                     {customer.customer_name}
                   </div>
@@ -5487,278 +4170,50 @@ const ForecastCollaboration: React.FC = () => {
                       <div className="text-gray-600 mt-1">{customer.product_name}</div>
                     )}
                   </div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    SI VENTA A-2
-                  </div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    Sell-in {new Date().getFullYear() - 2}
-                  </div>
-                   {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    // Only show values for year-2 (2023) months
-                    const shouldShowValue = shouldShowValueForYear(month, new Date().getFullYear() - 2);
-                    const value = shouldShowValue ? (monthData ? monthData.sell_in_23 : 0) : 0;
+                  <div className="bg-gray-100 p-1 text-xs">
                     
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-sell-in-aa`} 
-                           className="p-1 text-right text-xs bg-[#e8f4fd]"
-                           style={{ color: shouldShowValue ? '#374151' : '#d1d5db' }}>
-                        {shouldShowValue ? formatValue(value) : ''}
-                      </div>
-                    );
-                  })}
+                  </div>
+                  <div className="bg-gray-100 p-1 text-xs">
+                    
+                  </div>
+                  {Array.from({length: 12}, (_, index) => (
+                    <div key={`${customer.customer_node_id}-header-${index}`} className="bg-gray-100 p-1 text-xs"></div>
+                  ))}
                   
-
-
-                  {renderIndividualSummaryColumns(customer, "SI VENTA A-2")}
+                  {/* Summary column placeholder */}
+                  <div className="bg-gray-100 p-1 text-xs"></div>
                 </div>
 
-                {/* Row 17: SI AA */}
+                {/* Row 2: KAM A+1 (Non-editable) */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
                   <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    SI AA
+                    KAM A + 1
                   </div>
                   <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    Sell-in {new Date().getFullYear() - 1}
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    // Only show values for year-1 (2024) months
-                    const shouldShowValue = shouldShowValueForYear(month, new Date().getFullYear() - 1);
-                    const value = shouldShowValue ? (monthData ? monthData.sell_in_aa : 0) : 0;
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-si-aa`} 
-                           className="p-1 text-right text-xs bg-[#e8f4fd]"
-                           style={{ color: shouldShowValue ? '#374151' : '#d1d5db' }}>
-                        {shouldShowValue ? formatValue(value) : ''}
-                      </div>
-                    );
-                  })}
-                  
-                  {renderIndividualSummaryColumns(customer, "Sell in AA")}
-                </div>
-
-                {/* Row 18: SI Actual */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    SI Actual
-                  </div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    Sell-in {new Date().getFullYear()}
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const value = monthData ? monthData.sell_in_actual : 0;
-                    const showValue = shouldShowValueForYear(month, new Date().getFullYear());
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-sell-in-aa`} 
-                           className="p-1 text-right text-xs bg-[#e8f4fd]"
-                           style={{ color: showValue ? '#374151' : '#d1d5db' }}>
-                        {showValue ? formatValue(value) : ''}
-                      </div>
-                    );
-                  })}
-
-                  {renderIndividualSummaryColumns(customer, "SI Actual")}
-                </div>
-
-              
-                {/* Row 20: SO AA */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    SO AA
-                  </div>
-                  <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    Sell-out {new Date().getFullYear() - 1}
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const value = monthData ? monthData.sell_out_aa : 0;
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-so-aa`} 
-                           className={`p-1 text-right text-xs ${
-                             month.includes('24') ? 'bg-yellow-100' : 'bg-yellow-50'
-                           }`}>
-                        {formatValue(value)}
-                      </div>
-                    );
-                  })}
-                  
-                  {renderIndividualSummaryColumns(customer, "Sell Out AA")}
-                </div>
-
-                {/* Row 21: SO Actual */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    SO Actual
-                  </div>
-                  <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    Sell-out {new Date().getFullYear()}
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const value = monthData ? monthData.sell_out_actual : 0;
-                    const showValue = shouldShowValueForYear(month, new Date().getFullYear());
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-sell-out-actual`} 
-                           className="p-1 text-right text-xs bg-[#fef3c7]"
-                           style={{ color: showValue ? '#374151' : '#d1d5db' }}>
-                        {showValue ? formatValue(value) : ''}
-                      </div>
-                    );
-                  })}
-
-                  {renderIndividualSummaryColumns(customer, "Sell Out Actual")}
-                </div>
-
-               
-                {/* Row 20: DDI Totales */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    DDI 
-                  </div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    Días de inventario
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const value = monthData ? (monthData.ddi_totales || monthData.inventory_days || 0) : 0;
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-ddi-totales`} 
-                           className="p-1 text-right text-xs bg-[#dcfce7]">
-                        {formatValue(value)}
-                      </div>
-                    );
-                  })}
-                  
-                  {renderIndividualSummaryColumns(customer, "DDI Totales")}
-                </div>
-
-            
-                {/* Row 25: PPTO 2025 */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    PPTO Actual
-                  </div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    Budget {new Date().getFullYear()}
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const shouldShowValue = shouldShowValueForYear(month, 2025);
-                    const value = shouldShowValue ? (monthData ? monthData.ppto_2025 || 0 : 0) : 0;
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-ppto-2025`} 
-                           className="p-1 text-right text-xs bg-[#dcfce7]"
-                           style={{ color: shouldShowValue ? '#374151' : '#d1d5db' }}>
-                        {shouldShowValue ? formatValue(value) : ''}
-                      </div>
-                    );
-                  })}
-                  
-                  {renderIndividualSummaryColumns(customer, "PPTO 2025")}
-                </div>
-
-                {/* Row 26: PPTO 2026 */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    PPTO A+1 
-                  </div>
-                <div className="bg-[#dcfce7] p-1 text-xs z-10">
-                    Budget {new Date().getFullYear() +1 }
-                    </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const shouldShowValue = shouldShowValueForYear(month, 2026);
-                    const value = shouldShowValue ? (monthData ? monthData.ppto_2026 || 0 : 0) : 0;
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-ppto-2026`} 
-                           className="p-1 text-right text-xs bg-[#dcfce7]"
-                           style={{ color: shouldShowValue ? '#374151' : '#d1d5db' }}>
-                        {shouldShowValue ? formatValue(value) : ''}
-                      </div>
-                    );
-                  })}
-                  
-                  {renderIndividualSummaryColumns(customer, "PPTO 2026")}
-                </div>
-
-                {/* Row 31: KAM 26 */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    KAM A + 1 ✏️
-                  </div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    KAM {new Date().getFullYear() + 1} ✏️
+                    KAM {new Date().getFullYear() + 1}
                   </div>
                    {Array.from({length: 12}, (_, index) => {
                     const month = getMonthKeyForIndex(index);
                     const monthData = customer.months[month];
                   
+                    // KAM forecast data - show all data regardless of year
                     const kamValue = monthData ? monthData.kam_forecast_correction : 0;
-                    const forecastCommercialInput = monthData ? monthData.forecast_commercial_input : 0;
-                    const isEditing = inlineEditingCell?.customerId === customer.customer_node_id && inlineEditingCell?.month === month;
                     
                     return (
                       <div 
                         key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-adjustments`} 
-                        className={`p-1 text-right text-xs cursor-pointer hover:bg-blue-200 transition-colors ${
+                        className={`p-1 text-right text-xs ${
                           month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
                         }`}
-                        onDoubleClick={() => handleInlineEditStart(customer.customer_node_id, month, kamValue)}
-                        title={`Original Forecast Commercial Input: ${forecastCommercialInput.toLocaleString('es-MX')} | Double-click to edit KAM adjustment for ${customer.customer_name}`}
+                        title={`KAM Value: ${kamValue.toLocaleString('es-MX')} (Read-only) for ${customer.customer_name}`}
                       >
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={inlineEditingValue}
-                            onChange={(e) => setInlineEditingValue(e.target.value)}
-                            onBlur={() => handleInlineEditSave(customer.customer_node_id, month)}
-                            onKeyPress={(e) => handleInlineKeyPress(e, customer.customer_node_id, month)}
-                            className="w-full bg-white border border-blue-500 rounded px-1 py-0 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-300"
-                            autoFocus
-                            disabled={saving}
-                          />
-                        ) : (
-                          <div className="space-y-1">
-                  
-                            <div className="inline-flex items-center gap-1 font-medium">
-                              {kamValue ? kamValue.toLocaleString('es-MX') : '0'}
-                              {kamValue > 0 && <span className="text-blue-600 opacity-75">✏️</span>}
-                            </div>
+                        <div className="space-y-1">
+                          <div className="inline-flex items-center gap-1 font-medium">
+                            {kamValue ? kamValue.toLocaleString('es-MX') : '0'}
                           </div>
-                        )}
+                        </div>
                       </div>
                     );
                   })} 
@@ -5766,12 +4221,12 @@ const ForecastCollaboration: React.FC = () => {
                   {renderIndividualSummaryColumns(customer, "KAM A + 1")}
                 </div>
 
-                {/* Row 32: BY M8 Predict - Using actual_by_m8 (from commercial_collaboration_view.actual) - Current year only */}
+                {/* Row 3: M8 Predict */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
                   <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    BY M8 Predict***
+                    M8 Predict !!
                   </div> 
                   <div className="bg-[#fef3c7] p-1 text-xs z-10">
                     M8 Forecast {new Date().getFullYear() + 1}
@@ -5779,9 +4234,22 @@ const ForecastCollaboration: React.FC = () => {
                   {Array.from({length: 12}, (_, index) => {
                     const month = getMonthKeyForIndex(index);
                     // BY M8 Predict - Only show values for current year (2025) 
-                    const shouldShow = shouldShowValueForYear(month, new Date().getFullYear()-1);
+                    const shouldShow = shouldShowValueForYear(month, new Date().getFullYear());
                     const monthData = customer.months[month];
                     const value = shouldShow && monthData ? monthData.actual_by_m8 : 0;
+                    
+                    // DEBUG: Log for March 2025 data
+                    if (month === 'feb-25' && customer.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && customer.product_id === '100083') {
+                      console.log('🎯 BY M8 PREDICT DISPLAY:', {
+                        month: month,
+                        shouldShow: shouldShow,
+                        monthData: monthData,
+                        actual_by_m8: monthData?.actual_by_m8,
+                        final_value: value,
+                        customer_id: customer.customer_node_id,
+                        product_id: customer.product_id
+                      });
+                    }
                     
                     return (
                       <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-fcst-estadistico`} 
@@ -5791,34 +4259,50 @@ const ForecastCollaboration: React.FC = () => {
                     );
                   })}
                   
-                  {/* Summary columns for BY M8 Predict - now correctly filtered to current year only */}
+                  {/* Summary columns for BY M8 Predict */}
                   {renderIndividualSummaryColumns(customer, "BY M8 Predict")}
                 </div>
 
-                {/* Row 33: PCI Actual */}
+                {/* Row 4: KAM Approval */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
-                  <div className="bg-[#e0e7ff] p-1 text-xs z-10">
-                    PCI Actual
+                  <div className="bg-purple-100 p-1 text-xs z-10">
+                    KAM Approval
                   </div>
-                  <div className="bg-[#e0e7ff] p-1 text-xs z-10">
-                    PCI {new Date().getFullYear()}
+                  <div className="bg-purple-100 p-1 text-xs z-10">
+                    KAM Approval
                   </div>
                   {Array.from({length: 12}, (_, index) => {
                     const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const value = monthData ? monthData.pci_26 || 0 : 0;
+                    const currentApproval = kamApprovals[customer.customer_node_id]?.[month] || '';
                     
                     return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-pci-actual`} 
-                           className="p-1 text-right text-xs bg-[#e0e7ff]">
-                        {formatValue(value)}
+                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-approval`} 
+                           className="p-1 text-center text-xs bg-purple-50">
+                        <select 
+                          className="w-full text-xs border-0 bg-transparent focus:outline-none focus:ring-0"
+                          value={currentApproval}
+                          onChange={(e) => {
+                            handleKamApprovalChange(customer.customer_node_id, month, e.target.value);
+                          }}
+                        >
+                          <option value="">-</option>
+                          <option value="Si">Si</option>
+                          <option value="No">No</option>
+                        </select>
                       </div>
                     );
                   })}
                   
-                  {renderIndividualSummaryColumns(customer, "PCI Actual")}
+                  {/* Summary column for individual KAM Approval */}
+                  <div className="bg-purple-200 border-gray-300 p-2 text-center text-xs">
+                    <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div>-</div>
+                      <div>-</div>
+                      <div>-</div>
+                    </div>
+                  </div>
                 </div>
 
               </React.Fragment>

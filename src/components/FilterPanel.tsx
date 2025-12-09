@@ -12,6 +12,7 @@ interface FilterState {
   // Add structured fields for better integration
   selectedCustomers: string[];
   selectedCategories: string[];
+  
   selectedBrands: string[];
   selectedLocations: string[];
   // Add product information for table display
@@ -19,6 +20,9 @@ interface FilterState {
   productDetails: {[key: string]: {product_id: string, product_name?: string}};
   // Add supply network node IDs for commercial collaboration filtering
   selectedSupplyNetworkNodeIds: string[];
+  // Add location mapping for KAM adjustments
+  availableLocations: {[key: string]: string}; // location_id -> location_name
+  productLocationMap: {[product_id: string]: string[]}; // product_id -> location_ids[]
 }
 
 interface Brand {
@@ -50,7 +54,9 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     selectedLocations: [],
     selectedProducts: [],
     productDetails: {},
-    selectedSupplyNetworkNodeIds: []
+    selectedSupplyNetworkNodeIds: [],
+    availableLocations: {},
+    productLocationMap: {}
   });
 
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -177,6 +183,109 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     }
   };
 
+  // Function to fetch location data for selected brands/products
+  const fetchLocationDataForBrands = async (selectedBrandIds: string[]) => {
+    if (selectedBrandIds.length === 0) {
+      return { availableLocations: {}, productLocationMap: {} };
+    }
+
+    try {
+      console.log('Fetching location data for brand IDs:', selectedBrandIds);
+      
+      // First, get all products that belong to the selected brands
+      const { data: productBrands, error: productError } = await (supabase as any)
+        .schema('m8_schema')
+        .from('products')
+        .select('product_id, subcategory_id')
+        .in('subcategory_id', selectedBrandIds);
+
+      if (productError) {
+        console.error('Error fetching products for brands:', productError);
+        return { availableLocations: {}, productLocationMap: {} };
+      }
+
+      const productIds = productBrands?.map(pb => pb.product_id) || [];
+      
+      if (productIds.length === 0) {
+        console.log('No products found for selected brands');
+        return { availableLocations: {}, productLocationMap: {} };
+      }
+
+      // Now get location data from commercial_collaboration (using location_node_id)
+      const { data: locationData, error: locationError } = await (supabase as any)
+        .schema('m8_schema')
+        .from('commercial_collaboration')
+        .select('product_id, location_node_id')
+        .in('product_id', productIds);
+
+      if (locationError) {
+        console.error('Error fetching location data:', locationError);
+        return { availableLocations: {}, productLocationMap: {} };
+      }
+
+      // Get unique location_node_ids to fetch location details
+      const locationNodeIds = Array.from(new Set(
+        locationData?.map(item => item.location_node_id).filter(Boolean) || []
+      ));
+
+      if (locationNodeIds.length === 0) {
+        console.log('No locations found for selected products');
+        return { availableLocations: {}, productLocationMap: {} };
+      }
+
+      // Fetch location details from v_warehouse_node
+      const { data: locationsDetail, error: locationsError } = await (supabase as any)
+        .schema('m8_schema')
+        .from('v_warehouse_node')
+        .select('location_id, location_code, description')
+        .in('location_id', locationNodeIds);
+
+      if (locationsError) {
+        console.error('Error fetching location details:', locationsError);
+        return { availableLocations: {}, productLocationMap: {} };
+      }
+
+      // Process the data to create the maps
+      const availableLocations: {[key: string]: string} = {};
+      const productLocationMap: {[key: string]: string[]} = {};
+
+      // Create location lookup map
+      const locationLookup: {[key: string]: string} = {};
+      locationsDetail?.forEach(location => {
+        if (location.location_id && location.description) {
+          locationLookup[location.location_id] = location.description;
+        }
+      });
+
+      // Process commercial_collaboration data
+      locationData?.forEach(item => {
+        if (item.location_node_id && item.product_id && locationLookup[item.location_node_id]) {
+          // Add to available locations map
+          availableLocations[item.location_node_id] = locationLookup[item.location_node_id];
+          
+          // Add to product-location map
+          if (!productLocationMap[item.product_id]) {
+            productLocationMap[item.product_id] = [];
+          }
+          if (!productLocationMap[item.product_id].includes(item.location_node_id)) {
+            productLocationMap[item.product_id].push(item.location_node_id);
+          }
+        }
+      });
+
+      console.log('Location data fetched:', {
+        availableLocationsCount: Object.keys(availableLocations).length,
+        productLocationMapCount: Object.keys(productLocationMap).length,
+        sampleLocations: Object.entries(availableLocations).slice(0, 3)
+      });
+
+      return { availableLocations, productLocationMap };
+    } catch (error) {
+      console.error('Error in fetchLocationDataForBrands:', error);
+      return { availableLocations: {}, productLocationMap: {} };
+    }
+  };
+
   // Fetch products based on current filter selection
   const fetchProductsForFilters = async () => {
     try {
@@ -274,17 +383,19 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
       if (filters.agente.length > 0) {
         console.log('Applying agent filter:', filters.agente);
         // Try both agent and agent_name fields to handle different schema versions
-        supplyQuery = supplyQuery.or(`agent.in.(${filters.agente.map(a => `"${a}"`).join(',')}),agent_name.in.(${filters.agente.map(a => `"${a}"`).join(',')})`);
+        supplyQuery = supplyQuery.or(`agente.in.(${filters.agente.map(a => `"${a}"`).join(',')}),agent_name.in.(${filters.agente.map(a => `"${a}"`).join(',')})`);
       }
       if (filters.umn.length > 0) {
         console.log('Applying udn filter:', filters.umn);
         supplyQuery = supplyQuery.in('udn', filters.umn);
       }
-
       const { data: supplyNodes, error: supplyError } = await supplyQuery;
 
       if (supplyError) {
         console.error('Error fetching supply network nodes:', supplyError);
+        if (supplyError.message?.includes('invalid input syntax for type uuid')) {
+          console.error('🚨 UUID ERROR in supply network query! Check client_hierarchy values:', filters.clientHierarchy);
+        }
         return;
       }
 
@@ -299,8 +410,14 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
         return;
       }
 
-      const nodeIds = supplyNodes.map(node => node.id);
+      const nodeIds = supplyNodes.map(node => node.id).filter(id => {
+        // Validate that ID is a proper UUID format to prevent "TEST" from being treated as UUID
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return id && uuidRegex.test(id);
+      });
       console.log('Found supply network node IDs:', nodeIds.length, 'nodes');
+      console.log('Sample node IDs:', nodeIds.slice(0, 3));
+      console.log('Raw supply nodes sample:', supplyNodes?.slice(0, 2));
 
       // Step 2: Join with commercial_collaboration_view and products in one query
       // This mimics: JOIN commercial_collaboration_view ccv ON ccv.location_node_id = snn.id  
@@ -324,8 +441,24 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
         `)
         .in('location_node_id', nodeIds);
 
+      // Debug logging to track UUID issues
+      console.log('🔍 DEBUG: Applying location_node_id filter with nodeIds:', {
+        count: nodeIds.length,
+        sampleIds: nodeIds.slice(0, 3),
+        allUUIDs: nodeIds.every(id => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)),
+        selectedHierarchies: filters.clientHierarchy
+      });
+
       if (joinError) {
         console.error('Error executing join query:', joinError);
+        if (joinError.message?.includes('invalid input syntax for type uuid')) {
+          console.error('🚨 UUID ERROR DETECTED! Check nodeIds values:', nodeIds);
+          // Filter out any non-UUID values and retry
+          const validNodeIds = nodeIds.filter(id => 
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+          );
+          console.log('Retrying with only valid UUIDs:', validNodeIds);
+        }
         return;
       }
 
@@ -663,7 +796,7 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
   }, [filters.clientHierarchy, allSupplyNetworkData, channelOptions, agentOptions, udnOptions]);
 
   return (
-    <div className="w-full max-w-6xl mx-auto bg-white p-4 rounded-xl grid grid-cols-4 gap-4 shadow-lg border border-gray-200">
+    <div className="w-full max-w-full bg-white p-2 sm:p-4 rounded-xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 shadow-lg border border-gray-200 overflow-hidden">
       {/* Canal */}
       <div className="bg-blue-900 text-white rounded-lg p-3">
         <p className="font-semibold mb-2">
@@ -773,6 +906,17 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
                       newSelectedBrands,
                       validProductLines: validProductLines.slice(0, 5), // Show first 5
                       filteredProductLineSelections
+                    });
+                    
+                    // Fetch location data for the selected brands
+                    fetchLocationDataForBrands(newSelectedBrands).then(locationData => {
+                      setFilters(current => ({
+                        ...current,
+                        availableLocations: locationData.availableLocations,
+                        productLocationMap: locationData.productLocationMap
+                      }));
+                    }).catch(error => {
+                      console.error('Error fetching location data:', error);
                     });
                     
                     return {
@@ -988,7 +1132,7 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
       {/* Filter Summary and Statistics */}
       <div className="col-span-4 mt-4 space-y-3">
         {/* Applied Filters */}
-        <div className="flex flex-wrap gap-2">
+         <div className="flex flex-wrap gap-2" style={{ display: 'none' }}>
           {Object.entries(filters)
             .filter(([category, items]) => Array.isArray(items) && items.length > 0)
             .flatMap(([category, items]) =>
@@ -1024,7 +1168,9 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
                   selectedLocations: [],
                   selectedProducts: [],
                   productDetails: {},
-                  selectedSupplyNetworkNodeIds: []
+                  selectedSupplyNetworkNodeIds: [],
+                  availableLocations: {},
+                  productLocationMap: {}
                 });
                 // Reset product lines to show all when filters are cleared
                 setProductLines(allProductLines);
@@ -1098,3 +1244,6 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     </div>
   );
 }
+
+
+

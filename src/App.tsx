@@ -11,6 +11,7 @@ import { ColorThemeProvider } from "@/hooks/useColorTheme";
 import { configureAGGridLicense } from "@/lib/ag-grid-config";
 import CommercialCollaboration from "./pages/CommercialCollaboration";
 import ForecastCollaboration from "./pages/ForecastCollaboration";
+import ForecastCollaborationApproved from "./pages/ForecastCollaborationApproved";
 import { AdminRoute } from "@/components/AdminRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -127,6 +128,7 @@ const App = () => {
               <Route path="/what-if-analysis" element={<WhatIfAnalysis />} />
               <Route path="/commercial-collaboration" element={<CommercialCollaboration />} />
               <Route path="/forecast-collaboration" element={<ForecastCollaboration />} />
+              <Route path="/forecast-collaboration-approve" element={<ForecastCollaborationApproved />} />
               <Route path="/dashboard-gallery" element={<DashboardGallery />} />
               <Route path="/advanced-reports" element={<AdvancedReports />} />
               <Route path="/advanced-reports/:dashboardId" element={<AdvancedReports />} />
