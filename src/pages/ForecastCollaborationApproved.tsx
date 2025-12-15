@@ -14,6 +14,8 @@ import FilterPanel from "@/components/FilterPanel";
 import { useProducts } from '@/hooks/useProducts';
 import { useLocations } from '@/hooks/useLocations';
 import { useCustomers } from '@/hooks/useCustomers';
+import { ComposedChart, Line, Area, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Scatter } from 'recharts';
+import { ArrowDown, ArrowUp, Droplet, DollarSign, Weight } from "lucide-react";
 // Interface for commercial_collaboration_view data
 interface CommercialCollaborationData {
   product_id: string;
@@ -44,42 +46,16 @@ interface CustomerData {
   attr_2?: number; // Used for peso multiplier
   attr_3?: number; // Used for cajas multiplier (CRITICAL for Cajas display!)
   months: { [key: string]: {
-    last_year: number;
     forecast_sales_gap: number;
     calculated_forecast: number;
-    xamview: number;
     kam_forecast_correction: number;
-    sales_manager_view: number;
     effective_forecast: number;
-    sell_in_aa: number;
-    sell_in_23: number; // Year-2 (2023) sell-in data
-    sell_in_actual: number; // Current year (2025) sell-in data
-    sell_out_aa: number;
-    sell_out_actual: number; // Current year (2025) sell-out data
-    sell_out_real: number;
-    inventory_days: number;
     forecast_commercial_input: number; // Original commercial_input from forecast_data (approved_sm_kam)
-    actual_by_m8: number; // Actual values from commercial_collaboration_view.actual for BY M8 Predict
+    actual_by_m8: number; // Actual values from commercial_collaboration_view.actual for M8 Predict
     // New fields for the requested rows
-    si_venta_2024?: number;
-    si_2025?: number;
-    so_2024?: number;
-    so_2025?: number;
-    ddi_totales?: number;
-    si_pin_2025?: number;
-    le_1?: number;
-    si_pin_2026?: number;
-    pin_vs_aa_1?: number;
-    ppto_2025?: number;
-    ppto_2026?: number;
-    pin_26_vs_aa_25?: number;
-    pin_26_vs_ppto_26?: number;
-    pin_sep?: number;
-    pin_sep_vs_pin?: number;
     kam_26?: number;
     by_26?: number;
-    bb_26?: number;
-    pci_26?: number;
+    
   }};
   // Store actual postdate mapping from month name to database postdate
   monthPostdates?: { [key: string]: string };
@@ -171,68 +147,30 @@ const ForecastCollaboration: React.FC = () => {
   const getFieldNameForRowType = (rowType: string): string => {
     const fieldMapping: { [key: string]: string } = {
       // Basic forecast fields
-      'Gap Forecast vs ventas': 'forecast_sales_gap',
       'Forecast M8.predict': 'calculated_forecast',
       'Key Account Manager': 'kam_forecast_correction',
       'Kam Forecast': 'kam_forecast_correction',
-      'Sales manager view': 'sales_manager_view',
       'Effective Forecast': 'effective_forecast',
       'KAM aprobado': 'xamview',
       
       // Individual row fields - these should match exactly what's displayed in the UI
-      'Año pasado (LY)': 'last_year', // Historical data from last year
       
-      'Sell in AA': 'sell_in_aa', // Year-1 (2024) sell-in data
-      'Sell in 23': 'sell_in_23', // Year-2 (2023) sell-in data
-      'Sell in Actual': 'sell_in_actual', // Current year (2025) sell-in data
-      'SI Actual': 'sell_in_actual', // Current year (2025) sell-in data
-      'SI VENTA A-2': 'sell_in_23', // Year-2 (2023) sell-in data
-      'Sell in last year': 'last_year', // Use the last_year field from database
-      'Sell in this year': 'sell_in_aa_y', // Current year sell-in data
-      'Sell Out AA': 'sell_out_aa',
-      'Sell Out Actual': 'sell_out_actual', // Current year sell-out data
-      'Sell Out real': 'sell_out_real',
       'Fcst Estadístico - BY': 'calculated_forecast',
       'Ajustes del KAM': 'kam_forecast_correction',
       'KAM A + 1': 'kam_forecast_correction', // KAM adjustments for next year
-      // 'Proyectado - Equipo CPFR': 'xamview',
-      'Días de inventario': 'inventory_days',
-      // 'Periodo Frezze': 'calculated_forecast',
-      // 'Last estimate': 'xamview',
-      // 'PPTO': 'calculated_forecast',
-      // 'Volumen 3 meses anteriores': 'sell_out_aa',
-      // 'Building blocks': 'calculated_forecast',
-      // 'PCI diferenciado por canal': 'calculated_forecast',
-      
-      // Year-specific fields
-      'SI VENTA 2024': 'si_venta_2024',
-      'SI 2025': 'si_2025',
-      'SO 2024': 'so_2024',
-      'SO 2025': 'so_2025',
-      
-      // PIN and planning fields
-      'DDI Totales': 'ddi_totales',
-      'PPTO 2025': 'ppto_2025',
-      'PPTO 2026': 'ppto_2026',
-      
       
       // 2026 planning fields
       'KAM 26': 'kam_26',
-      'BY 26': 'by_26',
-      'BB 26': 'bb_26',
-      'PCI 26': 'pci_26',
-      'PCI Actual': 'pci_26', // PCI for current year
       
       // M8 Predict fields
-      'BY M8 Predict': 'actual_by_m8',
+      'M8 Predict': 'actual_by_m8',
       
       // Legacy mappings for backward compatibility
       'Fcst Estadístico': 'calculated_forecast',
 
       'KAM': 'kam',
       'BY': 'by',
-      'BB': 'bb',
-      'PCI': 'pci'
+      
     };
     
     return fieldMapping[rowType] || 'calculated_forecast'; // fallback to calculated_forecast
@@ -477,17 +415,17 @@ const ForecastCollaboration: React.FC = () => {
     const fieldName = getFieldNameForRowType(rowType);
 
     // Special handling for rows that only consider specific year months
-    const isCurrentYearOnly = rowType === "BY M8 Predict" || rowType === "Sell in Actual" || rowType === "SI Actual" || rowType === "Sell Out Actual";
+    const isCurrentYearOnly = rowType === "M8 Predict" || rowType === "Sell in Actual" || rowType === "SI Actual" || rowType === "Sell Out Actual";
     
     let sumCajasYTD, sumLitrosYTD, sumPesosYTD;
     let sumCajasYTG, sumLitrosYTG, sumPesosYTG;
     let sumCajasTotal, sumLitrosTotal, sumPesosTotal;
     
     if (isCurrentYearOnly) {
-      // For BY M8 Predict, calculate sums only for the correct year based on row type
+      // For M8 Predict, calculate sums only for the correct year based on row type
       let targetYear: number;
-      if (rowType === "BY M8 Predict") {
-        targetYear = new Date().getFullYear(); // 2025 for BY M8 Predict
+      if (rowType === "M8 Predict") {
+        targetYear = new Date().getFullYear(); // 2025 for M8 Predict
       } else {
         targetYear = new Date().getFullYear(); // 2025 for other current year rows
       }
@@ -537,7 +475,7 @@ const ForecastCollaboration: React.FC = () => {
 
     return (
       <>
-        {/* Cajas column only */}
+        {/* Cajas column */}
         <div className="bg-purple-200 border-gray-300 p-2 text-center text-xs">
           <div className="grid grid-cols-3 gap-3">
             <div className="text-right text-[10px]">
@@ -551,86 +489,33 @@ const ForecastCollaboration: React.FC = () => {
             </div>
           </div>
         </div>
-      </>
-    );
-  };
-
-  // Helper function to render summary columns for individual customer rows
-  const renderIndividualSummaryColumns = (customer: CustomerData, rowType: string = "calculated_forecast") => {
-    // Get the specific field name for this row type
-    const fieldName = getFieldNameForRowType(rowType);
-    
-    // Special handling for rows that only consider specific year months
-    const isYearFiltered = rowType === "BY M8 Predict" || rowType === "Sell in Actual" || rowType === "SI Actual" || 
-                          rowType === "Sell Out Actual" || rowType === "PPTO 2025" || rowType === "PPTO 2026" ||
-                          rowType === "SI VENTA A-2" || rowType === "Sell in AA";
-    
-    // Helper function to calculate values with optional year filtering
-    const calculateWithYearFilter = (customer: CustomerData, attribute: 'attr_1' | 'attr_2' | 'attr_3', calculationType: 'YTD' | 'YTG' | 'Total') => {
-      if (isYearFiltered) {
-        // Determine which year to filter by based on row type
-        let targetYear: number;
-        if (rowType === "SI VENTA A-2") {
-          targetYear = new Date().getFullYear() - 2; // 2023
-        } else if (rowType === "Sell in AA") {
-          targetYear = new Date().getFullYear() - 1; // 2024
-        } else if (rowType === "BY M8 Predict") {
-          targetYear = new Date().getFullYear(); // 2025 for BY M8 Predict
-        } else if (rowType === "PPTO 2025" || rowType === "Sell in Actual" || rowType === "SI Actual" || rowType === "Sell Out Actual") {
-          targetYear = new Date().getFullYear(); // 2025
-        } else if (rowType === "PPTO 2026") {
-          targetYear = new Date().getFullYear() + 1; // 2026
-        } else {
-          targetYear = new Date().getFullYear(); // Default to current year
-        }
         
-        let total = 0;
-        
-        Object.keys(customer.months).forEach(monthKey => {
-          if (shouldShowValueForYear(monthKey, targetYear)) {
-            const monthData = customer.months[monthKey];
-            if (monthData && fieldName) {
-              const fieldValue = monthData[fieldName as keyof typeof monthData] || 0;
-              
-              // Apply the same logic as the original functions
-              if (attribute === 'attr_3') {
-                // Cajas: use raw values (already in cajas units)
-                total += fieldValue;
-              } else {
-                // Litros/Pesos: multiply by attribute multiplier
-                const multiplier = customer[attribute] || 0;
-                total += fieldValue * multiplier;
-              }
-            }
-          }
-        });
-        
-        return total;
-      } else {
-        // For other row types, use the original calculation functions
-        if (calculationType === 'YTD') {
-          return calculateCustomerYTD(customer, attribute, fieldName);
-        } else if (calculationType === 'YTG') {
-          return calculateCustomerYTG(customer, attribute, fieldName);
-        } else {
-          return calculateCustomerTotal(customer, attribute, fieldName);
-        }
-      }
-    };
-    
-    return (
-      <>
-        {/* Cajas column only */}
-        <div className="bg-purple-50 p-1 text-center text-xs">
-          <div className="grid grid-cols-3 gap-2">
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_3', 'YTD'))}
+        {/* Litros column */}
+        <div className="bg-green-200 border-gray-300 p-2 text-center text-xs">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-right text-[10px]">
+              {formatValue(sumLitrosYTD)}
             </div>
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_3', 'YTG'))}
+            <div className="text-right text-[10px]">
+              {formatValue(sumLitrosYTG)}
             </div>
-            <div className="text-right text-xs">
-              {formatValue(calculateWithYearFilter(customer, 'attr_3', 'Total'))}
+            <div className="text-right text-[10px]">
+              {formatValue(sumLitrosTotal)}
+            </div>
+          </div>
+        </div>
+        
+        {/* Pesos column */}
+        <div className="bg-orange-200 border-gray-300 p-2 text-center text-xs">
+          <div className="grid grid-cols-3 gap-3">
+            <div className="text-right text-[10px]">
+              {formatValue(sumPesosYTD)}
+            </div>
+            <div className="text-right text-[10px]">
+              {formatValue(sumPesosYTG)}
+            </div>
+            <div className="text-right text-[10px]">
+              {formatValue(sumPesosTotal)}
             </div>
           </div>
         </div>
@@ -651,7 +536,13 @@ const ForecastCollaboration: React.FC = () => {
   const [editingValue, setEditingValue] = useState<string>('');
   const [inlineEditingCell, setInlineEditingCell] = useState<{customerId: string, month: string} | null>(null);
   const [inlineEditingValue, setInlineEditingValue] = useState<string>('');
-
+  const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
+  const [salesTrends, setSalesTrends] = useState({
+    currentPeriod: 0,
+    lastYearPeriod: 0,
+    growthPercentage: 0,
+    trendDirection: 'neutral' as 'up' | 'down' | 'neutral'
+  });
   const [kamApprovals, setKamApprovals] = useState<{[key: string]: {[key: string]: string}}>({});
   const [saving, setSaving] = useState(false);
   // Removed noResultsFound and noResultsMessageDismissed - no longer needed
@@ -660,13 +551,10 @@ const ForecastCollaboration: React.FC = () => {
   const [lastKamErrorTime, setLastKamErrorTime] = useState<number>(0);
 
   const dataTypes = [
-    'Año pasado (LY)', 'Gap Forecast vs ventas', 'Forecast M8.predict', 'Key Account Manager', 
-    'Kam Forecast', 'Sales manager view', 'Effective Forecast', 'KAM aprobado',
-    'SI VENTA 2024', 'SI 2025', 'SO 2024', 'SO 2025', 'DDI Totales', 'SI PIN 2025', 
-    'LE-1', 'SI PIN 2026', '% PIN vs AA-1', 'PPTO 2025', 'PPTO 2026', 
-    '% PIN 26 vs AA 25', '% PIN 26 vs PPTO 26', 'PIN SEP', '% PIN SEP vs PIN', 
-    'KAM 26', 'BY 26', 'BB 26', 'PCI 26'
-  ];
+     'Forecast M8.predict', 
+    'Kam Forecast',  'Effective Forecast', 'KAM aprobado',
+      'Fcst Estadístico - BY', 'Ajustes del KAM', 'KAM A + 1',
+    'KAM 26', 'BY 26'  ];
 
   // ===== HOOKS =====
   const { getProductName } = useProducts();
@@ -722,7 +610,75 @@ const ForecastCollaboration: React.FC = () => {
   });
 
 
+  // Chart series visibility state
+  const [chartSeriesVisible, setChartSeriesVisible] = useState({
+    m8Predict: true,
+    kamForecast: true,
+    effectiveForecast: false, // Hidden by default
+    lastYear: false, // Hidden by default
+    m8PredictArea: true,
+    pci26Area: true,
+    kamAdjustmentsArea: true,
+    pptoA1Area: true,
+    sellInLine: true,
+    sellInActualLine: true,
+    sellOutAALine: true,
+    sellOutActualLine: true,
+    ddiBar: true
+  });
 
+  // Chart series colors state
+  const [chartSeriesColors, setChartSeriesColors] = useState({
+    m8Predict: '#ea580c', // orange-600
+    kamForecast: '#f59e0b', // purple-600
+    effectiveForecast: '#059669', // green-600
+    lastYear: '#2563eb', // blue-600
+    m8PredictArea: '#f97316', // orange-500
+    pci26Area: '#0ea5e9', // sky-500
+    kamAdjustmentsArea: '#9333ea',  // violet-500
+    pptoA1Area: '#ec4899', // pink-500
+    sellInLine: '#71537fff', // violet-500
+    sellInActualLine:'#ef669dff', // purple-500
+    sellOutAALine: '#10b981', // emerald-500
+    sellOutActualLine: '#14b8a6', // teal-500
+    ddiBar: '#fb923c' // orange-400
+  });
+
+  // Show color picker state
+  const [showColorPicker, setShowColorPicker] = useState<string | null>(null);
+
+  // Toggle series visibility
+  const toggleSeriesVisibility = useCallback((seriesName: keyof typeof chartSeriesVisible) => {
+    setChartSeriesVisible(prev => ({
+      ...prev,
+      [seriesName]: !prev[seriesName]
+    }));
+  }, []);
+
+  // Update series color
+  const updateSeriesColor = useCallback((seriesName: keyof typeof chartSeriesColors, color: string) => {
+    setChartSeriesColors(prev => ({
+      ...prev,
+      [seriesName]: color
+    }));
+  }, []);
+
+  // Close color picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.color-picker-container')) {
+        setShowColorPicker(null);
+      }
+    };
+
+    if (showColorPicker) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showColorPicker]);
 
   // Helper function to check if a month is within the selected date range
   const isMonthInDateRange = useCallback((monthKey: string, dateRange: DateRange | null): boolean => {
@@ -886,16 +842,6 @@ const ForecastCollaboration: React.FC = () => {
     return 'Todos los clientes';
   }, [advancedFilters]);
 
-  // Helper function to determine if we should show grouped view (no individual customers)
-  const shouldShowGroupedView = useCallback(() => {
-    return !!(
-      (advancedFilters.marca && advancedFilters.marca.length > 0) ||
-      (advancedFilters.productLine && advancedFilters.productLine.length > 0) ||
-      (advancedFilters.clientHierarchy && advancedFilters.clientHierarchy.length > 0)
-    );
-  }, [advancedFilters]);
-
-
   // Function to clear customer selection specifically
   const clearCustomerSelection = useCallback(async () => {
     setAdvancedFilters(prev => ({
@@ -966,226 +912,8 @@ const ForecastCollaboration: React.FC = () => {
   // Process raw data into customer format with filtering
   // Function to fetch sell-in data from v_sales_transaction_in
   // Function to fetch sell-in data from v_time_series_sell_in.quantity for "Sell in AA"
-  const fetchSellInData = useCallback(async () => {
-    try {
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('v_sales_transaction_in')
-        .select('product_id, location_node_id, customer_node_id, postdate, quantity')
-        .gte('postdate', '2025-01-01')
-        .lte('postdate', '2025-12-31')
-        .order('customer_node_id', { ascending: true })
-        .order('postdate', { ascending: true });
-
-      // Apply filters
-      if (selectedProduct?.product_id) {
-        query = query.eq('product_id', selectedProduct.product_id);
-      }
-      if (selectedLocation?.location_id) {
-        query = query.eq('location_node_id', selectedLocation.location_id);
-      }
-      if (selectedCustomer?.customer_id) {
-        query = query.eq('customer_node_id', selectedCustomer.customer_id);
-      }
-      
-      // Apply advanced filters
-      if (advancedFilters.selectedCustomers && advancedFilters.selectedCustomers.length > 0) {
-        query = query.in('customer_node_id', advancedFilters.selectedCustomers);
-      }
-
-      // Apply marca and productLine filters for sell-in data using limited approach to avoid URL length limits
-      if (advancedFilters.marca && advancedFilters.marca.length > 0) {
-        // Use a more efficient JOIN-based query to avoid URL length limits
-        const { data, error } = await (supabase as any)
-          .schema('m8_schema')
-          .rpc('get_sales_in_by_marca', {
-            marca_names: advancedFilters.marca,
-            date_from: '2025-01-01',
-            date_to: '2025-12-31'
-          });
-        
-        if (!error && data) {
-          return data;
-        } else {
-          // Fallback: Use limited batch processing if RPC not available
-          const { data: marcaData } = await (supabase as any)
-            .schema('m8_schema')
-            .from('products')
-            .select('product_id')
-            .in('subcategory_name', advancedFilters.marca)
-            .limit(100); // Limit to prevent URL overflow
-          
-          if (marcaData && marcaData.length > 0) {
-            const productIds = marcaData.map(item => item.product_id).slice(0, 50); // Further limit
-            query = query.in('product_id', productIds);
-          }
-        }
-      }
-
-      if (advancedFilters.productLine && advancedFilters.productLine.length > 0) {
-        // Use a more efficient JOIN-based query to avoid URL length limits  
-        const { data, error } = await (supabase as any)
-          .schema('m8_schema')
-          .rpc('get_sales_in_by_product_line', {
-            product_line_names: advancedFilters.productLine,
-            date_from: '2025-01-01',
-            date_to: '2025-12-31'
-          });
-        
-        if (!error && data) {
-          return data;
-        } else {
-          // Fallback: Use limited batch processing if RPC not available
-          const { data: productLineData } = await (supabase as any)
-            .schema('m8_schema')
-            .from('products')
-            .select('product_id')
-            .in('class_name', advancedFilters.productLine)
-            .limit(100); // Limit to prevent URL overflow
-          
-          if (productLineData && productLineData.length > 0) {
-            const productIds = productLineData.map(item => item.product_id).slice(0, 50); // Further limit
-            query = query.in('product_id', productIds);
-          }
-        }
-      }
-      
-      // Apply date range filter if selected
-      if (selectedDateRange?.from && selectedDateRange?.to) {
-        query = query.gte('postdate', selectedDateRange.from.toISOString().split('T')[0])
-                   .lte('postdate', selectedDateRange.to.toISOString().split('T')[0]);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-
-      setSellInData(data || []);
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching sell-in data:', error);
-      return [];
-    }
-  }, [selectedProduct?.product_id, selectedLocation?.location_id, selectedCustomer?.customer_id, selectedDateRange, advancedFilters]);
 
   // Function to fetch sell-out data from v_time_series_sell_out.value for "Sell Out real"
-  const fetchSellOutData = useCallback(async () => {
-    try {
-      let query = (supabase as any)
-        .schema('m8_schema')
-        .from('v_sales_transaction_out')
-        .select('product_id, location_node_id, customer_node_id, postdate, quantity')
-        .gte('postdate', '2025-01-01')
-        .lte('postdate', '2025-12-31')
-        .order('customer_node_id', { ascending: true })
-        .order('postdate', { ascending: true });
-
-      // Apply filters
-      if (selectedProduct?.product_id) {
-
-        query = query.eq('product_id', selectedProduct.product_id);
-      }
-      if (selectedLocation?.location_id) {
-
-        query = query.eq('location_node_id', selectedLocation.location_id);
-      }
-      if (selectedCustomer?.customer_id) {
-
-        query = query.eq('customer_node_id', selectedCustomer.customer_id);
-      }
-      
-      // Apply advanced filters
-      if (advancedFilters.selectedCustomers && advancedFilters.selectedCustomers.length > 0) {
-        console.log('� SEND - Adding advanced customers filter to v_sales_transaction_out:', advancedFilters.selectedCustomers);
-        query = query.in('customer_node_id', advancedFilters.selectedCustomers);
-      }
-
-      // Apply marca and productLine filters for sell-out data using JOIN approach to avoid long URLs
-      if (advancedFilters.marca && advancedFilters.marca.length > 0) {
-        // Use a more efficient JOIN-based query to avoid URL length limits
-        const { data, error } = await (supabase as any)
-          .schema('m8_schema')
-          .rpc('get_sales_out_by_marca', {
-            marca_names: advancedFilters.marca,
-            date_from: '2025-01-01',
-            date_to: '2025-12-31'
-          });
-        
-        if (!error && data) {
-          return data;
-        } else {
-          // Fallback: Use limited batch processing if RPC not available
-          const { data: marcaData } = await (supabase as any)
-            .schema('m8_schema')
-            .from('products')
-            .select('product_id')
-            .in('subcategory_name', advancedFilters.marca)
-            .limit(100); // Limit to prevent URL overflow
-          
-          if (marcaData && marcaData.length > 0) {
-            const productIds = marcaData.map(item => item.product_id).slice(0, 50); // Further limit
-            query = query.in('product_id', productIds);
-          }
-        }
-      }
-
-      if (advancedFilters.productLine && advancedFilters.productLine.length > 0) {
-        // Use a more efficient JOIN-based query to avoid URL length limits  
-        const { data, error } = await (supabase as any)
-          .schema('m8_schema')
-          .rpc('get_sales_out_by_product_line', {
-            product_line_names: advancedFilters.productLine,
-            date_from: '2025-01-01',
-            date_to: '2025-12-31'
-          });
-        
-        if (!error && data) {
-          return data;
-        } else {
-          // Fallback: Use limited batch processing if RPC not available
-          const { data: productLineData } = await (supabase as any)
-            .schema('m8_schema')
-            .from('products')
-            .select('product_id')
-            .in('class_name', advancedFilters.productLine)
-            .limit(100); // Limit to prevent URL overflow
-          
-          if (productLineData && productLineData.length > 0) {
-            const productIds = productLineData.map(item => item.product_id).slice(0, 50); // Further limit
-            query = query.in('product_id', productIds);
-          }
-        }
-      }
-      
-      // Apply date range filter if selected
-      if (selectedDateRange?.from && selectedDateRange?.to) {
-        const fromDate = selectedDateRange.from.toISOString().split('T')[0];
-        const toDate = selectedDateRange.to.toISOString().split('T')[0];
-
-        query = query.gte('postdate', fromDate)
-                   .lte('postdate', toDate);
-      }
-
-
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('❌ ERROR - v_sales_transaction_out query failed:', error);
-        throw error;
-      }
-
-
-
-      setSellOutData(data || []);
-      
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching sell-out data:', error);
-      return [];
-    }
-  }, [selectedProduct?.product_id, selectedLocation?.location_id, selectedCustomer?.customer_id, selectedDateRange, advancedFilters]);
 
   // Function to fetch inventory data from inventory_transactions table
   const fetchInventoryData = useCallback(async () => {
@@ -1194,7 +922,7 @@ const ForecastCollaboration: React.FC = () => {
         .schema('m8_schema')
         .from('inventory_transactions')
         .select('product_id, location_node_id, customer_node_id, postdate, eoh')
-        .gte('postdate', '2025-01-01')
+        .gte('postdate', '2024-10-01')
         .lte('postdate', '2025-12-31')
         .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true });
@@ -1223,7 +951,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_inventory_by_marca', {
             marca_names: advancedFilters.marca,
-            date_from: '2025-01-01',
+            date_from: '2024-10-01',
             date_to: '2025-12-31'
           });
         
@@ -1251,7 +979,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_inventory_by_product_line', {
             product_line_names: advancedFilters.productLine,
-            date_from: '2025-01-01',
+            date_from: '2024-10-01',
             date_to: '2025-12-31'
           });
         
@@ -1292,26 +1020,8 @@ const ForecastCollaboration: React.FC = () => {
     }
   }, [selectedProduct?.product_id, selectedLocation?.location_id, selectedCustomer?.customer_id, selectedDateRange, advancedFilters]);
 
-  const processForecastData = useCallback((rawData: CommercialCollaborationData[], customerNamesMap: {[key: string]: string}, dateFilter: DateRange | null = null, sellInDataArray: any[] = [], sellOutDataArray: any[] = [], productAttributesMap: { [key: string]: { attr_1: number; attr_2: number; attr_3: number } } = {}, kamDataArray: any[] = [], inventoryDataArray: any[] = []) => {
+  const processForecastData = useCallback((rawData: CommercialCollaborationData[], customerNamesMap: {[key: string]: string}, dateFilter: DateRange | null = null, productAttributesMap: { [key: string]: { attr_1: number; attr_2: number; attr_3: number } } = {}, kamDataArray: any[] = []) => {
     const groupedData: { [key: string]: CustomerData } = {};
-    
-    // Debug: Check if our specific record is in the processing data
-    console.log('🔄 Starting processForecastData with', rawData.length, 'records');
-    const targetRecord = rawData.find(row => 
-      row.product_id === '100083' && 
-      row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de'
-    );
-    if (targetRecord) {
-      console.log('✅ Target record found in processing:', {
-        product_id: targetRecord.product_id,
-        customer_node_id: targetRecord.customer_node_id,
-        postdate: targetRecord.postdate,
-        sm_kam_override: targetRecord.sm_kam_override,
-        actual: targetRecord.actual
-      });
-    } else {
-      console.log('❌ Target record NOT found in processing data');
-    }
     
     // Counters for skipped rows to avoid console spam
     let skippedMainRows = 0;
@@ -1328,7 +1038,7 @@ const ForecastCollaboration: React.FC = () => {
       '10-25': 'oct-25', '11-25': 'nov-25', '12-25': 'dic-25'
     };
     
-    // Track records with actual data for BY M8 Predict debugging
+    // Track records with actual data for M8 Predict debugging
     let recordsWithActualData = 0;
     let totalActualSum = 0;
     
@@ -1379,23 +1089,6 @@ const ForecastCollaboration: React.FC = () => {
       const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
       const displayMonth = monthMap[monthKey];
       
-      // DEBUG: Log date parsing for the target record
-      if ((row.product_id === '100083' || row.product_id === '100042') && row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de') {
-        console.log('🔍 DATE PARSING DEBUG:', {
-          product_id: row.product_id,
-          raw_postdate: row.postdate,
-          parsed_date: date,
-          month: month,
-          year: year,
-          monthKey: monthKey,
-          displayMonth: displayMonth,
-          monthMapKeys: Object.keys(monthMap),
-          actual_value: row.actual,
-          forecast_value: row.forecast,
-          sm_kam_override: row.sm_kam_override
-        });
-      }
-      
       if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
         // Store the actual postdate for this month
         if (!groupedData[customerProductKey].monthPostdates) {
@@ -1406,288 +1099,40 @@ const ForecastCollaboration: React.FC = () => {
         // Initialize month data if it doesn't exist
         if (!groupedData[customerProductKey].months[displayMonth]) {
           groupedData[customerProductKey].months[displayMonth] = {
-            last_year: 0,
             forecast_sales_gap: 0,
             calculated_forecast: 0,
-            xamview: 0,
             kam_forecast_correction: 0,
-            sales_manager_view: 0,
             effective_forecast: 0,
-            sell_in_aa: 0,
-            sell_in_23: 0, // Year-2 (2023) sell-in data
-            sell_in_actual: 0, // Current year (2025) sell-in data
-            sell_out_aa: 0,
-            sell_out_actual: 0, // Current year (2025) sell-out data
-            sell_out_real: 0,
-            inventory_days: 0,
             forecast_commercial_input: 0,
             actual_by_m8: 0,
             // Initialize new fields
-            si_venta_2024: 0,
-            si_2025: 0,
-            so_2024: 0,
-            so_2025: 0,
-            ddi_totales: 0,
-            si_pin_2025: 0,
-            le_1: 0,
-            si_pin_2026: 0,
-            pin_vs_aa_1: 0,
-            ppto_2025: 0,
-            ppto_2026: 0,
-            pin_26_vs_aa_25: 0,
-            pin_26_vs_ppto_26: 0,
-            pin_sep: 0,
-            pin_sep_vs_pin: 0,
             kam_26: 0,
             by_26: 0,
-            bb_26: 0,
-            pci_26: 0
+           
           };
         }        // Add the values (this allows aggregation if multiple products exist for same customer/month)
         const monthData = groupedData[customerProductKey].months[displayMonth];
-        monthData.last_year += row.forecast_ly || 0;
+    
         monthData.forecast_sales_gap += row.forecast_sales_gap || 0;
         monthData.calculated_forecast += row.forecast || 0;
-        monthData.xamview += row.approved_sm_kam || 0; // This is from commercial_collaboration
+    
         monthData.kam_forecast_correction += row.sm_kam_override || 0; // KAM adjustments from sm_kam_override field
-        monthData.sales_manager_view += row.forecast_sales_manager || 0; // From commercial_collaboration
+    
         monthData.effective_forecast += row.sm_kam_override || row.commercial_input || row.forecast || 0; // sm_kam_override takes priority
         monthData.forecast_commercial_input += row.approved_sm_kam || 0; // Original commercial_input from forecast_data
         // TEMPORARY FIX: Try using forecast field if actual is empty
         const m8PredictValue = row.actual || row.forecast || 0;
         monthData.actual_by_m8 += m8PredictValue;
-
-        // Debug: Log data mapping for your target record
-        if ((row.product_id === '100083' || row.product_id === '100042') && row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de') {
-          console.log('🎯 TARGET RECORD PROCESSING:', {
-            product_id: row.product_id,
-            customer_node_id: row.customer_node_id,
-            postdate: row.postdate,
-            month_key: displayMonth,
-            actual: row.actual,
-            forecast: row.forecast,
-            sm_kam_override: row.sm_kam_override,
-            m8PredictValue: m8PredictValue,
-            monthData_after: {
-              actual_by_m8: monthData.actual_by_m8,
-              kam_forecast_correction: monthData.kam_forecast_correction,
-              calculated_forecast: monthData.calculated_forecast
-            }
-          });
-        }
         
-        // Debug: Log data mapping for your example record
-        if (row.sm_kam_override && row.sm_kam_override > 3) {
-          console.log('🔍 KAM A+1 Data Found:', {
-            product_id: row.product_id,
-            customer_node_id: row.customer_node_id,
-            postdate: row.postdate,
-            month_key: displayMonth,
-            sm_kam_override: row.sm_kam_override,
-            kam_forecast_correction_total: monthData.kam_forecast_correction
-          });
-        }
         
-        // Debug: Log actual_by_m8 data when it's non-zero  
-        if (m8PredictValue !== 0) {
-          console.log('BY M8 Predict data found:', {
-            customer: row.customer_node_id,
-            product: row.product_id,
-            month: displayMonth,
-            actual: row.actual,
-            forecast: row.forecast,
-            used_value: m8PredictValue,
-            running_total: monthData.actual_by_m8
-          });
-        }
-        
-        // PPTO data will be processed separately from commercial_collaboration table
-        
-        // KAM adjustments will be loaded separately from commercial_collaboration table
       }
     });
 
     // Process sell-in data from v_time_series_sell_in.quantity
-    sellInDataArray.forEach((sellInRow: any) => {
-      // Skip rows with null customer_node_id to prevent errors
-      if (!sellInRow.customer_node_id) {
-        skippedSellInRows++;
-        return;
-      }
-      
-      const customerProductKey = `${sellInRow.customer_node_id}-${sellInRow.product_id || 'no-product'}`;
-      
-      // Parse postdate to extract month and year
-      const date = new Date(sellInRow.postdate);
-      const month = date.getMonth() + 1; // 1-based month
-      const year = date.getFullYear();
-      
-      const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
-      const displayMonth = monthMap[monthKey];
-      
-      if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
-        // Store the actual postdate for this month (in case this is the first data for this month)
-        if (!groupedData[customerProductKey].monthPostdates) {
-          groupedData[customerProductKey].monthPostdates = {};
-        }
-        if (!groupedData[customerProductKey].monthPostdates![displayMonth]) {
-          groupedData[customerProductKey].monthPostdates![displayMonth] = sellInRow.postdate;
-        }
-        
-        // Initialize month data if it doesn't exist (in case sell-in data exists without forecast data)
-        if (!groupedData[customerProductKey].months[displayMonth]) {
-          groupedData[customerProductKey].months[displayMonth] = {
-            last_year: 0,
-            forecast_sales_gap: 0,
-            calculated_forecast: 0,
-            xamview: 0,
-            kam_forecast_correction: 0,
-            sales_manager_view: 0,
-            effective_forecast: 0,
-            sell_in_aa: 0,
-            sell_in_23: 0, // Year-2 (2023) sell-in data
-            sell_in_actual: 0, // Current year (2025) sell-in data
-            sell_out_aa: 0,
-            sell_out_actual: 0, // Current year (2025) sell-out data
-            sell_out_real: 0,
-            inventory_days: 0,
-            forecast_commercial_input: 0,
-            actual_by_m8: 0,
-            // Initialize new fields
-            si_venta_2024: 0,
-            si_2025: 0,
-            so_2024: 0,
-            so_2025: 0,
-            ddi_totales: 0,
-            si_pin_2025: 0,
-            le_1: 0,
-            si_pin_2026: 0,
-            pin_vs_aa_1: 0,
-            ppto_2025: 0,
-            ppto_2026: 0,
-            pin_26_vs_aa_25: 0,
-            pin_26_vs_ppto_26: 0,
-            pin_sep: 0,
-            pin_sep_vs_pin: 0,
-            kam_26: 0,
-            by_26: 0,
-            bb_26: 0,
-            pci_26: 0
-          };
-        }
-        
-        // Add sell-in quantity to the appropriate field based on year
-        const date = new Date(sellInRow.postdate);
-        const year = date.getFullYear();
-        
-        if (year === 2023) {
-          // Year-2 (2023) data goes to sell_in_23
-          groupedData[customerProductKey].months[displayMonth].sell_in_23 += sellInRow.quantity || 0;
-        } else if (year === 2024) {
-          // Year-1 (2024) data goes to sell_in_aa 
-          groupedData[customerProductKey].months[displayMonth].sell_in_aa += sellInRow.quantity || 0;
-        } else if (year === 2025) {
-          // Current year (2025) data goes to sell_in_actual
-        }
-      }
-    });
-
-    // Process sell-out data from v_time_series_sell_out.value
-    sellOutDataArray.forEach((sellOutRow: any) => {
-      // Skip rows with null customer_node_id to prevent errors
-      if (!sellOutRow.customer_node_id) {
-        skippedSellOutRows++;
-        return;
-      }
-      
-      const customerProductKey = `${sellOutRow.customer_node_id}-${sellOutRow.product_id || 'no-product'}`;
-      
-      // Parse postdate to extract month and year
-      const date = new Date(sellOutRow.postdate);
-      const month = date.getMonth() + 1; // 1-based month
-      const year = date.getFullYear();
-      
-      const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
-      const displayMonth = monthMap[monthKey];
-      
-      if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
-        // Store the actual postdate for this month (in case this is the first data for this month)
-        if (!groupedData[customerProductKey].monthPostdates) {
-          groupedData[customerProductKey].monthPostdates = {};
-        }
-        if (!groupedData[customerProductKey].monthPostdates![displayMonth]) {
-          groupedData[customerProductKey].monthPostdates![displayMonth] = sellOutRow.postdate;
-        }
-        
-        // Initialize month data if it doesn't exist (in case sell-out data exists without forecast data)
-        if (!groupedData[customerProductKey].months[displayMonth]) {
-          groupedData[customerProductKey].months[displayMonth] = {
-            last_year: 0,
-            forecast_sales_gap: 0,
-            calculated_forecast: 0,
-            xamview: 0,
-            kam_forecast_correction: 0,
-            sales_manager_view: 0,
-            effective_forecast: 0,
-            sell_in_aa: 0,
-            sell_in_23: 0, // Year-2 (2023) sell-in data
-            sell_in_actual: 0, // Current year (2025) sell-in data
-            sell_out_aa: 0,
-            sell_out_actual: 0, // Current year (2025) sell-out data
-            sell_out_real: 0,
-            inventory_days: 0,
-            forecast_commercial_input: 0,
-            actual_by_m8: 0,
-            // Initialize new fields
-            si_venta_2024: 0,
-            si_2025: 0,
-            so_2024: 0,
-            so_2025: 0,
-            ddi_totales: 0,
-            si_pin_2025: 0,
-            le_1: 0,
-            si_pin_2026: 0,
-            pin_vs_aa_1: 0,
-            ppto_2025: 0,
-            ppto_2026: 0,
-            pin_26_vs_aa_25: 0,
-            pin_26_vs_ppto_26: 0,
-            pin_sep: 0,
-            pin_sep_vs_pin: 0,
-            kam_26: 0,
-            by_26: 0,
-            bb_26: 0,
-            pci_26: 0
-          };
-        }
-        
-        // Add sell-out value to the appropriate field based on year
-        const date = new Date(sellOutRow.postdate);
-        const year = date.getFullYear();
-        
-        if (year === 2024) {
-          // Year-1 (2024) data goes to sell_out_aa
-          groupedData[customerProductKey].months[displayMonth].sell_out_aa += sellOutRow.value || 0;
-        } else if (year === 2025) {
-          // Current year (2025) data goes to sell_out_actual
-          groupedData[customerProductKey].months[displayMonth].sell_out_actual += sellOutRow.value || 0;
-        }
-      }
-    });
-
+    
     // Process KAM adjustments from commercial_collaboration table
 
     
-    // DEBUG: Log KAM data array summary
-    console.log('🔍 KAM DATA ARRAY:', {
-      total_kam_records: kamDataArray.length,
-      sample_kam_record: kamDataArray[0],
-      target_customer_kam_records: kamDataArray.filter(row => 
-        row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && 
-        (row.product_id === '100042' || row.product_id === '100083')
-      )
-    });
-
     kamDataArray.forEach((kamRow: any, index: number) => {
       // Skip rows with null customer_node_id to prevent errors
       if (!kamRow.customer_node_id) {
@@ -1705,20 +1150,6 @@ const ForecastCollaboration: React.FC = () => {
       const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
       const displayMonth = monthMap[monthKey];
       
-      // DEBUG: Log KAM processing for target records
-      if (kamRow.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && 
-          (kamRow.product_id === '100042' || kamRow.product_id === '100083')) {
-        console.log('🔥 KAM DATA PROCESSING:', {
-          product_id: kamRow.product_id,
-          customer_node_id: kamRow.customer_node_id,
-          postdate: kamRow.postdate,
-          month_key: displayMonth,
-          sm_kam_override: kamRow.sm_kam_override,
-          commercial_input: kamRow.commercial_input,
-          initial_sales_plan: kamRow.initial_sales_plan
-        });
-      }
-      
       if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
         // Store the actual postdate for this month (in case this is the first data for this month)
         if (!groupedData[customerProductKey].monthPostdates) {
@@ -1731,42 +1162,15 @@ const ForecastCollaboration: React.FC = () => {
         // Initialize month data if it doesn't exist (in case KAM data exists without forecast data)
         if (!groupedData[customerProductKey].months[displayMonth]) {
           groupedData[customerProductKey].months[displayMonth] = {
-            last_year: 0,
             forecast_sales_gap: 0,
             calculated_forecast: 0,
-            xamview: 0,
             kam_forecast_correction: 0,
-            sales_manager_view: 0,
             effective_forecast: 0,
-            sell_in_aa: 0,
-            sell_in_23: 0, // Year-2 (2023) sell-in data
-            sell_in_actual: 0, // Current year (2025) sell-in data
-            sell_out_aa: 0,
-            sell_out_actual: 0, // Current year (2025) sell-out data
-            sell_out_real: 0,
-            inventory_days: 0,
             forecast_commercial_input: 0,
             actual_by_m8: 0,
             // Initialize new fields
-            si_venta_2024: 0,
-            si_2025: 0,
-            so_2024: 0,
-            so_2025: 0,
-            ddi_totales: 0,
-            si_pin_2025: 0,
-            le_1: 0,
-            si_pin_2026: 0,
-            pin_vs_aa_1: 0,
-            ppto_2025: 0,
-            ppto_2026: 0,
-            pin_26_vs_aa_25: 0,
-            pin_26_vs_ppto_26: 0,
-            pin_sep: 0,
-            pin_sep_vs_pin: 0,
             kam_26: 0,
             by_26: 0,
-            bb_26: 0,
-            pci_26: 0
           };
         }
         
@@ -1774,179 +1178,27 @@ const ForecastCollaboration: React.FC = () => {
         const previousValue = groupedData[customerProductKey].months[displayMonth].kam_forecast_correction;
         const newValue = kamRow.sm_kam_override || kamRow.commercial_input || 0;
         
-        // DEBUG: Log KAM value assignment for target records
-        if (kamRow.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && 
-            (kamRow.product_id === '100042' || kamRow.product_id === '100083')) {
-          console.log('💎 KAM VALUE ASSIGNMENT:', {
-            product_id: kamRow.product_id,
-            customer_node_id: kamRow.customer_node_id,
-            month_key: displayMonth,
-            sm_kam_override: kamRow.sm_kam_override,
-            commercial_input: kamRow.commercial_input,
-            calculated_new_value: newValue,
-            previous_value: previousValue
-          });
-        }
+
         
         // Set the KAM adjustment value (overwrite, don't add, since this is the adjustment value)
         // Priority: sm_kam_override > commercial_input for KAM adjustments
         groupedData[customerProductKey].months[displayMonth].kam_forecast_correction = newValue;
         
-        // Process PPTO (Budget) data from initial_sales_plan based on year
-        if (kamRow.initial_sales_plan) {
-          const monthYear = parseInt(displayMonth.split('-')[1]) + (parseInt(displayMonth.split('-')[1]) < 50 ? 2000 : 1900);
-          if (monthYear === 2025) {
-            groupedData[customerProductKey].months[displayMonth].ppto_2025 = kamRow.initial_sales_plan;
-          } else if (monthYear === 2026) {
-            groupedData[customerProductKey].months[displayMonth].ppto_2026 = kamRow.initial_sales_plan;
-          }
-        }
+     
+     
       }
     });
 
     // Process inventory data from inventory_transactions table for DDI Totales
     let skippedInventoryRows = 0;
     
-    inventoryDataArray.forEach((inventoryRow: any) => {
-      // Skip rows with null customer_node_id to prevent errors
-      if (!inventoryRow.customer_node_id) {
-        skippedInventoryRows++;
-        return;
-      }
-      
-      const customerProductKey = `${inventoryRow.customer_node_id}-${inventoryRow.product_id || 'no-product'}`;
-      
-      // Parse postdate to extract month and year
-      const date = new Date(inventoryRow.postdate);
-      const month = date.getMonth() + 1; // 1-based month
-      const year = date.getFullYear();
-      
-      const monthKey = `${month.toString().padStart(2, '0')}-${year.toString().slice(-2)}`;
-      const displayMonth = monthMap[monthKey];
-      
-      if (displayMonth && groupedData[customerProductKey] && isMonthInDateRange(displayMonth, dateFilter)) {
-        // Store the actual postdate for this month (in case this is the first data for this month)
-        if (!groupedData[customerProductKey].monthPostdates) {
-          groupedData[customerProductKey].monthPostdates = {};
-        }
-        if (!groupedData[customerProductKey].monthPostdates![displayMonth]) {
-          groupedData[customerProductKey].monthPostdates![displayMonth] = inventoryRow.postdate;
-        }
-        
-        // Initialize month data if it doesn't exist (in case inventory data exists without forecast data)
-        if (!groupedData[customerProductKey].months[displayMonth]) {
-          groupedData[customerProductKey].months[displayMonth] = {
-            last_year: 0,
-            forecast_sales_gap: 0,
-            calculated_forecast: 0,
-            xamview: 0,
-            kam_forecast_correction: 0,
-            sales_manager_view: 0,
-            effective_forecast: 0,
-            sell_in_aa: 0,
-            sell_in_23: 0, // Year-2 (2023) sell-in data
-            sell_in_actual: 0, // Current year (2025) sell-in data
-            sell_out_aa: 0,
-            sell_out_actual: 0, // Current year (2025) sell-out data
-            sell_out_real: 0,
-            inventory_days: 0,
-            forecast_commercial_input: 0,
-            actual_by_m8: 0,
-            si_venta_2024: 0,
-            si_2025: 0,
-            so_2024: 0,
-            so_2025: 0,
-            ddi_totales: 0,
-            si_pin_2025: 0,
-            le_1: 0,
-            si_pin_2026: 0,
-            pin_vs_aa_1: 0,
-            ppto_2025: 0,
-            ppto_2026: 0,
-            pin_26_vs_aa_25: 0,
-            pin_26_vs_ppto_26: 0,
-            pin_sep: 0,
-            pin_sep_vs_pin: 0,
-            kam_26: 0,
-            by_26: 0,
-            bb_26: 0,
-            pci_26: 0
-          };
-        }
-        
-        // Set both inventory_days and ddi_totales using EOH (End of Hand) from inventory_transactions
-        // EOH represents the current inventory level, which is used for DDI (Días de inventario) calculation
-        const eohValue = inventoryRow.eoh || 0;
-        groupedData[customerProductKey].months[displayMonth].inventory_days = eohValue;
-        groupedData[customerProductKey].months[displayMonth].ddi_totales = eohValue;
-        
-
-      }
-    });
-
+    
     // Log summary of skipped rows to avoid console spam
-    const totalSkipped = skippedMainRows + skippedSellInRows + skippedSellOutRows + skippedKamRows + skippedInventoryRows;
+    const totalSkipped = skippedMainRows +   skippedKamRows ;
 
-    // Log summary for BY M8 Predict debugging
-    console.log('🔍 BY M8 Predict Data Summary:', {
-      total_records: rawData.length,
-      records_with_actual_data: recordsWithActualData,
-      total_actual_sum: totalActualSum,
-      skipped_rows: totalSkipped,
-      final_customers: Object.values(groupedData).length
-    });
+ 
 
     const finalCustomers = Object.values(groupedData);
-
-    // Debug: Check if our target customer is in the final processed data
-    const targetCustomer = finalCustomers.find(customer => 
-      customer.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && 
-      (customer.product_id === '100083' || customer.product_id === '100042')
-    );
-    
-    if (targetCustomer) {
-      console.log('✅ Target customer found in final processed data:', {
-        customer_name: targetCustomer.customer_name,
-        product_id: targetCustomer.product_id,
-        february_data: {
-          kam_forecast_correction: targetCustomer.months['feb-25']?.kam_forecast_correction,
-          actual_by_m8: targetCustomer.months['feb-25']?.actual_by_m8,
-          calculated_forecast: targetCustomer.months['feb-25']?.calculated_forecast,
-        },
-        all_month_keys: Object.keys(targetCustomer.months || {}),
-        sample_month_data: targetCustomer.months[Object.keys(targetCustomer.months)[0]]
-      });
-    } else {
-      console.log('❌ Target customer NOT found in final processed data');
-      console.log('Available customers:', finalCustomers.length);
-      
-      // Check if we have the right customer but different product
-      const sameCustomerDifferentProduct = finalCustomers.filter(customer => 
-        customer.customer_node_id === '036952da-be05-4d87-bc94-1405100988de'
-      );
-      
-      if (sameCustomerDifferentProduct.length > 0) {
-        console.log('📍 Same customer found with different products:', 
-          sameCustomerDifferentProduct.map(c => ({
-            product_id: c.product_id,
-            month_keys: Object.keys(c.months || {}),
-            feb_data: {
-              kam_forecast_correction: c.months['feb-25']?.kam_forecast_correction,
-              actual_by_m8: c.months['feb-25']?.actual_by_m8,
-              calculated_forecast: c.months['feb-25']?.calculated_forecast,
-            }
-          }))
-        );
-      }
-      
-      if (finalCustomers.length > 0) {
-        console.log('Sample customer structure:', {
-          customer_node_id: finalCustomers[0].customer_node_id,
-          product_id: finalCustomers[0].product_id,
-          sample_month_keys: Object.keys(finalCustomers[0].months || {}).slice(0, 3)
-        });
-      }
-    }
 
     return Object.values(groupedData);
   }, []);
@@ -1959,9 +1211,9 @@ const ForecastCollaboration: React.FC = () => {
       
       // Check key metrics that should have meaningful values
       const keyMetrics = [
-        'last_year', 'calculated_forecast', 'effective_forecast', 
-        'sell_in_aa', 'sell_out_aa', 'sell_out_real',
-        'kam_forecast_correction', 'sales_manager_view'
+       'calculated_forecast', 'effective_forecast', 
+        
+        'kam_forecast_correction'
       ];
       
       return keyMetrics.some(metric => {
@@ -2012,11 +1264,6 @@ const ForecastCollaboration: React.FC = () => {
   const [customerNamesCache, setCustomerNamesCache] = useState<{[key: string]: string}>({});
   const [customerNamesLoaded, setCustomerNamesLoaded] = useState(false);
   
-  // Sell-in data state
-  const [sellInData, setSellInData] = useState<any[]>([]);
-
-  // Sell-out data state
-  const [sellOutData, setSellOutData] = useState<any[]>([]);
 
 
 
@@ -2030,15 +1277,6 @@ const ForecastCollaboration: React.FC = () => {
   // ...existing code...
 
   const fetchForecastData = useCallback(async (isFilterOperation = false) => {
-    // DEBUG: Track function calls
-    console.log('🔥 fetchForecastData called with isFilterOperation:', isFilterOperation);
-    console.log('📊 Current state:', {
-      selectedProduct: selectedProduct,
-      selectedLocation: selectedLocation, 
-      selectedCustomer: selectedCustomer,
-      selectedDateRange: selectedDateRange
-    });
-    
     // Only show loading indicator after a delay to avoid aggressive UI updates
     // This makes the experience smoother when selecting multiple filters
     let loadingTimer: NodeJS.Timeout | null = null;
@@ -2089,7 +1327,6 @@ const ForecastCollaboration: React.FC = () => {
         .from('products')
         .select('product_id, attr_1, attr_2, attr_3');
 
-
       if (productError) {
         console.error('Error fetching product attributes:', productError);
       }
@@ -2109,13 +1346,13 @@ const ForecastCollaboration: React.FC = () => {
 
       // Try to fetch forecast data using commercial_collaboration_view with error handling
       
-      // OPTIMIZATION: Use 2025 date range only to improve performance and avoid timeouts
+      // OPTIMIZATION: Use more focused date range to improve performance  
       const optimizedDateFrom = selectedDateRange?.from ? 
         selectedDateRange.from.toISOString().split('T')[0] : 
-        '2025-01-01'; // Focus on 2025 data only to prevent timeouts
+        '2025-01-01'; // Include more historical data for M8 Predict
       const optimizedDateTo = selectedDateRange?.to ? 
         selectedDateRange.to.toISOString().split('T')[0] : 
-        '2025-12-31'; // Focus on 2025 data only to prevent timeouts
+        '2025-12-31';
 
       let query = (supabase as any)
         .schema('m8_schema')
@@ -2125,7 +1362,7 @@ const ForecastCollaboration: React.FC = () => {
         .lte('postdate', optimizedDateTo)
         .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true })
-        .limit(2000); // Further reduced limit to improve performance and prevent timeouts
+        .limit(100); // Add reasonable limit to prevent runaway queries
      
       // Also fetch KAM adjustments and PPTO data from commercial_collaboration table
       let kamQuery = (supabase as any)
@@ -2136,7 +1373,7 @@ const ForecastCollaboration: React.FC = () => {
         .lte('postdate', optimizedDateTo)
         .order('customer_node_id', { ascending: true })
         .order('postdate', { ascending: true })
-        .limit(1000); // Further reduced limit for KAM data to improve performance
+        .limit(50); // Smaller limit for KAM data
 
       // Apply filters to both queries
       if (selectedProduct?.product_id) {
@@ -2199,75 +1436,21 @@ const ForecastCollaboration: React.FC = () => {
         // Set flag to skip redundant supply network filtering below
         needsSupplyNetworkFilter = false;
       }
-      // Use only pre-filtered products if available (without supply network nodes) - FIXED for Marca filters
+      // Use FilterPanel's pre-filtered products when marca or productLine are selected
       else if (advancedFilters.selectedProducts && advancedFilters.selectedProducts.length > 0) {
+        // console.log('✅ Using FilterPanel pre-filtered products:', {
+        //   count: advancedFilters.selectedProducts.length,
+        //   sample: advancedFilters.selectedProducts.slice(0, 5),
+        //   marca: advancedFilters.marca,
+        //   productLine: advancedFilters.productLine
+        // });
         
-        // OPTIMIZATION: If too many products, chunk the query or use alternative approach
-        if (advancedFilters.selectedProducts.length > 50) {
-          console.warn(`Large product list detected (${advancedFilters.selectedProducts.length} products). This may cause performance issues.`);
-          
-          // For very large lists, limit to first 50 to prevent timeout
-          const limitedProducts = advancedFilters.selectedProducts.slice(0, 50);
-          query = query.in('product_id', limitedProducts);
-          kamQuery = kamQuery.in('product_id', limitedProducts);
-          
-          // Show warning to user
-          toast.warning('Lista de productos muy grande', {
-            description: `Mostrando los primeros 50 de ${advancedFilters.selectedProducts.length} productos para mejorar rendimiento.`,
-            duration: 5000,
-          });
-        } else {
-          // Apply product filter normally for smaller lists
-          query = query.in('product_id', advancedFilters.selectedProducts);
-          kamQuery = kamQuery.in('product_id', advancedFilters.selectedProducts);
-        }
+        // Apply product filter from FilterPanel (already handles marca/productLine)
+        query = query.in('product_id', advancedFilters.selectedProducts);
+        kamQuery = kamQuery.in('product_id', advancedFilters.selectedProducts);
         
         // Set flag to skip redundant supply network filtering below
         needsSupplyNetworkFilter = false;
-      }
-      // Fallback to individual filter processing if no pre-filtered products available
-      else {
-        if (advancedFilters.selectedBrands && advancedFilters.selectedBrands.length > 0) {
-          query = query.in('subcategory_id', advancedFilters.selectedBrands);
-          kamQuery = kamQuery.in('subcategory_id', advancedFilters.selectedBrands);
-        }
-
-        // Apply marca filter using subcategory_name with URL length limit protection
-        if (advancedFilters.marca && advancedFilters.marca.length > 0) {
-          // Use subcategory_name filter directly to avoid product_id list length issues
-          const { data: marcaData } = await (supabase as any)
-            .schema('m8_schema')
-            .from('products')
-            .select('subcategory_id')
-            .in('subcategory_name', advancedFilters.marca)
-            .limit(50); // Limit to prevent issues
-          
-          if (marcaData && marcaData.length > 0) {
-            const subcategoryIds = [...new Set(marcaData.map(item => item.subcategory_id))];
-            
-            // Filter directly by subcategory_id to avoid long product_id lists
-            query = query.in('subcategory_id', subcategoryIds);
-            kamQuery = kamQuery.in('subcategory_id', subcategoryIds);
-          }
-        }
-
-        // Apply productLine filter using class_name with URL length limit protection
-        if (advancedFilters.productLine && advancedFilters.productLine.length > 0) {
-          // Use limited batch processing to avoid URL length limits
-          const { data: productLineData } = await (supabase as any)
-            .schema('m8_schema')
-            .from('products')
-            .select('product_id')
-            .in('class_name', advancedFilters.productLine)
-            .limit(50); // Limit to prevent URL overflow
-          
-          if (productLineData && productLineData.length > 0) {
-            const productIds = productLineData.map(item => item.product_id).slice(0, 30); // Further limit to prevent URL issues
-            
-            query = query.in('product_id', productIds);
-            kamQuery = kamQuery.in('product_id', productIds);
-          }
-        }
       }
       
       if (advancedFilters.selectedCustomers && advancedFilters.selectedCustomers.length > 0) {
@@ -2386,41 +1569,40 @@ const ForecastCollaboration: React.FC = () => {
       try {
         // Add query performance monitoring
         const queryStartTime = Date.now();
-        console.log('🔄 Starting main query execution...');
+        // console.log('🔄 Starting main query execution...');
         
         const mainQueryResult = await query;
         
         const queryDuration = Date.now() - queryStartTime;
-        console.log(`⏱️ Main query completed in ${queryDuration}ms`);
+        // console.log(`⏱️ Main query completed in ${queryDuration}ms`);
         data = mainQueryResult.data;
         error = mainQueryResult.error;
         
         // Debug: Check actual field data in the query results
         if (data && data.length > 0) {
-          const recordsWithActual = data.filter(row => row.actual && row.actual !== 0);
+          interface CommercialCollaborationRow {
+            customer_node_id: string;
+            postdate: string;
+            forecast_ly: number;
+            forecast: number;
+            approved_sm_kam: number;
+            sm_kam_override: number;
+            forecast_sales_manager: number;
+            commercial_input: number;
+            forecast_sales_gap: number;
+            product_id: string;
+            subcategory_id: string;
+            location_node_id: string;
+            actual: number | null | undefined;
+          }
+
+          const recordsWithActual: CommercialCollaborationRow[] = (data as CommercialCollaborationRow[]).filter(
+            (row: CommercialCollaborationRow) => row.actual && row.actual !== 0
+          );
           const recordsWithNullActual = data.filter(row => row.actual === null || row.actual === undefined);
           const recordsWithZeroActual = data.filter(row => row.actual === 0);
           
-          console.log('🔍 Query Result - Actual Data Analysis:', {
-            total_records: data.length,
-            records_with_actual_nonzero: recordsWithActual.length,
-            records_with_null_actual: recordsWithNullActual.length,
-            records_with_zero_actual: recordsWithZeroActual.length,
-            sample_nonzero_actual: recordsWithActual.slice(0, 3).map(row => ({
-              customer: row.customer_node_id?.substring(0, 8),
-              product: row.product_id,
-              date: row.postdate,
-              actual: row.actual
-            })),
-            sample_all_data: data.slice(0, 2).map(row => ({
-              customer: row.customer_node_id?.substring(0, 8),
-              product: row.product_id,
-              date: row.postdate,
-              actual: row.actual,
-              forecast: row.forecast,
-              approved_sm_kam: row.approved_sm_kam
-            }))
-          });
+          
         }
         
         if (error) {
@@ -2437,12 +1619,12 @@ const ForecastCollaboration: React.FC = () => {
             const fallbackQuery = (supabase as any)
               .schema('m8_schema')
               .from('commercial_collaboration')
-              .select('customer_node_id,postdate,product_id,location_node_id,commercial_input')
+              .select('customer_node_id,postdate,product_id,location_node_id,commercial_input, sm_kam_override,forecast,approved_sm_kam,forecast_sales_gap,actual')
               .gte('postdate', '2025-01-01') // Reduced date range for fallback
               .lte('postdate', '2025-12-31')
               .order('customer_node_id', { ascending: true })
               .order('postdate', { ascending: true })
-              .limit(300); // Very conservative limit for fallback query
+              .limit(50); // Increased limit but still reasonable
             
             const fallbackResult = await fallbackQuery;
             if (fallbackResult.error) {
@@ -2506,49 +1688,13 @@ const ForecastCollaboration: React.FC = () => {
       setRawForecastData(data || []);
 
 
-      // Fetch sell-in data
-      const sellInDataArray = await fetchSellInData();
 
 
-      // Fetch sell-out data
-      const sellOutDataArray = await fetchSellOutData();
 
 
-      // Fetch inventory data for DDI Totales
-      const inventoryDataArray = await fetchInventoryData();
-
-
-      // Debug: Check raw data before processing
-      console.log('📊 Raw data before processing:', {
-        totalRecords: data?.length || 0,
-        sampleRecord: data?.[0],
-      });
-      
-      // Check if your specific record is in the data
-      const yourRecord = data?.find(row => 
-        row.product_id === '100083' && 
-        row.customer_node_id === '036952da-be05-4d87-bc94-1405100988de'
-      );
-      if (yourRecord) {
-        console.log('✅ Found your specific record in raw data:', {
-          product_id: yourRecord.product_id,
-          customer_node_id: yourRecord.customer_node_id,
-          postdate: yourRecord.postdate,
-          sm_kam_override: yourRecord.sm_kam_override,
-          actual: yourRecord.actual,
-          forecast: yourRecord.forecast
-        });
-      } else {
-        console.log('❌ Your specific record not found in raw data');
-        // Show what we do have
-        const uniqueProducts = [...new Set(data?.map(r => r.product_id) || [])];
-        const uniqueCustomers = [...new Set(data?.map(r => r.customer_node_id) || [])];
-        console.log('Available products (first 10):', uniqueProducts.slice(0, 10));
-        console.log('Available customers (first 5):', uniqueCustomers.slice(0, 5));
-      }
 
       // Process the data using the new function with KAM and inventory data
-      const allCustomersData = processForecastData(data || [], customerNamesMap, selectedDateRange, sellInDataArray, sellOutDataArray, productAttributesMap, kamData || [], inventoryDataArray);
+      const allCustomersData = processForecastData(data || [], customerNamesMap, selectedDateRange, kamData || []);
 
 
       const finalCustomersData = allCustomersData;
@@ -2575,12 +1721,6 @@ const ForecastCollaboration: React.FC = () => {
       if (advancedFilteredData.length > 0 && isFilterOperation) {
         // Calculate totals for main metrics
         const allCustomersTotals = {
-          lastYear: advancedFilteredData.reduce((sum, customer) => {
-            return sum + months.reduce((monthTotal, month) => {
-              const monthData = customer.months[month];
-              return monthTotal + (monthData ? (monthData.last_year || 0) : 0);
-            }, 0);
-          }, 0),
           calculatedForecast: advancedFilteredData.reduce((sum, customer) => {
             return sum + months.reduce((monthTotal, month) => {
               const monthData = customer.months[month];
@@ -2599,28 +1739,16 @@ const ForecastCollaboration: React.FC = () => {
               return monthTotal + (monthData ? (monthData.kam_forecast_correction || 0) : 0);
             }, 0);
           }, 0),
-          sellIn: advancedFilteredData.reduce((sum, customer) => {
-            return sum + months.reduce((monthTotal, month) => {
-              const monthData = customer.months[month];
-              return monthTotal + (monthData ? (monthData.sell_in_aa || 0) : 0);
-            }, 0);
-          }, 0),
-          sellOut: advancedFilteredData.reduce((sum, customer) => {
-            return sum + months.reduce((monthTotal, month) => {
-              const monthData = customer.months[month];
-              return monthTotal + (monthData ? (monthData.sell_out_aa || 0) : 0);
-            }, 0);
-          }, 0)
+         
         };
         
         // Check if all main totals are 0
         const allTotalsZero = 
-          allCustomersTotals.lastYear === 0 &&
+        
           allCustomersTotals.calculatedForecast === 0 &&
           allCustomersTotals.effectiveForecast === 0 &&
-          allCustomersTotals.kamForecast === 0 &&
-          allCustomersTotals.sellIn === 0 &&
-          allCustomersTotals.sellOut === 0;
+          allCustomersTotals.kamForecast === 0 ;
+        
 
         
         // Don't show toast for zero totals - let the main UI handle empty state display
@@ -2650,7 +1778,7 @@ const ForecastCollaboration: React.FC = () => {
         clearTimeout(loadingTimer);
       }
     }
-  }, [processForecastData, selectedProduct?.product_id, selectedLocation?.location_id, selectedCustomer?.customer_id, selectedDateRange, advancedFilters, customerNamesCache, customerNamesLoaded, fetchSellInData, fetchSellOutData, fetchInventoryData, applyAdvancedFilters, months]);
+  }, [processForecastData, selectedProduct?.product_id, selectedLocation?.location_id, selectedCustomer?.customer_id, selectedDateRange, advancedFilters, customerNamesCache, customerNamesLoaded, applyAdvancedFilters, months]);
 
   // Function to manually refresh data
   const manualRefreshData = useCallback(() => {
@@ -2666,46 +1794,96 @@ const ForecastCollaboration: React.FC = () => {
   // Automatic data fetching when filters change
   // This provides real-time filtering functionality - only runs when filters are actually applied
   useEffect(() => {
-    // DEBUG: Log component load state
-    console.log('🚀 COMPONENT LOAD: Checking if should fetch data');
-    console.log('📋 Current filters state:', {
-      selectedProduct: selectedProduct,
-      selectedLocation: selectedLocation,
-      selectedCustomer: selectedCustomer,
-      selectedDateRange: selectedDateRange,
-      advancedFilters: advancedFilters
-    });
-    
     // Only fetch data when filters are actually set (not initial null state)
     const hasActiveFilters = selectedProduct !== null || selectedLocation !== null || 
                            selectedCustomer !== null || selectedDateRange !== null || 
                            Object.values(advancedFilters).some(arr => Array.isArray(arr) && arr.length > 0);
     
-    console.log('🔍 Has active filters?', hasActiveFilters);
-    
     if (hasActiveFilters) {
       // Debounce the filter changes to avoid excessive API calls
       const timeoutId = setTimeout(() => {
-        console.log('📞 About to call fetchForecastData(true)');
+
         fetchForecastData(true);
       }, 300); // 300ms debounce to allow multiple filter selections
 
-      return () => clearTimeout(timeoutId);
-    } else {
-      // DEBUG: Load some initial data even without filters to see what's available
-      console.log('🔄 No filters set, loading initial data...');
-      const timeoutId = setTimeout(() => {
-        fetchForecastData(false);
-      }, 500);
       return () => clearTimeout(timeoutId);
     }
   }, [selectedProduct?.product_id, selectedLocation?.location_id, selectedCustomer?.customer_id, selectedDateRange, JSON.stringify(advancedFilters), fetchForecastData]);
 
 
   
+  const calculateTotal = useCallback((field: string) => {
+    // Use filtered customers (already filtered by advanced filters in fetchForecastData)
+    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
+      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
+      : customers;
+      
+    return customersToUse.reduce((total, customer) => {
+      return total + months.reduce((monthTotal, month) => {
+        const monthData = customer.months[month];
+        return monthTotal + (monthData ? (monthData as Record<string, number>)[field] || 0 : 0);
+      }, 0);
+    }, 0);
+  }, [customers, months, selectedCustomerId]);
 
+  const calculateSalesTrends = useCallback(() => {
+    const currentPeriod = calculateTotal('effective_forecast');
+    const lastYearPeriod = calculateTotal('last_year');
+    
+    let growthPercentage = 0;
+    let trendDirection: 'up' | 'down' | 'neutral' = 'neutral';
+    
+    if (lastYearPeriod > 0) {
+      growthPercentage = ((currentPeriod - lastYearPeriod) / lastYearPeriod) * 100;
+      trendDirection = growthPercentage > 0 ? 'up' : growthPercentage < 0 ? 'down' : 'neutral';
+    }
+    
+    setSalesTrends({
+      currentPeriod,
+      lastYearPeriod,
+      growthPercentage,
+      trendDirection
+    });
+  }, [calculateTotal]);
 
+  // Helper function to check if there's meaningful data to show metrics, trends, and charts
+  const hasDataForMetricsAndCharts = useCallback(() => {
+    if (customers.length === 0) return false;
+    
+    // Calculate key totals
+    const m8PredictTotal = calculateTotal('actual_by_m8');
+    const kamForecastTotal = calculateTotal('kam_forecast_correction');
+    const effectiveForecastTotal = calculateTotal('effective_forecast');
+    
+    // Check if M8 Predict has meaningful current-year-only data
+    const currentYear = new Date().getFullYear();
+    const hasCurrentYearM8Data = customers.some(customer => {
+      return Object.keys(customer.months).some(monthKey => {
+        if (shouldShowValueForYear(monthKey, currentYear-1)) {
+          const monthData = customer.months[monthKey];
+          return monthData && (monthData.actual_by_m8 || 0) > 0;
+        }
+        return false;
+      });
+    });
+    
+    // Check if any of the main metrics have non-zero values
+    const hasMainData = m8PredictTotal > 0 || kamForecastTotal > 0 || effectiveForecastTotal > 0 ;
+    
+    // For metrics to show, we need both main data AND current year M8 data
+    // This ensures the metrics section only appears when M8 Predict actually has current year values
+    const hasRelevantData = hasMainData && hasCurrentYearM8Data;
+    
+    // Also check if any customer has meaningful values for the general data availability
+    const hasCustomerData = customers.some(customer => customerHasValues(customer));
+    
+    return hasRelevantData || (hasMainData && hasCustomerData);
+  }, [customers, calculateTotal, customerHasValues, shouldShowValueForYear]);
 
+  // Calculate sales trends when filters change
+  useEffect(() => {
+    calculateSalesTrends();
+  }, [customers, selectedCustomerId]);
 
   const handleDoubleClick = useCallback((customerId: string, month: string, currentValue: number) => {
     setEditingCell({ customerId, month });
@@ -2744,14 +1922,14 @@ const ForecastCollaboration: React.FC = () => {
         return null;
       }
 
-      console.log('🔍 Resolving location_id from filters:', {
-        customer_node_id: customerId,
-        customer_id: customerIdText,
-        product_id: productId,
-        has_marca_filter: advancedFilters.marca?.length > 0,
-        has_productLine_filter: advancedFilters.productLine?.length > 0,
-        has_FilterPanel_locations: Object.keys(advancedFilters.availableLocations || {}).length > 0
-      });
+      // console.log('🔍 Resolving location_id from filters:', {
+      //   customer_node_id: customerId,
+      //   customer_id: customerIdText,
+      //   product_id: productId,
+      //   has_marca_filter: advancedFilters.marca?.length > 0,
+      //   has_productLine_filter: advancedFilters.productLine?.length > 0,
+      //   has_FilterPanel_locations: Object.keys(advancedFilters.availableLocations || {}).length > 0
+      // });
 
       // Strategy 0: Use FilterPanel location data if available (most efficient)
       if (advancedFilters.productLocationMap && advancedFilters.availableLocations) {
@@ -2775,7 +1953,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_sales_in_by_marca', {
             marca_names: advancedFilters.marca,
-            date_from: '2025-01-01',
+            date_from: '2023-10-01',
             date_to: '2025-12-31'
           });
 
@@ -2815,7 +1993,7 @@ const ForecastCollaboration: React.FC = () => {
           .schema('m8_schema')
           .rpc('get_sales_in_by_product_line', {
             product_line_names: advancedFilters.productLine,
-            date_from: '2025-01-01',
+            date_from: '2023-10-01',
             date_to: '2025-12-31'
           });
 
@@ -2928,8 +2106,7 @@ const ForecastCollaboration: React.FC = () => {
           .from('products')
           .select('product_id')
           .in('subcategory_id', advancedFilters.selectedBrands)
-          .limit(100); // Limit to prevent overload
-          
+          .limit(100);
         if (!marcaError && marcaProducts) {
           productIds = marcaProducts.map(p => p.product_id);
         }
@@ -2943,16 +2120,16 @@ const ForecastCollaboration: React.FC = () => {
         }
       }
       
-      console.log('Calling PostgreSQL KAM function with parameters:', {
-        customer_uuid: customerId,
-        month_abbr: monthAbbr,
-        year: year,
-        kam_value: value,
-        product_ids: productIds.length > 0 ? productIds : 'null (using marca/product_line filter)',
-        marca_names: marcaNames,
-        product_lines: productLines,
-        filter_strategy: marcaNames ? 'marca' : productLines ? 'product_line' : productIds.length > 0 ? 'product_ids' : 'all_customer_products'
-      });
+      // console.log('Calling PostgreSQL KAM function with parameters:', {
+      //   customer_uuid: customerId,
+      //   month_abbr: monthAbbr,
+      //   year: year,
+      //   kam_value: value,
+      //   product_ids: productIds.length > 0 ? productIds : 'null (using marca/product_line filter)',
+      //   marca_names: marcaNames,
+      //   product_lines: productLines,
+      //   filter_strategy: marcaNames ? 'marca' : productLines ? 'product_line' : productIds.length > 0 ? 'product_ids' : 'all_customer_products'
+      // });
       
       // Call the PostgreSQL function
       const { data, error } = await (supabase as any)
@@ -2978,14 +2155,14 @@ const ForecastCollaboration: React.FC = () => {
         const result = data[0];
         
         if (result.success) {
-          console.log('✅ KAM adjustment saved successfully:', {
-            savedRecords: result.records_updated,
-            totalValue: value,
-            valuePerRecord: result.records_updated > 0 ? value / result.records_updated : value,
-            customer: customerId,
-            month: month,
-            updatedRecords: result.updated_records
-          });
+          // console.log('✅ KAM adjustment saved successfully:', {
+          //   savedRecords: result.records_updated,
+          //   totalValue: value,
+          //   valuePerRecord: result.records_updated > 0 ? value / result.records_updated : value,
+          //   customer: customerId,
+          //   month: month,
+          //   updatedRecords: result.updated_records
+          // });
           
           toast.success('Ajuste KAM guardado', {
             description: `Valor ${value.toLocaleString('es-MX')} distribuido en ${result.records_updated} registros`,
@@ -3052,7 +2229,8 @@ const ForecastCollaboration: React.FC = () => {
     }
   }, [handleSaveEdit, handleCancelEdit]);
 
-  const handleKamApprovalChange = useCallback((customerId: string, month: string, value: string) => {
+  const handleKamApprovalChange = useCallback(async (customerId: string, month: string, value: string) => {
+    // Update local state immediately for UI responsiveness
     setKamApprovals(prev => ({
       ...prev,
       [customerId]: {
@@ -3060,7 +2238,100 @@ const ForecastCollaboration: React.FC = () => {
         [month]: value
       }
     }));
-  }, []);
+
+    // Save to database
+    try {
+      setSaving(true);
+      
+      // Parse month and year
+      const [monthAbbr, year] = month.split('-');
+      if (!monthAbbr || !year) {
+        toast.error('Formato de mes inválido');
+        return;
+      }
+
+      // Convert month abbreviation to full date (first day of the month)
+      const monthMap: { [key: string]: string } = {
+        'ene': '01', 'feb': '02', 'mar': '03', 'abr': '04', 
+        'may': '05', 'jun': '06', 'jul': '07', 'ago': '08',
+        'sep': '09', 'oct': '10', 'nov': '11', 'dic': '12'
+      };
+      const monthNum = monthMap[monthAbbr];
+      const fullYear = year.length === 2 ? `20${year}` : year;
+      const postdate = `${fullYear}-${monthNum}-01`;
+
+      // Get the product IDs and location IDs from filters
+      let productIds: string[] = [];
+      let locationIds: string[] = [];
+
+      // Determine product IDs based on filters
+      if (advancedFilters.marca?.length > 0) {
+        const { data: marcaProducts } = await (supabase as any)
+          .schema('m8_schema')
+          .from('products')
+          .select('product_id')
+          .in('subcategory_name', advancedFilters.marca);
+        if (marcaProducts) productIds = marcaProducts.map((p: any) => p.product_id);
+      } else if (advancedFilters.productLine?.length > 0) {
+        const { data: lineProducts } = await (supabase as any)
+          .schema('m8_schema')
+          .from('products')
+          .select('product_id')
+          .in('class_name', advancedFilters.productLine);
+        if (lineProducts) productIds = lineProducts.map((p: any) => p.product_id);
+      } else if (advancedFilters.selectedProducts?.length > 0) {
+        productIds = advancedFilters.selectedProducts;
+      } else if (selectedProduct?.product_id) {
+        productIds = [selectedProduct.product_id];
+      }
+
+      // Determine location IDs based on filters
+      if (advancedFilters.selectedSupplyNetworkNodeIds?.length > 0) {
+        locationIds = advancedFilters.selectedSupplyNetworkNodeIds;
+      } else if (selectedLocation?.location_id) {
+        locationIds = [selectedLocation.location_id];
+      }
+
+      // Build update query
+      let updateQuery = (supabase as any)
+        .schema('m8_schema')
+        .from('commercial_collaboration')
+        .update({ commercial_notes: value }) // Store approval in commercial_notes field
+        .eq('customer_node_id', customerId)
+        .eq('postdate', postdate);
+
+      // Apply product filter if available
+      if (productIds.length > 0) {
+        updateQuery = updateQuery.in('product_id', productIds);
+      }
+
+      // Apply location filter if available
+      if (locationIds.length > 0) {
+        updateQuery = updateQuery.in('location_node_id', locationIds);
+      }
+
+      const { error } = await updateQuery;
+
+      if (error) {
+        console.error('Error saving KAM Approval:', error);
+        toast.error('Error al guardar aprobación', {
+          description: error.message,
+          duration: 3000
+        });
+      } else {
+        toast.success('Aprobación guardada', {
+          description: `Aprobación "${value}" guardada para ${month}`,
+          duration: 2000
+        });
+      }
+
+    } catch (error) {
+      console.error('Error saving KAM Approval:', error);
+      toast.error('Error al guardar aprobación');
+    } finally {
+      setSaving(false);
+    }
+  }, [advancedFilters, selectedProduct, selectedLocation]);
 
   const handleInlineEditStart = useCallback((customerId: string, month: string, currentValue: number) => {
     // Prevent multiple rapid double-clicks
@@ -3260,18 +2531,6 @@ const ForecastCollaboration: React.FC = () => {
 
 
 
-  // Filter customers based on selection
-  const filteredCustomers = useCallback(() => {
-    let filtered = customers;
-    
-    // Filter by customer if selected
-    if (selectedCustomerId && selectedCustomerId !== 'all') {
-      filtered = filtered.filter(customer => customer.customer_node_id === selectedCustomerId);
-    }
-    
-    return filtered;
-  }, [customers, selectedCustomerId]);
-
   if (loading || clearingFilters) return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Colaboración en Pronósticos</h1>
@@ -3325,83 +2584,7 @@ const ForecastCollaboration: React.FC = () => {
     <div className="w-full min-h-screen p-4 sm:p-6">
       <h1 className="text-xl sm:text-2xl font-bold mb-6">Colaboración en Pronósticos</h1>
       
-      {/* ===== FILTER SECTION ===== */}
-      {/* <div className="w-full space-y-4">
-        <div className="flex flex-wrap justify-start">
-          <FilterDropdown 
-            onProductFilterChange={handleProductFilterChange}
-            onLocationFilterChange={handleLocationFilterChange}
-            onCustomerFilterChange={handleCustomerFilterChange}
-            onDateRangeChange={handleDateRangeChange}
-            onSearch={handleSearch}
-          />
-        </div>
-         */}
-        {/* Selected Filters Display */}
-        {/* {(selectedProduct || selectedLocation || selectedCustomer || selectedDateRange) && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium text-muted-foreground">Filtros activos:</span>
-                  
-                  {selectedProduct && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm">
-                      <Package className="h-3 w-3" />
-                      {selectedProduct.level === 'product' && `${selectedProduct.product_id} - ${selectedProduct.product_name}`}
-                      {selectedProduct.level === 'class' && `${selectedProduct.class_name} (Clase)`}
-                      {selectedProduct.level === 'subcategory' && `${selectedProduct.subcategory_name} (Subcategoría)`}
-                      {selectedProduct.level === 'category' && `${selectedProduct.category_name} (Categoría)`}
-                    </div>
-                  )}
-                  
-                  {selectedLocation && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-full text-sm">
-                      <Truck className="h-3 w-3" />
-                      {selectedLocation.description} ({selectedLocation.location_code})
-                    </div>
-                  )}
-                  
-                  {selectedCustomer && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-orange-50 text-orange-700 border border-orange-200 rounded-full text-sm">
-                      {selectedCustomer.description} ({selectedCustomer.customer_code})
-                    </div>
-                  )}
-                  
-                  {selectedDateRange && (
-                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-sm">
-                      <Calendar className="h-3 w-3" />
-                      {selectedDateRange.from?.toLocaleDateString('es-ES')} - {selectedDateRange.to?.toLocaleDateString('es-ES')}
-                    </div>
-                  )}
-                </div>
-                 */}
-                {/* Clear Filters Button */}
-                {/* <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setSelectedProduct(null);
-                    setSelectedLocation(null);
-                    setSelectedCustomer(null);
-                    setSelectedDateRange(null);
-                  }}
-                  className="h-8 px-3 text-xs"
-                  disabled={filterLoading}
-                >
-                  {filterLoading ? (
-                    <div className="w-3 h-3 border-2 border-gray-200 border-t-gray-600 rounded-full animate-spin mr-1"></div>
-                  ) : (
-                    <X className="h-3 w-3 mr-1" />
-                  )}
-                  Limpiar filtros
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div> */}
-
+  
       {/* Filtros Avanzados Section - Moved to top as requested */}
       <Card className="w-full max-w-full mb-6">
         <CardHeader className="pb-4">
@@ -3552,17 +2735,12 @@ const ForecastCollaboration: React.FC = () => {
 
         </CardContent>
       </Card>
-
-
-
-      
-
-
+              
       <Card className="w-full max-w-full mb-6">
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <CardTitle className="text-base sm:text-lg">
-              Forecast Collaboration
+              Forecast Collaboration Approval
               {(selectedProduct || selectedLocation || selectedCustomer) ? (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
                   - Filtrado por: 
@@ -3583,9 +2761,6 @@ const ForecastCollaboration: React.FC = () => {
                   )}
                 </span>
               ) : null}
-              <div className="text-xs text-gray-500 mt-1">
-                Loaded {customers.length} customer-product combinations
-              </div>
             </CardTitle>
             {saving && (
               <div className="flex items-center space-x-2 text-sm text-blue-600">
@@ -3600,14 +2775,9 @@ const ForecastCollaboration: React.FC = () => {
                 ℹ️
               </div>
               <div className="text-sm text-blue-800">
-                <strong>Data Info:</strong> 
-                <div>• KAM A+1 shows <code>sm_kam_override</code> values from commercial_collaboration</div>
-                <div>• M8 Predict shows <code>actual</code> values from commercial_collaboration_view</div>
-                <div>• M8 Predict is filtered to show 2024 data (year-1)</div>
-                <div>• KAM A+1 shows all data regardless of year</div>
-                <div className="mt-2">
-                  <strong>Debug:</strong> Check browser console for detailed data logs when data is loaded
-                </div>
+                <strong>Ajustes del KAM:</strong> Haz doble clic en las celdas de "Ajustes del KAM" ✏️ para editarlas. 
+                Los cambios se guardan automáticamente en la base de datos. 
+                Al editar el total, los valores se distribuyen proporcionalmente entre todos los clientes.
               </div>
             </div>
           </div>
@@ -3655,10 +2825,10 @@ const ForecastCollaboration: React.FC = () => {
             ) : (
               /* Grid Container - Only show when filters are active */
               <div 
-                className="forecast-grid min-w-[1200px]" 
+                className="forecast-grid min-w-[1800px]" 
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: `150px 120px 120px 180px repeat(12, 90px) 270px`,
+                  gridTemplateColumns: `150px 120px 120px 180px repeat(12, 90px) 270px 270px 270px`,
                   gap: '1px',
                   backgroundColor: '#d1d5db' // Border color
                 }}
@@ -3687,7 +2857,7 @@ const ForecastCollaboration: React.FC = () => {
                 </div>
               ))}
               
-              {/* Cajas summary column only */}
+              {/* New summary columns */}
               <div className="sticky top-0 bg-purple-200 border-gray-300 p-2 text-center font-semibold text-xs z-10">
                 <div className="grid grid-cols-3 gap-2">
                   <div className="text-center">YTD</div>
@@ -3696,110 +2866,27 @@ const ForecastCollaboration: React.FC = () => {
                 </div>
                 <div className="text-center mt-1 font-bold">Cajas</div>
               </div>
+              <div className="sticky top-0 bg-green-200 border-gray-300 p-2 text-center font-semibold text-xs z-10">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">YTD</div>
+                  <div className="text-center">YTG</div>
+                  <div className="text-center">Total</div>
+                </div>
+                <div className="text-center mt-1 font-bold">Litros</div>
+              </div>
+              <div className="sticky top-0 bg-orange-200 border-gray-300 p-2 text-center font-semibold text-xs z-10">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">YTD</div>
+                  <div className="text-center">YTG</div>
+                  <div className="text-center">Total</div>
+                </div>
+                <div className="text-center mt-1 font-bold">Pesos</div>
+              </div>
               
               {/* Grid Body Content - properly structured */}
             {(!selectedCustomerId || selectedCustomerId === 'all') && (
               <>
-               
-          
-               
-                {/* Row 1: Año pasado (LY) - HIDDEN but data available for calculations */}
-                <div className="contents" style={{ display: 'none' }}>
-                  
-                  <div className="bg-gray-100 p-1 text-xs">
-                    Año pasado (LY)
-                  </div>
-                  <div className="bg-gray-100 p-1 text-xs">
-                    Histórico
-                  </div>
-                  {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({length: 12}, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          const totalValue = customersToUse.reduce((sum, customer) => {
-                            const monthData = customer.months[month];
-                            return sum + (monthData ? monthData.last_year : 0);
-                          }, 0);
-                          
-                          return (
-                            <div key={`all-${month}-last-year`} 
-                                 className={`p-1 text-right text-xs ${
-                                   month.includes('24') ? 'bg-yellow-200' : 'bg-gray-100'
-                                 }`}>
-                              {formatValue(totalValue)}
-                            </div>
-                          );
-                        })}
-                        
-                        {renderSummaryColumns(customersToUse, "Año pasado (LY)")}
-                      </>
-                    );
-                  })()}
-                </div>  
-
-                {/* Rows for other metrics for "Todos los clientes" */}
-                
-                {/* Row 13: Ajustes del KAM */}
-                {/* <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className=" bg-blue-100 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">
-                    Ajustes del KAM
-                  </div>
-                  <div className=" bg-blue-100 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">
-                    KAM Adjustments
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    // Show the original forecast commercial_input values from forecast_data
-                    const totalForecastCommercialInput = customersToUse.reduce((sum, customer) => {
-                      const monthData = customer.months[month];
-                      return sum + (monthData ? monthData.forecast_commercial_input : 0);
-                    }, 0);
-                    
-                    // For display, use the current KAM adjustment values
-                    const totalKamValue = customersToUse.reduce((sum, customer) => {
-                      const monthData = customer.months[month];
-                      return sum + (monthData ? monthData.kam_forecast_correction : 0);
-                    }, 0);
-                    
-                    return (
-                      <div 
-                        key={`all-${month}-kam-adjustments`} 
-                        className={`p-1 text-right text-xs ${
-                          month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
-                        }`}
-                        title={`Total KAM Adjustments: ${totalKamValue.toLocaleString('es-MX')}`}
-                      >
-                        <div className="space-y-1">
-                        
-                          <div className="inline-flex items-center gap-1 font-medium">
-                            {totalKamValue ? totalKamValue.toLocaleString('es-MX') : '0'}
-                            {totalKamValue > 0 && <span className="text-blue-600 opacity-75">📊</span>}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  
-                  {renderSummaryColumns(
-                    selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers
-                  )}
-                </div> */}
-
-               
-                {/* Row 1: Customer Header */}
+                {/* Row 1: KAM A + 1 */}
                 <div className="contents">
                   <div className="bg-gray-100 p-2 font-bold text-sm">
                     {(() => {
@@ -3821,30 +2908,11 @@ const ForecastCollaboration: React.FC = () => {
                       return selectedProduct?.product_id ? selectedProduct.product_id : 'Todos los productos';
                     })()}
                   </div>
-                  <div className="bg-gray-100 p-1 text-xs">
-                    
-                  </div>
-                  <div className="bg-gray-100 p-1 text-xs">
-                    
-                  </div>
-                  {Array.from({ length: 12 }, (_, index) => (
-                    <div key={`header-${index}`} className="bg-gray-100 p-1 text-xs"></div>
-                  ))}
-                  
-                  {/* Summary columns placeholder */}
-                  <div className="bg-gray-100 p-1 text-xs"></div>
-                </div>
-
-             
-                {/* Row 2: KAM A+1 (Non-editable) */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
                   <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    KAM A + 1
+                    KAM A + 1 📊
                   </div>
                   <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    KAM {new Date().getFullYear() + 1}
+                    KAM {new Date().getFullYear() + 1} 📊
                   </div>
                   {Array.from({length: 12}, (_, index) => {
                     const month = getMonthKeyForIndex(index);
@@ -3852,25 +2920,50 @@ const ForecastCollaboration: React.FC = () => {
                       ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
                       : customers;
                     
-                    // For display, use the current KAM adjustment values (non-editable) - show all data regardless of year
+                    // Show the original forecast commercial_input values from forecast_data
+                    const totalForecastCommercialInput = customersToUse.reduce((sum, customer) => {
+                      const monthData = customer.months[month];
+                      return sum + (monthData ? monthData.forecast_commercial_input : 0);
+                    }, 0);
+                    
+                    // For display, use the current KAM adjustment values
                     const totalKamValue = customersToUse.reduce((sum, customer) => {
                       const monthData = customer.months[month];
                       return sum + (monthData ? monthData.kam_forecast_correction : 0);
                     }, 0);
+
+                    // Check if this cell is being edited (use 'all' as customerId for aggregate editing)
+                    const isEditing = inlineEditingCell?.customerId === 'all' && inlineEditingCell?.month === month;
                     
                     return (
                       <div 
                         key={`all-${month}-kam-adjustments`} 
-                        className={`p-1 text-right text-xs ${
+                        className={`p-1 text-right text-xs cursor-pointer hover:bg-blue-200 transition-colors ${
                           month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
                         }`}
-                        title={`Total KAM Value: ${totalKamValue.toLocaleString('es-MX')} (Read-only)`}
+                        onDoubleClick={() => handleInlineEditStart('all', month, totalKamValue)}
+                        title={`Total KAM Adjustments: ${totalKamValue.toLocaleString('es-MX')} | Double-click to edit and distribute across ${customersToUse.length} customer-product combinations`}
                       >
-                        <div className="space-y-1">
-                          <div className="inline-flex items-center gap-1 font-medium">
-                            {totalKamValue ? totalKamValue.toLocaleString('es-MX') : '0'}
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={inlineEditingValue}
+                            onChange={(e) => setInlineEditingValue(e.target.value)}
+                            onBlur={() => handleInlineEditSave('all', month)}
+                            onKeyPress={(e) => handleInlineKeyPress(e, 'all', month)}
+                            className="w-full bg-white border border-blue-500 rounded px-1 py-0 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-300"
+                            autoFocus
+                            disabled={saving}
+                          />
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="inline-flex items-center gap-1 font-medium">
+                              {totalKamValue ? totalKamValue.toLocaleString('es-MX') : '0'}
+                              {totalKamValue > 0 && <span className="text-blue-600 opacity-75">📊</span>}
+                              <span className="text-blue-600 opacity-75">📊</span>
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     );
                   })}
@@ -3878,11 +2971,11 @@ const ForecastCollaboration: React.FC = () => {
                   {renderSummaryColumns(
                     selectedCustomerId && selectedCustomerId !== 'all' 
                       ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers, "KAM A + 1"
+                      : customers
                   )}
                 </div>
 
-                {/* Row 3: M8 Predict */}
+                {/* Row 32: M8 Predict - Using actual_by_m8 (from commercial_collaboration_view.actual) */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
@@ -3891,6 +2984,7 @@ const ForecastCollaboration: React.FC = () => {
                   </div>
                   <div className="bg-[#fef3c7] p-1 text-xs z-10">
                      M8 forecast {new Date().getFullYear() + 1}
+                   
                   </div>
                   
                    {(() => {
@@ -3899,12 +2993,13 @@ const ForecastCollaboration: React.FC = () => {
                       : customers;
                     
                     return (
-                      <>
+                      
+                          <>
                         {Array.from({ length: 12 }, (_, index) => {
                           const month = getMonthKeyForIndex(index);
-                          // BY M8 Predict - Show values for year-1 (2025) to match individual customer view
+                          // M8 Predict - Show values for current year (2025)
                           const shouldShow = shouldShowValueForYear(month, new Date().getFullYear());
-                          console.log("BY M8 Predict - Month:", month, "Should Show:", shouldShow);
+
                           const totalValue = shouldShow ? customersToUse.reduce((sum, customer) => {
                             const monthData = customer.months[month];
                             return sum + (monthData ? monthData.actual_by_m8 : 0);
@@ -3916,18 +3011,20 @@ const ForecastCollaboration: React.FC = () => {
                                    index === 11 ? 'bg-yellow-100' : 'bg-green-100'
                                  } ${!shouldShow ? 'opacity-50' : ''}`}>
                               {shouldShow ? formatValue(totalValue) : '-'}
+                              
                             </div>
                           );
                         })}
                         
-                        {/* Summary columns for BY M8 Predict */}
-                        {renderSummaryColumns(customersToUse, "BY M8 Predict")}
+                        
+                        {/* Summary columns for M8 Predict - now correctly filtered to current year only */}
+                        {renderSummaryColumns(customersToUse, " M8 Predict")}
                       </>
                     );
                   })()}
                 </div>
 
-                {/* Row 4: KAM Approval */}
+                {/* Row 3: KAM Approval */}
                 <div className="contents">
                   <div className="bg-gray-50"></div>
                   <div className="bg-gray-50"></div>
@@ -3935,7 +3032,7 @@ const ForecastCollaboration: React.FC = () => {
                     KAM Approval
                   </div>
                   <div className="bg-purple-100 p-1 text-xs z-10">
-                    KAM Approval
+                    KAM Approval Status
                   </div>
                   {(() => {
                     const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
@@ -3974,59 +3071,7 @@ const ForecastCollaboration: React.FC = () => {
                             <div>-</div>
                           </div>
                         </div>
-                      </>
-                    );
-                  })()} 
-                </div>
-
-              {/*  Row 35: KAM Approval  */}
-                {/* <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className=" bg-purple-100 p-1 text-xs z-10">
-                    KAM aprobado
-                  </div>
-                  <div className=" bg-purple-100 p-1 text-xs z-10">
-                    Aprobación
-                  </div>
-                  {(() => {
-                    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                      ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                      : customers;
-                    
-                    return (
-                      <>
-                        {Array.from({length: 12}, (_, index) => {
-                          const month = getMonthKeyForIndex(index);
-                          return (
-                          <div key={`all-${month}-kam-approval`} 
-                               className="p-1 text-center text-xs bg-purple-50">
-                            <select 
-                              className="w-full text-xs border-0 bg-transparent focus:outline-none focus:ring-0"
-                              defaultValue=""
-                              onChange={(e) => {
-                                customersToUse.forEach(customer => {
-                                  handleKamApprovalChange(customer.customer_node_id, month, e.target.value);
-                                });
-                              }}
-                            >
-                              <option value="">-</option>
-                              <option value="Si">Si</option>
-                              <option value="No">No</option>
-                            </select>
-                          </div>
-                          );
-                        })}
-                       
-                         Summary columns for KAM Approval - showing approvals count
-                        <div className="bg-green-200 border-gray-300 p-2 text-center text-xs">
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <div>-</div>
-                            <div>-</div>
-                            <div>-</div>
-                          </div>
-                        </div>
-                        <div className="bg-orange-200 border-gray-300 p-2 text-center text-xs">
+                        <div className="bg-purple-200 border-gray-300 p-2 text-center text-xs">
                           <div className="grid grid-cols-3 gap-2 text-xs">
                             <div>-</div>
                             <div>-</div>
@@ -4043,270 +3088,9 @@ const ForecastCollaboration: React.FC = () => {
                       </>
                     );
                   })()} 
-                </div>*/}
+                </div>
               </>
             )}  
-
-            {/* Grouped view information message */}
-            {shouldShowGroupedView() && (
-              <div className="contents">
-                <div className="bg-blue-50 border-l-4 border-blue-400 p-3 text-sm col-span-full" style={{ gridColumn: '1 / -1' }}>
-                  <div className="flex items-center gap-2">
-                    <div className="text-blue-600">ℹ️</div>
-                    <div>
-                      <strong>Vista agrupada activa:</strong> Los datos están agregados por {
-                        advancedFilters.marca?.length ? 'Marca' : 
-                        advancedFilters.productLine?.length ? 'Línea de productos' : 
-                        'Jerarquía de cliente'
-                      }. Los clientes individuales están ocultos para mostrar totales consolidados.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-       {/* Individual customer sections - only show when not in grouped view */}
-            {!shouldShowGroupedView() && filteredCustomers().map((customer, customerIndex) => (
-              <React.Fragment key={`${customer.customer_node_id}-${customer.product_id}`}>
-               
-
-                
-                
-                {/* Row 1: Año pasado (LY) - HIDDEN but data available for calculations */}
-                 
-                <div className="contents" style={{ display: 'none' }}>
-                  
-                  <div className="bg-gray-100 p-1 text-xs">
-                    Año pasado (LY)
-                  </div>
-                  <div className="bg-gray-100 p-1 text-xs">
-                    Histórico
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const value = monthData ? monthData.last_year : 0;
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-last-year`} 
-                           className={`p-1 text-right text-xs ${
-                             month.includes('24') ? 'bg-yellow-50' : 'bg-blue-50'
-                           }`}>
-                        {formatValue(value)}
-                      </div>
-                    );
-                  })}
-                  
-                  {renderIndividualSummaryColumns(customer, "Año pasado (LY)")}
-                </div>
-                
-               
-        
-              
-                {/* Row 13: Ajustes del KAM */}
-                {/* <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className=" bg-blue-100 p-1 text-left text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">
-                    Ajustes del KAM ✏️
-                  </div>
-                  <div className=" bg-blue-100 p-1 text-xs whitespace-nowrap overflow-hidden text-ellipsis z-10">
-                    KAM Adjustments ✏️
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                    const kamValue = monthData ? monthData.kam_forecast_correction : 0;
-                    const forecastCommercialInput = monthData ? monthData.forecast_commercial_input : 0;
-                    const isEditing = inlineEditingCell?.customerId === customer.customer_node_id && inlineEditingCell?.month === month;
-                    
-                    return (
-                      <div 
-                        key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-adjustments`} 
-                        className={`p-1 text-right text-xs cursor-pointer hover:bg-blue-200 transition-colors ${
-                          month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
-                        }`}
-                        onDoubleClick={() => handleInlineEditStart(customer.customer_node_id, month, kamValue)}
-                        title={`Original Forecast Commercial Input: ${forecastCommercialInput.toLocaleString('es-MX')} | Double-click to edit KAM adjustment for ${customer.customer_name}`}
-                      >
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={inlineEditingValue}
-                            onChange={(e) => setInlineEditingValue(e.target.value)}
-                            onBlur={() => handleInlineEditSave(customer.customer_node_id, month)}
-                            onKeyPress={(e) => handleInlineKeyPress(e, customer.customer_node_id, month)}
-                            className="w-full bg-white border border-blue-500 rounded px-1 py-0 text-xs text-right focus:outline-none focus:ring-2 focus:ring-blue-300"
-                            autoFocus
-                            disabled={saving}
-                          />
-                        ) : (
-                          <div className="space-y-1">
-                  
-                            <div className="inline-flex items-center gap-1 font-medium">
-                              {kamValue ? kamValue.toLocaleString('es-MX') : '0'}
-                              {kamValue > 0 && <span className="text-blue-600 opacity-75">✏️</span>}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })} 
-                  
-                  {renderIndividualSummaryColumns(customer, "Ajustes del KAM")}
-                </div> */}
-
-                {/* Row 14: Building blocks */}
-            
-
-                {/* Row 1: Customer Header */}
-                <div className="contents">
-                  <div className="bg-gray-100 p-2 font-bold text-sm">
-                    {customer.customer_name}
-                  </div>
-                  <div className="bg-gray-100 p-1 text-xs">
-                    <div className="font-medium">{customer.product_id || 'No producto'}</div>
-                    {customer.product_name && (
-                      <div className="text-gray-600 mt-1">{customer.product_name}</div>
-                    )}
-                  </div>
-                  <div className="bg-gray-100 p-1 text-xs">
-                    
-                  </div>
-                  <div className="bg-gray-100 p-1 text-xs">
-                    
-                  </div>
-                  {Array.from({length: 12}, (_, index) => (
-                    <div key={`${customer.customer_node_id}-header-${index}`} className="bg-gray-100 p-1 text-xs"></div>
-                  ))}
-                  
-                  {/* Summary column placeholder */}
-                  <div className="bg-gray-100 p-1 text-xs"></div>
-                </div>
-
-                {/* Row 2: KAM A+1 (Non-editable) */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    KAM A + 1
-                  </div>
-                  <div className="bg-[#e8f4fd] p-1 text-xs z-10">
-                    KAM {new Date().getFullYear() + 1}
-                  </div>
-                   {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const monthData = customer.months[month];
-                  
-                    // KAM forecast data - show all data regardless of year
-                    const kamValue = monthData ? monthData.kam_forecast_correction : 0;
-                    
-                    return (
-                      <div 
-                        key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-adjustments`} 
-                        className={`p-1 text-right text-xs ${
-                          month.includes('24') ? 'bg-yellow-100' : 'bg-blue-100'
-                        }`}
-                        title={`KAM Value: ${kamValue.toLocaleString('es-MX')} (Read-only) for ${customer.customer_name}`}
-                      >
-                        <div className="space-y-1">
-                          <div className="inline-flex items-center gap-1 font-medium">
-                            {kamValue ? kamValue.toLocaleString('es-MX') : '0'}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })} 
-                  
-                  {renderIndividualSummaryColumns(customer, "KAM A + 1")}
-                </div>
-
-                {/* Row 3: M8 Predict */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    M8 Predict !!
-                  </div> 
-                  <div className="bg-[#fef3c7] p-1 text-xs z-10">
-                    M8 Forecast {new Date().getFullYear() + 1}
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    // BY M8 Predict - Only show values for current year (2025) 
-                    const shouldShow = shouldShowValueForYear(month, new Date().getFullYear());
-                    const monthData = customer.months[month];
-                    const value = shouldShow && monthData ? monthData.actual_by_m8 : 0;
-                    
-                    // DEBUG: Log for March 2025 data
-                    if (month === 'feb-25' && customer.customer_node_id === '036952da-be05-4d87-bc94-1405100988de' && customer.product_id === '100083') {
-                      console.log('🎯 BY M8 PREDICT DISPLAY:', {
-                        month: month,
-                        shouldShow: shouldShow,
-                        monthData: monthData,
-                        actual_by_m8: monthData?.actual_by_m8,
-                        final_value: value,
-                        customer_id: customer.customer_node_id,
-                        product_id: customer.product_id
-                      });
-                    }
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-fcst-estadistico`} 
-                           className={`p-1 text-right text-xs bg-[#fef3c7] ${!shouldShow ? 'opacity-50' : ''}`}>
-                        {shouldShow ? formatValue(value) : '-'}
-                      </div>
-                    );
-                  })}
-                  
-                  {/* Summary columns for BY M8 Predict */}
-                  {renderIndividualSummaryColumns(customer, "BY M8 Predict")}
-                </div>
-
-                {/* Row 4: KAM Approval */}
-                <div className="contents">
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-gray-50"></div>
-                  <div className="bg-purple-100 p-1 text-xs z-10">
-                    KAM Approval
-                  </div>
-                  <div className="bg-purple-100 p-1 text-xs z-10">
-                    KAM Approval
-                  </div>
-                  {Array.from({length: 12}, (_, index) => {
-                    const month = getMonthKeyForIndex(index);
-                    const currentApproval = kamApprovals[customer.customer_node_id]?.[month] || '';
-                    
-                    return (
-                      <div key={`${customer.customer_node_id}-${customer.product_id}-${month}-kam-approval`} 
-                           className="p-1 text-center text-xs bg-purple-50">
-                        <select 
-                          className="w-full text-xs border-0 bg-transparent focus:outline-none focus:ring-0"
-                          value={currentApproval}
-                          onChange={(e) => {
-                            handleKamApprovalChange(customer.customer_node_id, month, e.target.value);
-                          }}
-                        >
-                          <option value="">-</option>
-                          <option value="Si">Si</option>
-                          <option value="No">No</option>
-                        </select>
-                      </div>
-                    );
-                  })}
-                  
-                  {/* Summary column for individual KAM Approval */}
-                  <div className="bg-purple-200 border-gray-300 p-2 text-center text-xs">
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>-</div>
-                      <div>-</div>
-                      <div>-</div>
-                    </div>
-                  </div>
-                </div>
-
-              </React.Fragment>
-            ))}
               </div>
             )}
           </div>

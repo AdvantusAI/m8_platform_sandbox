@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProducts } from '@/hooks/useProducts';
+import { toast } from "sonner";
 
 interface FilterState {
   canal: string[];
@@ -38,9 +39,10 @@ interface ProductLine {
 interface FilterPanelProps {
   customers?: any[];
   onFiltersChange?: (filters: FilterState) => void;
+  onApplyFilters?: () => void;
 }
 
-export default function FilterPanel({ customers = [], onFiltersChange }: FilterPanelProps) {
+export default function FilterPanel({ customers = [], onFiltersChange, onApplyFilters }: FilterPanelProps) {
   const [filters, setFilters] = useState<FilterState>({
     canal: [],
     marca: [],
@@ -58,6 +60,8 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     availableLocations: {},
     productLocationMap: {}
   });
+  
+  const [hasUnappliedChanges, setHasUnappliedChanges] = useState(false);
 
   const [brands, setBrands] = useState<Brand[]>([]);
   const [brandsLoading, setBrandsLoading] = useState(true);
@@ -709,16 +713,45 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
     }
   };
 
+  // Track when filters change to show "Apply" button
   useEffect(() => {
+    setHasUnappliedChanges(true);
+  }, [filters]);
+
+  // Function to apply filters
+  const handleApplyFilters = () => {
+    // Check if at least one filter is selected to prevent timeout
+    const hasAnyFilter = 
+      filters.canal.length > 0 ||
+      filters.marca.length > 0 ||
+      filters.clientHierarchy.length > 0 ||
+      filters.umn.length > 0 ||
+      filters.productLine.length > 0 ||
+      filters.agente.length > 0 ||
+      filters.selectedBrands.length > 0 ||
+      filters.selectedProducts.length > 0;
+
+    if (!hasAnyFilter) {
+      toast.error('Selecciona al menos un filtro', {
+        description: 'Para mejorar el rendimiento, debes seleccionar al menos una marca, cliente, canal o producto antes de buscar.',
+        duration: 5000,
+      });
+      return;
+    }
+
     if (onFiltersChange) {
-      console.log('FilterPanel: Sending filter changes:', {
+      console.log('FilterPanel: Applying filters:', {
         ...filters,
         selectedProductsCount: filters.selectedProducts.length,
         selectedSupplyNetworkNodeIdsCount: filters.selectedSupplyNetworkNodeIds.length
       });
       onFiltersChange(filters);
     }
-  }, [filters, onFiltersChange]);
+    if (onApplyFilters) {
+      onApplyFilters();
+    }
+    setHasUnappliedChanges(false);
+  };
 
   const toggleFilter = (category: keyof FilterState, item: string) => {
     setFilters(prev => {
@@ -1131,6 +1164,54 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
 
       {/* Filter Summary and Statistics */}
       <div className="col-span-4 mt-4 space-y-3">
+        {/* Apply Filters Button */}
+        <div className="flex justify-center gap-4 mb-4">
+          <button
+            onClick={handleApplyFilters}
+            disabled={!hasUnappliedChanges && Object.values(filters).every(items => !Array.isArray(items) || items.length === 0)}
+            className={`
+              px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 shadow-md
+              ${hasUnappliedChanges 
+                ? 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transform hover:scale-105' 
+                : 'bg-green-500 cursor-default'
+              }
+            `}
+          >
+            {hasUnappliedChanges ? '🔍 Buscar / Aplicar Filtros' : '✓ Filtros Aplicados'}
+          </button>
+          
+          {Object.values(filters).some(items => Array.isArray(items) && items.length > 0) && (
+            <button
+              onClick={() => {
+                console.log('Clearing all filters');
+                setFilters({ 
+                  canal: [], 
+                  marca: [], 
+                  clientHierarchy: [], 
+                  umn: [], 
+                  productLine: [], 
+                  agente: [],
+                  selectedCustomers: [],
+                  selectedCategories: [],
+                  selectedBrands: [],
+                  selectedLocations: [],
+                  selectedProducts: [],
+                  productDetails: {},
+                  selectedSupplyNetworkNodeIds: [],
+                  availableLocations: {},
+                  productLocationMap: {}
+                });
+                // Reset product lines to show all when filters are cleared
+                setProductLines(allProductLines);
+                setHasUnappliedChanges(false);
+              }}
+              className="px-6 py-3 bg-red-100 text-red-700 rounded-lg font-semibold hover:bg-red-200 transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              🗑️ Limpiar Filtros
+            </button>
+          )}
+        </div>
+        
         {/* Applied Filters */}
          <div className="flex flex-wrap gap-2" style={{ display: 'none' }}>
           {Object.entries(filters)
@@ -1221,7 +1302,7 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
             </div>
             
             {/* Sample Impact Visualization */}
-            <div className="border-t border-gray-300 pt-3">
+            {/* <div className="border-t border-gray-300 pt-3">
               <div className="text-xs text-gray-600 mb-2">Impacto en Ventas Estimado:</div>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div className="bg-green-100 p-2 rounded text-center">
@@ -1237,7 +1318,7 @@ export default function FilterPanel({ customers = [], onFiltersChange }: FilterP
                   <div className="text-orange-600">Total</div>
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         )}
       </div>
