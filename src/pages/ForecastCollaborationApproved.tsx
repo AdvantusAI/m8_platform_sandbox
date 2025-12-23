@@ -1575,16 +1575,16 @@ useEffect(() => {
     let totalActualSum = 0;
     
     // 🔍 DEBUG: Log first 5 raw data records to see what's coming in
-    console.log('📊 RAW DATA SAMPLE (first 5 records):', rawData.slice(0, 5).map(row => ({
-      customer_node_id: row.customer_node_id,
-      product_id: row.product_id,
-      location_node_id: row.location_node_id,
-      postdate: row.postdate,
-      actual: row.actual,
-      forecast: row.forecast,
-      forecast_ly: row.forecast_ly
-    })));
-    console.log('📊 TOTAL RAW DATA RECORDS:', rawData.length);
+    // console.log('📊 RAW DATA SAMPLE (first 5 records):', rawData.slice(0, 5).map(row => ({
+    //   customer_node_id: row.customer_node_id,
+    //   product_id: row.product_id,
+    //   location_node_id: row.location_node_id,
+    //   postdate: row.postdate,
+    //   actual: row.actual,
+    //   forecast: row.forecast,
+    //   forecast_ly: row.forecast_ly
+    // })));
+    // console.log('📊 TOTAL RAW DATA RECORDS:', rawData.length);
     
     rawData.forEach((row: CommercialCollaborationData) => {
       // Use customer_node_id/location_node_id if present, else fallback to customer_id/location_id
@@ -1698,17 +1698,17 @@ useEffect(() => {
         
         // 🔍 DEBUG: Log all data being processed for M8 Predict
         if (m8PredictValue !== 0) {
-          console.log('✅ M8 Predict data found:', {
-            customer_node_id: row.customer_node_id,
-            product_id: row.product_id,
-            location_node_id: row.location_node_id,
-            postdate: row.postdate,
-            display_month: displayMonth,
-            actual_value: row.actual,
-            forecast_value: row.forecast,
-            used_value: m8PredictValue,
-            running_total: monthData.actual_by_m8
-          });
+          // console.log('✅ M8 Predict data found:', {
+          //   customer_node_id: row.customer_node_id,
+          //   product_id: row.product_id,
+          //   location_node_id: row.location_node_id,
+          //   postdate: row.postdate,
+          //   display_month: displayMonth,
+          //   actual_value: row.actual,
+          //   forecast_value: row.forecast,
+          //   used_value: m8PredictValue,
+          //   running_total: monthData.actual_by_m8
+          // });
         }
         
         // PPTO data will be processed separately from commercial_collaboration table
@@ -2431,27 +2431,27 @@ useEffect(() => {
     const totalSkipped = skippedMainRows + skippedSellInRows + skippedSellOutRows + skippedKamRows + skippedInventoryRows;
 
     // Log summary for M8 Predict debugging
-    console.log('🔍 M8 Predict Data Summary:', {
-      total_records: rawData.length,
-      records_with_actual_data: recordsWithActualData,
-      total_actual_sum: totalActualSum,
-      skipped_rows: totalSkipped,
-      final_customers: Object.values(groupedData).length
-    });
+    // console.log('🔍 M8 Predict Data Summary:', {
+    //   total_records: rawData.length,
+    //   records_with_actual_data: recordsWithActualData,
+    //   total_actual_sum: totalActualSum,
+    //   skipped_rows: totalSkipped,
+    //   final_customers: Object.values(groupedData).length
+    // });
 
     const finalCustomers = Object.values(groupedData);
     
     // 🔍 DEBUG: Log first 3 processed customers with their data
-    console.log('📋 PROCESSED CUSTOMERS SAMPLE (first 3):', finalCustomers.slice(0, 3).map(customer => ({
-      customer_node_id: customer.customer_node_id,
-      customer_name: customer.customer_name,
-      product_id: customer.product_id,
-      product_name: customer.product_name,
-      location_node_id: customer.location_node_id,
-      months_with_data: Object.keys(customer.months),
-      sample_month_data: customer.months[Object.keys(customer.months)[0]],
-      actual_by_m8_totals: Object.values(customer.months).reduce((sum, m) => sum + (m.actual_by_m8 || 0), 0)
-    })));
+    // console.log('📋 PROCESSED CUSTOMERS SAMPLE (first 3):', finalCustomers.slice(0, 3).map(customer => ({
+    //   customer_node_id: customer.customer_node_id,
+    //   customer_name: customer.customer_name,
+    //   product_id: customer.product_id,
+    //   product_name: customer.product_name,
+    //   location_node_id: customer.location_node_id,
+    //   months_with_data: Object.keys(customer.months),
+    //   sample_month_data: customer.months[Object.keys(customer.months)[0]],
+    //   actual_by_m8_totals: Object.values(customer.months).reduce((sum, m) => sum + (m.actual_by_m8 || 0), 0)
+    // })));
 
     return Object.values(groupedData);
   }, []);
@@ -4404,12 +4404,12 @@ useEffect(() => {
                       : customers;
                     
                     // 🔍 DEBUG: Log customers being displayed
-                    console.log('🎨 RENDERING M8 Predict Row - Customers to display:', {
-                      total_customers: customersToUse.length,
-                      customer_ids: customersToUse.map(c => c.customer_node_id).slice(0, 10),
-                      product_ids: customersToUse.map(c => c.product_id).slice(0, 10),
-                      location_ids: customersToUse.map(c => c.location_node_id).slice(0, 10)
-                    });
+                    // console.log('🎨 RENDERING M8 Predict Row - Customers to display:', {
+                    //   total_customers: customersToUse.length,
+                    //   customer_ids: customersToUse.map(c => c.customer_node_id).slice(0, 10),
+                    //   product_ids: customersToUse.map(c => c.product_id).slice(0, 10),
+                    //   location_ids: customersToUse.map(c => c.location_node_id).slice(0, 10)
+                    // });
                     const targetYear = new Date().getFullYear() + 1; //
                     
                     return (

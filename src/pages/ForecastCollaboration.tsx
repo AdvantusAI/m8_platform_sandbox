@@ -760,6 +760,8 @@ const ForecastCollaboration: React.FC = () => {
   const [inlineEditingValue, setInlineEditingValue] = useState<string>('');
   const [isCollapsibleOpen, setIsCollapsibleOpen] = useState(false);
   const [lastEditedKamTotal, setLastEditedKamTotal] = useState<{ [month: string]: number }>({});
+  
+
   const [salesTrends, setSalesTrends] = useState({
     currentPeriod: 0,
     lastYearPeriod: 0,
@@ -774,6 +776,7 @@ const ForecastCollaboration: React.FC = () => {
   // Global debounce for KAM error notifications - only ONE KAM error toast allowed every 10 seconds
   const [lastKamErrorTime, setLastKamErrorTime] = useState<number>(0);
   const [kamA1Sums, setKamA1Sums] = useState<{ [month: string]: number }>({});
+  const [previousKamValue, setPreviousKamValue] = useState<number | null>(null);
   const dataTypes = [
     'Año pasado (LY)', 'Gap Forecast vs ventas', 'Forecast M8.predict', 'Key Account Manager', 
     'Kam Forecast', 'Sales manager view', 'Effective Forecast', 'KAM aprobado',
@@ -926,7 +929,7 @@ useEffect(() => {
           p_agente: agente,
           p_udn: udn,
         });
-      console.log('KAM A1 Data:', data);
+      
       newSums[`${monthAbbr}-${year}`] = error ? 0 : (data ?? 0);
     }
     setKamA1Sums(newSums);
@@ -3309,16 +3312,16 @@ useEffect(() => {
     // Calculate key totals
     const m8PredictTotal = calculateTotal('actual_by_m8');
     const kamForecastTotal = calculateTotal('kam_forecast_correction');
-    const effectiveForecastTotal = calculateTotal('effective_forecast');
-    const lastYearTotal = calculateTotal('last_year');
-    const sellInTotal = calculateTotal('sell_in_aa');
-    const sellOutTotal = calculateTotal('sell_out_aa');
+    // const effectiveForecastTotal = calculateTotal('effective_forecast');
+    // const lastYearTotal = calculateTotal('last_year');
+    // const sellInTotal = calculateTotal('sell_in_aa');
+    // const sellOutTotal = calculateTotal('sell_out_aa');
     
     // Check if M8 Predict has meaningful current-year-only data
-    const currentYear = new Date().getFullYear();
+    const currentYear = new Date().getFullYear() + 1;
     const hasCurrentYearM8Data = customers.some(customer => {
       return Object.keys(customer.months).some(monthKey => {
-        if (shouldShowValueForYear(monthKey, currentYear-1)) {
+        if (shouldShowValueForYear(monthKey, currentYear)) {
           const monthData = customer.months[monthKey];
           return monthData && (monthData.actual_by_m8 || 0) > 0;
         }
@@ -3327,8 +3330,9 @@ useEffect(() => {
     });
     
     // Check if any of the main metrics have non-zero values
-    const hasMainData = m8PredictTotal > 0 || kamForecastTotal > 0 || effectiveForecastTotal > 0 || 
-                       lastYearTotal > 0 || sellInTotal > 0 || sellOutTotal > 0;
+    const hasMainData = m8PredictTotal > 0 || kamForecastTotal > 0;
+    // effectiveForecastTotal > 0 || 
+    //                lastYearTotal > 0 || sellInTotal > 0 || sellOutTotal > 0;
     
     // For metrics to show, we need both main data AND current year M8 data
     // This ensures the metrics section only appears when M8 Predict actually has current year values
@@ -3361,11 +3365,18 @@ useEffect(() => {
       }, 0);
     }, 0);
   };
-  const m8PredictCajasTotal = getM8PredictTotal('actual_by_m8');
+  const m8PredictCajasTotal = getM8PredictTotal('actual_by_m8_cajas');
   const m8PredictLitrosTotal = getM8PredictTotal('actual_by_m8_litros');
   const m8PredictPesosTotal = getM8PredictTotal('actual_by_m8_pesos');
+console.log('📊 M8 Predict Totals:',  {
+  cajas: m8PredictCajasTotal,
+  litros: m8PredictLitrosTotal,
+  pesos: m8PredictPesosTotal
+});
 
+  // ===== KAM Adjustments Inline Editing Handlers =====
   const handleDoubleClick = useCallback((customerId: string, month: string, currentValue: number) => {
+    setPreviousKamValue(currentValue); // Store previous value
     setEditingCell({ customerId, month });
     setEditingValue(currentValue.toString());
   }, []);
@@ -3676,34 +3687,57 @@ useEffect(() => {
     }
   };
 
+  const getM8TotalsForNextYear = () => {
+  const customersToUse = customers;
+  // Use your existing logic for summary columns
+  // This matches the renderSummaryColumns logic for "M8 Predict"
+  const fieldName = 'actual_by_m8';
+  const targetYear = new Date().getFullYear() + 1;
+
+  let cajas = 0, litros = 0, pesos = 0;
+  customersToUse.forEach(customer => {
+    Object.keys(customer.months).forEach(monthKey => {
+      if (shouldShowValueForYear(monthKey, targetYear)) {
+        const monthData = customer.months[monthKey];
+        if (monthData) {
+          const value = monthData[fieldName] || 0;
+          cajas += value;
+          litros += value * (customer.attr_1 || 0);
+          pesos += value * (customer.attr_2 || 0);
+        }
+      }
+    });
+  });
+  return { cajas, litros, pesos };
+}
+
   const handleSaveEdit = useCallback(async (customerId: string, month: string) => {
     const newValue = parseFloat(editingValue) || 0;
-    
-    // Save to database
     await saveKamForecastToDatabase(customerId, month, newValue);
-    
-          setCustomers(prevCustomers => 
-        prevCustomers.map(customer => {
-          if (customer.customer_node_id === customerId) {
-            const existingMonthData = customer.months[month];
-            return {
-              ...customer,
-              months: {
-                ...customer.months,
-                [month]: {
-                  ...existingMonthData,
-                  kam_forecast_correction: newValue
-                }
+    setCustomers(prevCustomers => 
+      prevCustomers.map(customer => {
+        if (customer.customer_node_id === customerId) {
+          const existingMonthData = customer.months[month];
+          return {
+            ...customer,
+            months: {
+              ...customer.months,
+              [month]: {
+                ...existingMonthData,
+                kam_forecast_correction: newValue
               }
-            };
-          }
-          return customer;
-        })
-      );
-    
+            }
+          };
+        }
+        return customer;
+      })
+    );
+    await fetchForecastData(true);
+    toast.success(`Ajuste KAM guardado.\nValor anterior: ${previousKamValue?.toLocaleString('es-MX')}\nNuevo valor: ${newValue.toLocaleString('es-MX')}`);
     setEditingCell(null);
     setEditingValue('');
-  }, [editingValue, selectedProduct?.product_id, selectedLocation?.location_id]);
+    setPreviousKamValue(null);
+  }, [editingValue, saveKamForecastToDatabase, fetchForecastData, previousKamValue]);
 
   const handleCancelEdit = useCallback(() => {
     setEditingCell(null);
@@ -3729,10 +3763,8 @@ useEffect(() => {
   }, []);
 
   const handleInlineEditStart = useCallback((customerId: string, month: string, currentValue: number) => {
-    // Prevent multiple rapid double-clicks
     if (inlineEditingCell) return;
-    
-    // Use requestAnimationFrame to defer the state update and prevent blocking
+    setPreviousKamValue(currentValue); // Store previous value
     requestAnimationFrame(() => {
       setInlineEditingCell({ customerId, month });
       setInlineEditingValue(currentValue.toString());
@@ -3770,11 +3802,13 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
           p_year: year,
           p_kam_value: newValue,
           p_customer_ids: null, // null = todos los clientes
-          p_product_ids: productIds,
+          p_product_ids: null,
           p_marca_names: marcaNames,
           p_product_lines: productLines
         });
 
+        
+      
       if (error || !data || !data[0]?.success) {
         if (data && data[0]?.message?.includes('No valid records found')) {
           showKamError('No se encontró registro para editar en este mes/producto/cliente/ubicación.', '', 8000);
@@ -3791,10 +3825,9 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
           return copy;
         }), 2000);
         toast.success('Ajuste KAM guardado correctamente.');
-        await fetchForecastData(true);
       }
     } else {
-      // ...tu lógica para edición individual...
+      // Para clientes individuales
     }
   } catch (error) {
     showKamError('Error inesperado al guardar el ajuste KAM.', '', 8000);
@@ -4178,7 +4211,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
     
 
       {/* Show message when metrics and charts are hidden due to no data */}
-      {!hasDataForMetricsAndCharts() && customers.length > 0 && (
+      {/* {!hasDataForMetricsAndCharts() && customers.length > 0 && (
         <Card className="mb-6">
           <CardContent className="p-6">
             <div className="text-center">
@@ -4196,7 +4229,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
           </CardContent>
         </Card>
       )}
-      
+       */}
 
       
       {/* Forecast Metrics Card - Only show when there's meaningful data */}
@@ -4209,6 +4242,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
+
           {/* Mixed Chart with Multiple Y-Axis */}
           {(() => {
             // Use filtered customers (already filtered by advanced filters in fetchForecastData)
@@ -4236,7 +4270,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
             const m8PredictCajasTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_3', 'Total', calculateM8Metric('actual_by_m8')) : 0;
             const m8PredictLitrosTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_1', 'Total', calculateM8Metric('actual_by_m8')) : 0;
             const m8PredictPesosTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_2', 'Total', calculateM8Metric('actual_by_m8')) : 0;
-
+            console.log('M8 Predict Litros Total:', m8PredictLitrosTotal);
             // Calculate monthly data for the chart using filtered customers
             // Note: filteredCustomers is already filtered by advanced filters (marca, productLine, etc.)
             // via the applyAdvancedFilters function in fetchForecastData
@@ -4288,7 +4322,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                 // SI Actual - Using sell_in_aa field (only show for current year/2025 months)
                 sellInActual: shouldShowValueForYear(month, new Date().getFullYear()) ? customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.sell_in_aa || 0) : 0);
+                  return sum + (monthData ? (monthData.sell_in_actual || 0) : 0);
                 }, 0) : null,
                 // SO AA - Using sell_out_aa field (only show for year-1/2024 months)
                 sellOutAA: shouldShowValueForYear(month, new Date().getFullYear() - 1) ? customersToUse.reduce((sum, customer) => {
@@ -4298,12 +4332,12 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                 // SO Actual - Using sell_out_real field (only show for current year/2025 months)
                 sellOutActual: shouldShowValueForYear(month, new Date().getFullYear()) ? customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.sell_out_real || monthData.sell_out_aa || 0) : 0);
+                  return sum + (monthData ? (monthData.sell_out_actual || 0) : 0);
                 }, 0) : null,
                 // Legacy fields for backward compatibility
                 kamForecast: customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
-                  return sum + (monthData ? (monthData.kam_forecast_correction || 0) : 0);
+                  return sum + (monthData ? (monthData.kam_26 || 0) : 0);
                 }, 0),
                 effectiveForecast: customersToUse.reduce((sum, customer) => {
                   const monthData = customer.months[month];
@@ -4326,8 +4360,9 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
             );
 
 
-
+            const { cajas, litros, pesos } = getM8TotalsForNextYear();
             return (
+              
               <div className="space-y-6">
                 {/* KPI Summary Card with Real Data */}
                 <div className="w-full max-w-full bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-6">
@@ -4340,7 +4375,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                       </div>
                       <div>
                         <p className="text-3xl font-bold text-blue-700">
-                          {m8PredictCajasTotal > 0 ? (m8PredictCajasTotal / 1000000).toFixed(0) + ' M' : '0 M'}
+                           {(cajas / 1000000).toFixed(1)} M
                         </p>
                         <p className="text-gray-600 text-sm font-medium">CAJAS</p>
                         <p className={`text-sm font-semibold mt-1 ${
@@ -4359,7 +4394,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                       </div>
                       <div>
                         <p className="text-3xl font-bold text-orange-600">
-                          {m8PredictLitrosTotal > 0 ? (m8PredictLitrosTotal / 1000000).toFixed(0) + ' M' : '0 M'}
+                           {(litros / 1000000).toFixed(1)} M
                         </p>
                         <p className="text-gray-600 text-sm font-medium">LITROS</p>
                         <p className={`text-sm font-semibold mt-1 ${
@@ -4378,7 +4413,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                       </div>
                       <div>
                         <p className="text-3xl font-bold text-green-700">
-                          {hasRealM8Data ? (m8PredictPesosTotal / 1000000).toFixed(0) : '0'} M
+                           {(pesos / 1000000).toFixed(1)} M
                         </p>
                         <p className="text-gray-600 text-sm font-medium">PESOS</p>
                         <p className={`text-sm font-semibold mt-1 ${
@@ -5178,7 +5213,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
               {/* New summary columns */}
               <div className="sticky top-0 bg-purple-200 border-gray-300 p-2 text-center font-semibold text-xs z-10">
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="text-center">YTD</div>
+                  <div className="text-center">YTD*</div>
                   <div className="text-center">YTG</div>
                   <div className="text-center">Total</div>
                 </div>
