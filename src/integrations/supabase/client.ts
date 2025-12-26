@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 //jumex
-const SUPABASE_URL = "https://zuymsxqdncaxzruimfvz.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1eW1zeHFkbmNheHpydWltZnZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc0NzkyMjksImV4cCI6MjA3MzA1NTIyOX0.YswJJ_ILyAcz5oxI8MxCXwfANE7uRnYHU3tlMim7Tco";
+const SUPABASE_URL = "https://rbsyzcyoymvglrocxkid.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_DDXc_isJHw0dDLGdnwfjkw_P6IVtmmg";
 
 
 //hu

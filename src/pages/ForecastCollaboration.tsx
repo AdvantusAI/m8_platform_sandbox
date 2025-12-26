@@ -209,12 +209,7 @@ const ForecastCollaboration: React.FC = () => {
       'KAM A + 1': 'kam_forecast_correction', // KAM adjustments for next year
       // 'Proyectado - Equipo CPFR': 'xamview',
       'Días de inventario': 'inventory_days',
-      // 'Periodo Frezze': 'calculated_forecast',
-      // 'Last estimate': 'xamview',
-      // 'PPTO': 'calculated_forecast',
-      // 'Volumen 3 meses anteriores': 'sell_out_aa',
-      // 'Building blocks': 'calculated_forecast',
-      // 'PCI diferenciado por canal': 'calculated_forecast',
+
       
       // Year-specific fields
       'SI VENTA 2024': 'si_venta_2024',
@@ -240,7 +235,7 @@ const ForecastCollaboration: React.FC = () => {
       
       // M8 Predict fields
       'M8 Predict': 'actual_by_m8',
-      'M8 Predic ind': 'actual_by_m8',
+      'M8 Predic ind': 'actual_by_m8_ind',
 
       // Legacy mappings for backward compatibility
       'Fcst Estadístico': 'calculated_forecast',
@@ -254,7 +249,9 @@ const ForecastCollaboration: React.FC = () => {
     return fieldMapping[rowType] || 'calculated_forecast'; // fallback to calculated_forecast
   };
 
+
   // Helper function to calculate YTD for a specific row/field
+  // YTD = Sum ALL months (enero to diciembre) in the row
   const calculateCustomerYTD = (customer: CustomerData, attribute: 'attr_1' | 'attr_2' | 'attr_3', fieldName?: string): number => {
     // For Cajas (attr_3), we don't need the attribute value since values are already in cajas units
     // For Litros (attr_1) and Pesos (attr_2), we need the attribute multiplier
@@ -263,29 +260,13 @@ const ForecastCollaboration: React.FC = () => {
     }
     
     // ALWAYS use only the specific field for the current row
-    // This ensures each row's Cajas/Litros/Pesos values correspond to that row's actual data
-    // If no fieldName provided, fallback to calculated_forecast
-    const rowValuesToUse = fieldName ? [fieldName] : ['calculated_forecast'];
+    const rowValuesToUse = fieldName ? [fieldName] : [];
 
-    // Get all month keys and sort them chronologically
-    const monthKeys = Object.keys(customer.months).sort((a, b) => {
-      const [monthA, yearA] = a.split('-');
-      const [monthB, yearB] = b.split('-');
-      const monthOrder = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-      const yearDiff = parseInt(yearA) - parseInt(yearB);
-      if (yearDiff !== 0) return yearDiff;
-      return monthOrder.indexOf(monthA) - monthOrder.indexOf(monthB);
-    });
-
-    // Get ALL 12 months (YTD = Year To Date = ALL 12 months)
-    const allTwelveMonths = monthKeys; // All 12 months
-    
+    // YTD = Sum ALL months (enero to diciembre) in this row
     let total = 0;
-    let totalRawSum = 0; // Track total before multiplication to check if we should return 0
-    let debugInfo: any[] = [];
+    let totalRawSum = 0;
     
-    // Sum ALL 12 months for YTD
-    allTwelveMonths.forEach(monthKey => {
+    Object.keys(customer.months).forEach(monthKey => {
       const monthData = customer.months[monthKey];
       if (monthData) {
         let monthTotal = 0;
@@ -294,7 +275,6 @@ const ForecastCollaboration: React.FC = () => {
           monthTotal += fieldValue;
         });
         
-        // Track total raw sum to determine if we should show 0
         totalRawSum += monthTotal;
         
         if (attribute === 'attr_3') {
@@ -303,24 +283,12 @@ const ForecastCollaboration: React.FC = () => {
         } else {
           // For Litros (attr_1) and Pesos (attr_2), multiply by their respective attributes
           const multiplier = customer[attribute] || 0;
-          const contribution = monthTotal * multiplier;
-          total += contribution;
-        }
-        
-        if (monthTotal > 0) {
-          debugInfo.push({ 
-            month: monthKey, 
-            rawSum: monthTotal,
-            multiplier: attribute === 'attr_3' ? 1 : (customer[attribute] || 0),
-            contribution: attribute === 'attr_3' ? monthTotal : monthTotal * (customer[attribute] || 0),
-            fieldsUsed: rowValuesToUse 
-          });
+          total += monthTotal * multiplier;
         }
       }
     });
     
-    // 🔧 FIX: If the total raw sum is 0, return 0 regardless of multipliers
-    // This prevents showing misleading values when there's no actual data
+    // If total raw sum is 0, return 0 regardless of multipliers
     if (totalRawSum === 0) {
       return 0;
     }
@@ -329,72 +297,50 @@ const ForecastCollaboration: React.FC = () => {
   };
 
   // Helper function to calculate YTG for a specific row/field
+  // YTG = Sum ONLY the last 4 months (septiembre, octubre, noviembre, diciembre) in the row
   const calculateCustomerYTG = (customer: CustomerData, attribute: 'attr_1' | 'attr_2' | 'attr_3', fieldName?: string): number => {
     // For Cajas (attr_3), we don't need the attribute value since values are already in cajas units
     // For Litros (attr_1) and Pesos (attr_2), we need the attribute multiplier
     if (attribute !== 'attr_3' && !customer[attribute]) return 0;
     
     // ALWAYS use only the specific field for the current row
-    // This ensures each row's Cajas/Litros/Pesos values correspond to that row's actual data
-    // If no fieldName provided, fallback to calculated_forecast
-    const rowValuesToUse = fieldName ? [fieldName] : ['calculated_forecast'];
+    const rowValuesToUse = fieldName ? [fieldName] : [];
 
-    // Get all month keys and sort them chronologically
-    const monthKeys = Object.keys(customer.months).sort((a, b) => {
-      // Sort by month-year format (e.g., "ene-25", "feb-25", etc.)
-      const [monthA, yearA] = a.split('-');
-      const [monthB, yearB] = b.split('-');
-
-      const monthOrder = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-      const yearDiff = parseInt(yearA) - parseInt(yearB);
-      
-      if (yearDiff !== 0) return yearDiff;
-      return monthOrder.indexOf(monthA) - monthOrder.indexOf(monthB);
-    });
-    
-    // Get the last 4 months from the sorted array (YTG = Year To Go = last 4 months)
-    const lastFourMonths = monthKeys.slice(-4);
+    // YTG = Sum ONLY septiembre, octubre, noviembre, diciembre from this row
+    const lastFourMonthAbbrs = ['sep', 'oct', 'nov', 'dic'];
     
     let total = 0;
-    let totalRawSum = 0; // Track total before multiplication to check if we should return 0
-    let debugInfo: any[] = [];
-    
-    lastFourMonths.forEach(monthKey => {
-      const monthData = customer.months[monthKey];
-      if (monthData) {
-        let monthTotal = 0;
-        rowValuesToUse.forEach(field => {
-          const fieldValue = (monthData[field as keyof typeof monthData] || 0);
-          monthTotal += fieldValue;
-        });
-        
-        // Track total raw sum to determine if we should show 0
-        totalRawSum += monthTotal;
-        
-        if (attribute === 'attr_3') {
-          // For Cajas (attr_3), values are already in cajas units - no multiplication needed
-          total += monthTotal;
-        } else {
-          // For Litros (attr_1) and Pesos (attr_2), multiply by their respective attributes
-          const multiplier = customer[attribute] || 0;
-          const contribution = monthTotal * multiplier;
-          total += contribution;
-        }
-        
-        if (monthTotal > 0) {
-          debugInfo.push({ 
-            month: monthKey, 
-            rawSum: monthTotal,
-            multiplier: attribute === 'attr_3' ? 1 : (customer[attribute] || 0),
-            contribution: attribute === 'attr_3' ? monthTotal : monthTotal * (customer[attribute] || 0),
-            fieldsUsed: rowValuesToUse 
+    let totalRawSum = 0;
+
+    Object.keys(customer.months).forEach(monthKey => {
+      // Extract month abbreviation (e.g., "sep" from "sep-25")
+      const [monthAbbr] = monthKey.split('-');
+      
+      // Only process months that are sep, oct, nov, or dic
+      if (lastFourMonthAbbrs.includes(monthAbbr)) {
+        const monthData = customer.months[monthKey];
+        if (monthData) {
+          let monthTotal = 0;
+          rowValuesToUse.forEach(field => {
+            const fieldValue = (monthData[field as keyof typeof monthData] || 0);
+            monthTotal += fieldValue;
           });
+          
+          totalRawSum += monthTotal;
+          
+          if (attribute === 'attr_3') {
+            // For Cajas (attr_3), values are already in cajas units - no multiplication needed
+            total += monthTotal;
+          } else {
+            // For Litros (attr_1) and Pesos (attr_2), multiply by their respective attributes
+            const multiplier = customer[attribute] || 0;
+            total += monthTotal * multiplier;
+          }
         }
       }
     });
     
-    // 🔧 FIX: If the total raw sum is 0, return 0 regardless of multipliers
-    // This prevents showing misleading values when there's no actual data
+    // If total raw sum is 0, return 0 regardless of multipliers
     if (totalRawSum === 0) {
       return 0;
     }
@@ -481,7 +427,7 @@ const ForecastCollaboration: React.FC = () => {
     const fieldName = getFieldNameForRowType(rowType);
 
     // Special handling for rows that only consider specific year months
-    const isCurrentYearOnly = rowType === "M8 Predict" || rowType === "Sell in Actual" || rowType === "SI Actual" || rowType === "Sell Out Actual" || rowType == "Inventory Days" || rowType == "DDI Totales";
+    const isCurrentYearOnly = rowType === "M8 Predict" || rowType === 'KAM A + 1' || rowType === "Sell in Actual" || rowType === "SI Actual" || rowType === "Sell Out Actual" || rowType == "Inventory Days" || rowType == "DDI Totales" || rowType === "SI VENTA A-2" || rowType === "Sell in AA" || rowType === "Sell Out AA" || rowType === "SO AA" || rowType === "PCI Actual" || rowType === "SO AA";
     
     // Special handling for PPTO rows - budget values should not be multiplied by attributes
     const isPPTO = rowType === "PPTO 2025" || rowType === "PPTO 2026" || rowType === "PPTO Actual" || rowType === "PPTO A+1" || rowType === "PPTO A + 1" ;
@@ -491,15 +437,23 @@ const ForecastCollaboration: React.FC = () => {
     let sumCajasTotal, sumLitrosTotal, sumPesosTotal;
     
     if (isCurrentYearOnly) {
-      // For M8 Predict, calculate sums only for the correct year based on row type
+      // For year-filtered rows, calculate YTD and YTG separately based on row type
       let targetYear: number;
-      if (rowType === "M8 Predict") {
-        targetYear = new Date().getFullYear() + 1; // 2025 for M8 Predict
+      if (rowType === "M8 Predict" || rowType === 'KAM A + 1') {
+        targetYear = new Date().getFullYear() + 1; // year + 1
+      } else if (rowType === 'SI VENTA A-2') {
+        targetYear = new Date().getFullYear() - 2; // year - 2
+      } else if (rowType === "Sell in AA" || rowType === "Sell Out AA" || rowType === "SO AA") {
+        targetYear = new Date().getFullYear() - 1; // year - 1
+      } else if (rowType === "SI Actual" || rowType === "Sell in Actual" || rowType === "Sell Out Actual" || rowType === "Inventory Days" || rowType === "DDI Totales") {
+        targetYear = new Date().getFullYear(); // current year
       } else {
-        targetYear = new Date().getFullYear(); // 2025 for other current year rows
+        // For other year-filtered rows (SI Actual, Sell in Actual, etc.), use current year
+        targetYear = new Date().getFullYear(); // current year
       }
       
-      const calculateCurrentYearSum = (attribute: 'attr_1' | 'attr_2' | 'attr_3') => {
+      // YTD: Sum ALL months of target year
+      const calculateYTD = (attribute: 'attr_1' | 'attr_2' | 'attr_3') => {
         return customersToUse.reduce((total, customer) => {
           let customerTotal = 0;
           Object.keys(customer.months).forEach(monthKey => {
@@ -523,27 +477,63 @@ const ForecastCollaboration: React.FC = () => {
         }, 0);
       };
       
-      // For year-filtered rows, all values are the same since we only show specific year
-      sumCajasYTD = sumCajasYTG = sumCajasTotal = calculateCurrentYearSum('attr_3');
-      sumLitrosYTD = sumLitrosYTG = sumLitrosTotal = calculateCurrentYearSum('attr_1');
-      sumPesosYTD = sumPesosYTG = sumPesosTotal = calculateCurrentYearSum('attr_2');
+      // YTG: Sum ONLY last 4 months (sep, oct, nov, dic) of target year
+      const calculateYTG = (attribute: 'attr_1' | 'attr_2' | 'attr_3') => {
+        const lastFourMonthAbbrs = ['sep', 'oct', 'nov', 'dic'];
+        const yearShort = String(targetYear).slice(-2);
+        
+        return customersToUse.reduce((total, customer) => {
+          let customerTotal = 0;
+          lastFourMonthAbbrs.forEach(abbr => {
+            const monthKey = `${abbr}-${yearShort}`;
+            const monthData = customer.months[monthKey];
+            if (monthData && fieldName) {
+              const fieldValue = monthData[fieldName as keyof typeof monthData] || 0;
+              
+              if (attribute === 'attr_3') {
+                // Cajas: use raw values (already in cajas units)
+                customerTotal += fieldValue;
+              } else {
+                // Litros/Pesos: multiply by attribute multiplier
+                const multiplier = customer[attribute] || 0;
+                customerTotal += fieldValue * multiplier;
+              }
+            }
+          });
+          return total + customerTotal;
+        }, 0);
+      };
+      
+      // Calculate YTD, YTG, and Total separately
+      sumCajasYTD = calculateYTD('attr_3');
+      sumCajasYTG = calculateYTG('attr_3');
+      sumCajasTotal = sumCajasYTD + sumCajasYTG;
+      
+      sumLitrosYTD = calculateYTD('attr_1');
+      sumLitrosYTG = calculateYTG('attr_1');
+      sumLitrosTotal = sumLitrosYTD + sumLitrosYTG;
+      
+      sumPesosYTD = calculateYTD('attr_2');
+      sumPesosYTG = calculateYTG('attr_2');
+      sumPesosTotal = sumPesosYTD + sumPesosYTG;
     } else if (isPPTO) {
       // ✅ Special handling for PPTO (Budget) rows - Sum raw values without multiplying by attributes
       // PPTO values are budget targets and should be shown as-is
-      const calculatePPTOSum = () => {
+      // Determine target year based on row type
+      let targetYear: number;
+      if (rowType === "PPTO 2025" || rowType === "PPTO Actual") {
+        targetYear = new Date().getFullYear(); // current year
+      } else if (rowType === "PPTO 2026" || rowType === "PPTO A+1" || rowType === "PPTO A + 1") {
+        targetYear = new Date().getFullYear() + 1; // next year
+      } else {
+        targetYear = new Date().getFullYear(); // Default to current year
+      }
+      
+      // YTD: Sum ALL months of target year
+      const calculatePPTOSumYTD = () => {
         return customersToUse.reduce((total, customer) => {
           let customerPPTO = 0;
           Object.keys(customer.months).forEach(monthKey => {
-            // Filter by year based on row type
-            let targetYear: number;
-            if (rowType === "PPTO 2025" || rowType === "PPTO Actual") {
-              targetYear = new Date().getFullYear(); // 2025
-            } else if (rowType === "PPTO 2026" || rowType === "PPTO A+1" || rowType === "PPTO A + 1") {
-              targetYear = new Date().getFullYear() + 1; // 2026
-            } else {
-              targetYear = new Date().getFullYear(); // Default
-            }
-            
             if (shouldShowValueForYear(monthKey, targetYear)) {
               const monthData = customer.months[monthKey];
               if (monthData && fieldName) {
@@ -556,10 +546,34 @@ const ForecastCollaboration: React.FC = () => {
         }, 0);
       };
       
-      // For PPTO, all columns show the same total budget value
-      sumCajasYTD = sumCajasYTG = sumCajasTotal = calculatePPTOSum();
-      sumLitrosYTD = sumLitrosYTG = sumLitrosTotal = calculatePPTOSum();
-      sumPesosYTD = sumPesosYTG = sumPesosTotal = calculatePPTOSum();
+      // YTG: Sum ONLY last 4 months (sep, oct, nov, dic) of target year
+      const calculatePPTOSumYTG = () => {
+        const lastFourMonthAbbrs = ['sep', 'oct', 'nov', 'dic'];
+        const yearShort = String(targetYear).slice(-2);
+        
+        return customersToUse.reduce((total, customer) => {
+          let customerPPTO = 0;
+          lastFourMonthAbbrs.forEach(abbr => {
+            const monthKey = `${abbr}-${yearShort}`;
+            const monthData = customer.months[monthKey];
+            if (monthData && fieldName) {
+              const fieldValue = monthData[fieldName as keyof typeof monthData] || 0;
+              customerPPTO += fieldValue; // Sum the budget values directly, no multiplication
+            }
+          });
+          return total + customerPPTO;
+        }, 0);
+      };
+      
+      // Calculate YTD, YTG, and Total separately for PPTO
+      const pptoYTD = calculatePPTOSumYTD();
+      const pptoYTG = calculatePPTOSumYTG();
+      const pptoTotal = pptoYTD + pptoYTG;
+      
+      // PPTO values are the same for Cajas, Litros, and Pesos (no multiplication)
+      sumCajasYTD = sumLitrosYTD = sumPesosYTD = pptoYTD;
+      sumCajasYTG = sumLitrosYTG = sumPesosYTG = pptoYTG;
+      sumCajasTotal = sumLitrosTotal = sumPesosTotal = pptoTotal;
     } else {
       // For other row types, use the original calculation functions
       sumCajasYTD = calculateAggregateForAllCustomers(customersToUse, 'attr_3', 'YTD', fieldName);
@@ -632,9 +646,9 @@ const ForecastCollaboration: React.FC = () => {
     
     // Special handling for rows that only consider specific year months
     const isYearFiltered = rowType === "M8 Predict" || rowType === "Sell in Actual" || rowType === "SI Actual" || 
-                          rowType === "Sell Out Actual" || rowType === "PPTO 2025" || rowType === "PPTO 2026" ||
-                          rowType === "SI VENTA A-2" || rowType === "Sell in AA" || rowType === "PPTO Actual" || 
-                          rowType === "PPTO A+1" || rowType === "PPTO A + 1";
+                          rowType === "Sell Out Actual" || rowType === "PPTO 2025" || rowType === "PPTO 2026" || rowType === "SO Actual" ||
+                          rowType === "SI VENTA A-2" || rowType === "Sell in AA" || rowType === "PPTO Actual" || rowType === "Sell Out AA" ||
+                          rowType === "PPTO A+1" || rowType === "PPTO A + 1" || rowType === "KAM A + 1" || rowType === "Inventory Days" || rowType === "SO AA" || rowType === "PCI Actual" || rowType === "DDI Totales";
     
     // Special handling for PPTO rows - don't multiply by attributes
     const isPPTO = rowType === "PPTO 2025" || rowType === "PPTO 2026" || rowType === "PPTO Actual" || 
@@ -646,41 +660,133 @@ const ForecastCollaboration: React.FC = () => {
         // Determine which year to filter by based on row type
         let targetYear: number;
         if (rowType === "SI VENTA A-2") {
-          targetYear = new Date().getFullYear() - 2; // 2023
-        } else if (rowType === "Sell in AA") {
-          targetYear = new Date().getFullYear() - 1; // 2024
-        } else if (rowType === "M8 Predict") {
-          targetYear = new Date().getFullYear() + 1; // Always year + 1 for M8 Predict
-        } else if (rowType === "PPTO 2025" || rowType === "PPTO Actual" || rowType === "Sell in Actual" || rowType === "SI Actual" || rowType === "Sell Out Actual") {
-          targetYear = new Date().getFullYear(); // 2025
+          targetYear = new Date().getFullYear() - 2; // year - 2 (like 2023 for 2025)
+        } else if (rowType === "Sell in AA" || rowType === "Sell Out AA" || rowType === "SO AA") {
+          targetYear = new Date().getFullYear() - 1; // year - 1 (like 2024 for 2025)
+        } else if (rowType === "M8 Predict" || rowType === "KAM A + 1") {
+          targetYear = new Date().getFullYear() + 1; // year + 1 (like 2026 for 2025)
         } else if (rowType === "PPTO 2026" || rowType === "PPTO A+1" || rowType === "PPTO A + 1") {
-          targetYear = new Date().getFullYear() + 1; // 2026
+          targetYear = new Date().getFullYear() + 1; // year + 1 (like 2026 for 2025)
+        } else if (rowType === "PPTO 2025" || rowType === "PPTO Actual" || rowType === "Sell in Actual" || rowType === "SI Actual" || rowType === "SO Actual" || rowType === "Sell Out Actual" || rowType === "Inventory Days" || rowType === "PCI Actual" || rowType === "DDI Totales") {
+          targetYear = new Date().getFullYear(); // current year (like 2025)
         } else {
           targetYear = new Date().getFullYear(); // Default to current year
         }
         
         let total = 0;
+        let totalRawSum = 0; // Track raw values to return 0 if all are 0
         
-        Object.keys(customer.months).forEach(monthKey => {
-          if (shouldShowValueForYear(monthKey, targetYear)) {
+        // For YTG, only use last 4 months (sep, oct, nov, dic) of target year
+        // For YTD, use all months of target year
+        // For Total, calculate YTD + YTG
+        if (calculationType === 'Total') {
+          // Calculate YTD and YTG separately, then sum them
+          let ytd = 0, ytdRaw = 0;
+          let ytg = 0, ytgRaw = 0;
+          
+          // YTD: all months of target year
+          Object.keys(customer.months).forEach(monthKey => {
+            if (shouldShowValueForYear(monthKey, targetYear)) {
+              const monthData = customer.months[monthKey];
+              if (monthData && fieldName) {
+                const fieldValue = monthData[fieldName as keyof typeof monthData] || 0;
+                ytdRaw += fieldValue;
+                
+                if (isPPTO) {
+                  ytd += fieldValue;
+                } else if (attribute === 'attr_3') {
+                  ytd += fieldValue;
+                } else {
+                  ytd += fieldValue * (customer[attribute] || 0);
+                }
+              }
+            }
+          });
+          
+          // YTG: last 4 months (sep, oct, nov, dic) of target year
+          const lastFourMonthAbbrs = ['sep', 'oct', 'nov', 'dic'];
+          const yearShort = String(targetYear).slice(-2);
+          lastFourMonthAbbrs.forEach(abbr => {
+            const monthKey = `${abbr}-${yearShort}`;
             const monthData = customer.months[monthKey];
             if (monthData && fieldName) {
               const fieldValue = monthData[fieldName as keyof typeof monthData] || 0;
+              ytgRaw += fieldValue;
               
-              // Special handling for PPTO - use raw values without multiplication
               if (isPPTO) {
-                total += fieldValue; // Budget values should not be multiplied
+                ytg += fieldValue;
               } else if (attribute === 'attr_3') {
-                // Cajas: use raw values (already in cajas units)
-                total += fieldValue;
+                ytg += fieldValue;
               } else {
-                // Litros/Pesos: multiply by attribute multiplier
-                const multiplier = customer[attribute] || 0;
-                total += fieldValue * multiplier;
+                ytg += fieldValue * (customer[attribute] || 0);
               }
             }
-          }
-        });
+          });
+          
+          totalRawSum = ytdRaw + ytgRaw;
+          total = ytd + ytg;
+        } else if (calculationType === 'YTG') {
+          // YTG: Sum ONLY the last 4 months (sep, oct, nov, dic) of target year
+          const lastFourMonthAbbrs = ['sep', 'oct', 'nov', 'dic'];
+          const yearShort = String(targetYear).slice(-2);
+          
+          // Only process the last 4 months - explicitly check each one
+          lastFourMonthAbbrs.forEach(abbr => {
+            const monthKey = `${abbr}-${yearShort}`;
+            // Only access if the month key exists in customer.months
+            if (customer.months[monthKey]) {
+              const monthData = customer.months[monthKey];
+              if (monthData && fieldName) {
+                const fieldValue = (monthData[fieldName as keyof typeof monthData] as number) || 0;
+                
+                // Track raw sum to determine if we should return 0
+                totalRawSum += fieldValue;
+                
+                // Special handling for PPTO - use raw values without multiplication
+                if (isPPTO) {
+                  total += fieldValue;
+                } else if (attribute === 'attr_3') {
+                  // Cajas: use raw values (already in cajas units)
+                  total += fieldValue;
+                } else {
+                  // Litros/Pesos: multiply by attribute multiplier
+                  const multiplier = customer[attribute] || 0;
+                  total += fieldValue * multiplier;
+                }
+              }
+            }
+          });
+        } else {
+          // YTD: Sum ALL months of target year
+          Object.keys(customer.months).forEach(monthKey => {
+            if (shouldShowValueForYear(monthKey, targetYear)) {
+              const monthData = customer.months[monthKey];
+              if (monthData && fieldName) {
+                const fieldValue = monthData[fieldName as keyof typeof monthData] || 0;
+                
+                // Track raw sum to determine if we should return 0
+                totalRawSum += fieldValue;
+                
+                // Special handling for PPTO - use raw values without multiplication
+                if (isPPTO) {
+                  total += fieldValue;
+                } else if (attribute === 'attr_3') {
+                  // Cajas: use raw values (already in cajas units)
+                  total += fieldValue;
+                } else {
+                  // Litros/Pesos: multiply by attribute multiplier
+                  const multiplier = customer[attribute] || 0;
+                  total += fieldValue * multiplier;
+                }
+              }
+            }
+          });
+        }
+        
+        // If total raw sum is 0, return 0 regardless of multipliers
+        if (totalRawSum === 0) {
+          return 0;
+        }
         
         return total;
       } else {
@@ -785,7 +891,7 @@ const ForecastCollaboration: React.FC = () => {
     '% PIN 26 vs AA 25', '% PIN 26 vs PPTO 26', 'PIN SEP', '% PIN SEP vs PIN', 
     'KAM 26', 'BY 26', 'BB 26', 'PCI 26' , 'PCI Actual', 'M8 Predict', 'Sell in Actual', 
     'SI Actual', 'Sell Out Actual', 'Inventory Days', 'PPTO Actual', 'PPTO A+1', 'PPTO A + 1',
-    'SI VENTA A-2',  'Sell in AA'
+    'SI VENTA A-2',  'Sell in AA', 'Sell Out AA', 'Sell Out A-2', 'DDI Promedio', 'M8 Predict ind'
   ];
 
   // ===== HOOKS =====
@@ -1380,7 +1486,7 @@ useEffect(() => {
 
       if (advancedFilters.productLine && advancedFilters.productLine.length > 0) {
         // Use a more efficient JOIN-based query to avoid URL length limits  
-          console.log('� FETCH - Fetching sell out line get data with filters:')
+          // console.log('� FETCH - Fetching sell out line get data with filters:')
         const { data, error } = await (supabase as any)
           .schema('m8_schema')
           .rpc('get_sales_out_by_product_line', {
@@ -1578,16 +1684,16 @@ useEffect(() => {
     let totalActualSum = 0;
     
     // 🔍 DEBUG: Log first 5 raw data records to see what's coming in
-    console.log('📊 RAW DATA SAMPLE (first 5 records):', rawData.slice(0, 5).map(row => ({
-      customer_node_id: row.customer_node_id,
-      product_id: row.product_id,
-      location_node_id: row.location_node_id,
-      postdate: row.postdate,
-      actual: row.actual,
-      forecast: row.forecast,
-      forecast_ly: row.forecast_ly
-    })));
-    console.log('📊 TOTAL RAW DATA RECORDS:', rawData.length);
+    // console.log('📊 RAW DATA SAMPLE (first 5 records):', rawData.slice(0, 5).map(row => ({
+    //   customer_node_id: row.customer_node_id,
+    //   product_id: row.product_id,
+    //   location_node_id: row.location_node_id,
+    //   postdate: row.postdate,
+    //   actual: row.actual,
+    //   forecast: row.forecast,
+    //   forecast_ly: row.forecast_ly
+    // })));
+    // console.log('📊 TOTAL RAW DATA RECORDS:', rawData.length);
     
     rawData.forEach((row: CommercialCollaborationData) => {
       // Use customer_node_id/location_node_id if present, else fallback to customer_id/location_id
@@ -1910,60 +2016,60 @@ useEffect(() => {
     });
 
     // 🔍 DEBUG: Log sell-out data summary with enhanced details
-    console.log('📊 SELL-OUT DATA PROCESSING:', {
-      total_sellout_records: sellOutDataArray.length,
-      skipped_sellout_rows: skippedSellOutRows,
-      records_processed: sellOutRecordsProcessed,
-      records_added: sellOutRecordsAdded,
-      sample_sellout: sellOutDataArray.slice(0, 3).map((row: any) => ({
-        customer_node_id: row.customer_node_id,
-        product_id: row.product_id,
-        postdate: row.postdate,
-        quantity: row.quantity,
-        year: new Date(row.postdate).getFullYear(),
-        monthKey: `${(new Date(row.postdate).getMonth() + 1).toString().padStart(2, '0')}-${new Date(row.postdate).getFullYear().toString().slice(-2)}`,
-        displayMonth: monthMap[`${(new Date(row.postdate).getMonth() + 1).toString().padStart(2, '0')}-${new Date(row.postdate).getFullYear().toString().slice(-2)}`]
-      }))
-    });
+    // console.log('📊 SELL-OUT DATA PROCESSING:', {
+    //   total_sellout_records: sellOutDataArray.length,
+    //   skipped_sellout_rows: skippedSellOutRows,
+    //   records_processed: sellOutRecordsProcessed,
+    //   records_added: sellOutRecordsAdded,
+    //   sample_sellout: sellOutDataArray.slice(0, 3).map((row: any) => ({
+    //     customer_node_id: row.customer_node_id,
+    //     product_id: row.product_id,
+    //     postdate: row.postdate,
+    //     quantity: row.quantity,
+    //     year: new Date(row.postdate).getFullYear(),
+    //     monthKey: `${(new Date(row.postdate).getMonth() + 1).toString().padStart(2, '0')}-${new Date(row.postdate).getFullYear().toString().slice(-2)}`,
+    //     displayMonth: monthMap[`${(new Date(row.postdate).getMonth() + 1).toString().padStart(2, '0')}-${new Date(row.postdate).getFullYear().toString().slice(-2)}`]
+    //   }))
+    // });
     
     // 🔍 DEBUG: Log actual sell-out values stored
     const customersWithSellOut = Object.values(groupedData).filter(customer => 
       Object.values(customer.months).some(m => m.sell_out_aa > 0 || m.sell_out_actual > 0)
     );
-    console.log('📊 CUSTOMERS WITH SELL-OUT DATA:', {
-      total_customers_with_sellout: customersWithSellOut.length,
-      sample_customer_sellout: customersWithSellOut.slice(0, 2).map(c => ({
-        customer_id: c.customer_node_id,
-        product_id: c.product_id,
-        months_with_sellout: Object.entries(c.months)
-          .filter(([_, m]) => m.sell_out_aa > 0 || m.sell_out_actual > 0)
-          .map(([month, m]) => ({ month, sell_out_aa: m.sell_out_aa, sell_out_actual: m.sell_out_actual }))
-      }))
-    });
+    // console.log('📊 CUSTOMERS WITH SELL-OUT DATA:', {
+    //   total_customers_with_sellout: customersWithSellOut.length,
+    //   sample_customer_sellout: customersWithSellOut.slice(0, 2).map(c => ({
+    //     customer_id: c.customer_node_id,
+    //     product_id: c.product_id,
+    //     months_with_sellout: Object.entries(c.months)
+    //       .filter(([_, m]) => m.sell_out_aa > 0 || m.sell_out_actual > 0)
+    //       .map(([month, m]) => ({ month, sell_out_aa: m.sell_out_aa, sell_out_actual: m.sell_out_actual }))
+    //   }))
+    // });
 
     // Process KAM adjustments from commercial_collaboration table
     let pptoRecordsProcessed = 0;
     let pptoRecordsAdded = 0;
     
     // 🔍 DEBUG: Log ALL fields from first 3 KAM records to identify field names
-    console.log('📊 PPTO/KAM FIRST 3 RECORDS - RAW DATA:', kamDataArray.slice(0, 3).map((row: any, idx: number) => {
-      const allFields = Object.keys(row);
-      return {
-        index: idx,
-        all_fields: allFields,
-        all_values: row,
-        has_initial_sales_plan: !!row.initial_sales_plan,
-        initial_sales_plan_value: row.initial_sales_plan,
-        // Try various possible field names for customer
-        customer_checks: {
-          customer_node_id: row.customer_node_id,
-          customer_id: row.customer_id,
-          customerid: row.customerid,
-          node_id: row.node_id,
-          id: row.id
-        }
-      };
-    }));
+    // console.log('📊 PPTO/KAM FIRST 3 RECORDS - RAW DATA:', kamDataArray.slice(0, 3).map((row: any, idx: number) => {
+    //   const allFields = Object.keys(row);
+    //   return {
+    //     index: idx,
+    //     all_fields: allFields,
+    //     all_values: row,
+    //     has_initial_sales_plan: !!row.initial_sales_plan,
+    //     initial_sales_plan_value: row.initial_sales_plan,
+    //     // Try various possible field names for customer
+    //     customer_checks: {
+    //       customer_node_id: row.customer_node_id,
+    //       customer_id: row.customer_id,
+    //       customerid: row.customerid,
+    //       node_id: row.node_id,
+    //       id: row.id
+    //     }
+    //   };
+    // }));
     
     // 🔍 DEBUG: Count and log ALL records with initial_sales_plan values
     const recordsWithPPTO = kamDataArray.filter((row: any) => row.initial_sales_plan && row.initial_sales_plan !== null && row.initial_sales_plan !== 0);
@@ -1991,16 +2097,16 @@ useEffect(() => {
       
       // 🔍 DEBUG: Log first 5 PPTO records with initial_sales_plan
       if (row.initial_sales_plan && pptoFieldMappingCount < 5) {
-        console.log(`💰 PPTO FIELD MAPPING #${pptoFieldMappingCount + 1}:`, {
-          original_customer_node_id: row.customer_node_id,
-          original_customer_id: row.customer_id,
-          mapped_customer_node_id: customerId,
-          original_location_id: row.location_id,
-          mapped_location_node_id: locationId,
-          postdate: row.postdate,
-          initial_sales_plan: row.initial_sales_plan,
-          product_id: row.product_id
-        });
+        // console.log(`💰 PPTO FIELD MAPPING #${pptoFieldMappingCount + 1}:`, {
+        //   original_customer_node_id: row.customer_node_id,
+        //   original_customer_id: row.customer_id,
+        //   mapped_customer_node_id: customerId,
+        //   original_location_id: row.location_id,
+        //   mapped_location_node_id: locationId,
+        //   postdate: row.postdate,
+        //   initial_sales_plan: row.initial_sales_plan,
+        //   product_id: row.product_id
+        // });
         pptoFieldMappingCount++;
       }
       
@@ -2386,62 +2492,62 @@ useEffect(() => {
     });
 
     // 🔍 DEBUG: Log inventory data summary with enhanced details
-    console.log('📊 INVENTORY DATA PROCESSING:', {
-      total_inventory_records: inventoryDataArray.length,
-      skipped_inventory_rows: skippedInventoryRows,
-      records_processed: inventoryRecordsProcessed,
-      records_added: inventoryRecordsAdded,
-      sample_inventory: inventoryDataArray.slice(0, 3).map((row: any) => ({
-        customer_node_id: row.customer_node_id,
-        product_id: row.product_id,
-        postdate: row.postdate,
-        eoh: row.eoh,
-        year: new Date(row.postdate).getFullYear(),
-        monthKey: `${(new Date(row.postdate).getMonth() + 1).toString().padStart(2, '0')}-${new Date(row.postdate).getFullYear().toString().slice(-2)}`,
-        displayMonth: monthMap[`${(new Date(row.postdate).getMonth() + 1).toString().padStart(2, '0')}-${new Date(row.postdate).getFullYear().toString().slice(-2)}`]
-      }))
-    });
+    // console.log('📊 INVENTORY DATA PROCESSING:', {
+    //   total_inventory_records: inventoryDataArray.length,
+    //   skipped_inventory_rows: skippedInventoryRows,
+    //   records_processed: inventoryRecordsProcessed,
+    //   records_added: inventoryRecordsAdded,
+    //   sample_inventory: inventoryDataArray.slice(0, 3).map((row: any) => ({
+    //     customer_node_id: row.customer_node_id,
+    //     product_id: row.product_id,
+    //     postdate: row.postdate,
+    //     eoh: row.eoh,
+    //     year: new Date(row.postdate).getFullYear(),
+    //     monthKey: `${(new Date(row.postdate).getMonth() + 1).toString().padStart(2, '0')}-${new Date(row.postdate).getFullYear().toString().slice(-2)}`,
+    //     displayMonth: monthMap[`${(new Date(row.postdate).getMonth() + 1).toString().padStart(2, '0')}-${new Date(row.postdate).getFullYear().toString().slice(-2)}`]
+    //   }))
+    // });
     
     // 🔍 DEBUG: Log actual inventory values stored
     const customersWithInventory = Object.values(groupedData).filter(customer => 
       Object.values(customer.months).some(m => m.ddi_totales > 0 || m.inventory_days > 0)
     );
-    console.log('📊 CUSTOMERS WITH INVENTORY DATA:', {
-      total_customers_with_inventory: customersWithInventory.length,
-      sample_customer_inventory: customersWithInventory.slice(0, 2).map(c => ({
-        customer_id: c.customer_node_id,
-        product_id: c.product_id,
-        months_with_inventory: Object.entries(c.months)
-          .filter(([_, m]) => m.ddi_totales > 0 || m.inventory_days > 0)
-          .map(([month, m]) => ({ month, ddi_totales: m.ddi_totales, inventory_days: m.inventory_days }))
-      }))
-    });
+    // console.log('📊 CUSTOMERS WITH INVENTORY DATA:', {
+    //   total_customers_with_inventory: customersWithInventory.length,
+    //   sample_customer_inventory: customersWithInventory.slice(0, 2).map(c => ({
+    //     customer_id: c.customer_node_id,
+    //     product_id: c.product_id,
+    //     months_with_inventory: Object.entries(c.months)
+    //       .filter(([_, m]) => m.ddi_totales > 0 || m.inventory_days > 0)
+    //       .map(([month, m]) => ({ month, ddi_totales: m.ddi_totales, inventory_days: m.inventory_days }))
+    //   }))
+    // });
 
     // Log summary of skipped rows to avoid console spam
     const totalSkipped = skippedMainRows + skippedSellInRows + skippedSellOutRows + skippedKamRows + skippedInventoryRows;
 
     // Log summary for M8 Predict debugging
-    console.log('🔍 M8 Predict Data Summary:', {
-      total_records: rawData.length,
-      records_with_actual_data: recordsWithActualData,
-      total_actual_sum: totalActualSum,
-      skipped_rows: totalSkipped,
-      final_customers: Object.values(groupedData).length
-    });
+    // console.log('🔍 M8 Predict Data Summary:', {
+    //   total_records: rawData.length,
+    //   records_with_actual_data: recordsWithActualData,
+    //   total_actual_sum: totalActualSum,
+    //   skipped_rows: totalSkipped,
+    //   final_customers: Object.values(groupedData).length
+    // });
 
     const finalCustomers = Object.values(groupedData);
     
     // 🔍 DEBUG: Log first 3 processed customers with their data
-    console.log('📋 PROCESSED CUSTOMERS SAMPLE (first 3):', finalCustomers.slice(0, 3).map(customer => ({
-      customer_node_id: customer.customer_node_id,
-      customer_name: customer.customer_name,
-      product_id: customer.product_id,
-      product_name: customer.product_name,
-      location_node_id: customer.location_node_id,
-      months_with_data: Object.keys(customer.months),
-      sample_month_data: customer.months[Object.keys(customer.months)[0]],
-      actual_by_m8_totals: Object.values(customer.months).reduce((sum, m) => sum + (m.actual_by_m8 || 0), 0)
-    })));
+    // console.log('📋 PROCESSED CUSTOMERS SAMPLE (first 3):', finalCustomers.slice(0, 3).map(customer => ({
+    //   customer_node_id: customer.customer_node_id,
+    //   customer_name: customer.customer_name,
+    //   product_id: customer.product_id,
+    //   product_name: customer.product_name,
+    //   location_node_id: customer.location_node_id,
+    //   months_with_data: Object.keys(customer.months),
+    //   sample_month_data: customer.months[Object.keys(customer.months)[0]],
+    //   actual_by_m8_totals: Object.values(customer.months).reduce((sum, m) => sum + (m.actual_by_m8 || 0), 0)
+    // })));
 
     return Object.values(groupedData);
   }, []);
@@ -2948,26 +3054,26 @@ useEffect(() => {
           const recordsWithNullActual = data.filter(row => row.actual === null || row.actual === undefined);
           const recordsWithZeroActual = data.filter(row => row.actual === 0);
           
-          console.log('🔍 Query Result - Actual Data Analysis:', {
-            total_records: data.length,
-            records_with_actual_nonzero: recordsWithActual.length,
-            records_with_null_actual: recordsWithNullActual.length,
-            records_with_zero_actual: recordsWithZeroActual.length,
-            sample_nonzero_actual: recordsWithActual.slice(0, 3).map(row => ({
-              customer: row.customer_node_id?.substring(0, 8),
-              product: row.product_id,
-              date: row.postdate,
-              actual: row.actual
-            })),
-            sample_all_data: data.slice(0, 2).map(row => ({
-              customer: row.customer_node_id?.substring(0, 8),
-              product: row.product_id,
-              date: row.postdate,
-              actual: row.actual,
-              forecast: row.forecast,
-              approved_sm_kam: row.approved_sm_kam
-            }))
-          });
+          // console.log('🔍 Query Result - Actual Data Analysis:', {
+          //   total_records: data.length,
+          //   records_with_actual_nonzero: recordsWithActual.length,
+          //   records_with_null_actual: recordsWithNullActual.length,
+          //   records_with_zero_actual: recordsWithZeroActual.length,
+          //   sample_nonzero_actual: recordsWithActual.slice(0, 3).map(row => ({
+          //     customer: row.customer_node_id?.substring(0, 8),
+          //     product: row.product_id,
+          //     date: row.postdate,
+          //     actual: row.actual
+          //   })),
+          //   sample_all_data: data.slice(0, 2).map(row => ({
+          //     customer: row.customer_node_id?.substring(0, 8),
+          //     product: row.product_id,
+          //     date: row.postdate,
+          //     actual: row.actual,
+          //     forecast: row.forecast,
+          //     approved_sm_kam: row.approved_sm_kam
+          //   }))
+          // });
         }
         
         if (error) {
@@ -3017,18 +3123,18 @@ useEffect(() => {
         }
         
         // Execute KAM query
-        console.log('🔍 Executing KAM query with parameters:', {
-          p_date_from: optimizedDateFrom,
-          p_date_to: optimizedDateTo,
-          p_product_ids_count: productIdsFilter.length,
-          p_customer_ids_count: customerIdsFilter.length,
-          p_location_ids_count: locationIdsFilter.length,
-          p_limit: 300,
-          sample_product_ids: productIdsFilter.slice(0, 3)
-        });
+        // console.log('🔍 Executing KAM query with parameters:', {
+        //   p_date_from: optimizedDateFrom,
+        //   p_date_to: optimizedDateTo,
+        //   p_product_ids_count: productIdsFilter.length,
+        //   p_customer_ids_count: customerIdsFilter.length,
+        //   p_location_ids_count: locationIdsFilter.length,
+        //   p_limit: 300,
+        //   sample_product_ids: productIdsFilter.slice(0, 3)
+        // });
         
         // 🔍 DEBUG: Query database directly to verify PPTO data exists
-        console.log('🔍 Checking if PPTO data exists in database...');
+        // console.log('🔍 Checking if PPTO data exists in database...');
         let pptoCheckQuery = (supabase as any)
           .schema('m8_schema')
           .from('commercial_collaboration')
@@ -3288,7 +3394,7 @@ useEffect(() => {
   const calculateSalesTrends = useCallback(() => {
     const currentPeriod = calculateTotal('actual_by_m8');
     const lastYearPeriod = calculateTotal('last_year');
-    
+    // console.log('📈 Calculating sales trends:', { currentPeriod, lastYearPeriod });
     let growthPercentage = 0;
     let trendDirection: 'up' | 'down' | 'neutral' = 'neutral';
     
@@ -3306,43 +3412,54 @@ useEffect(() => {
   }, [calculateTotal]);
 
   // Helper function to check if there's meaningful data to show metrics, trends, and charts
+  // Uses M8 Predict totals (cajas, litros, pesos) to determine visibility, same as the Metrics section
   const hasDataForMetricsAndCharts = useCallback(() => {
     if (customers.length === 0) return false;
+    // Use filtered customers (already filtered by advanced filters in fetchForecastData)
+    const filteredCustomers = customers;
+    const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
+      ? filteredCustomers.filter(customer => customer.customer_node_id === selectedCustomerId)
+      : filteredCustomers;
     
-    // Calculate key totals
-    const m8PredictTotal = calculateTotal('actual_by_m8');
-    const kamForecastTotal = calculateTotal('kam_forecast_correction');
-    // const effectiveForecastTotal = calculateTotal('effective_forecast');
-    // const lastYearTotal = calculateTotal('last_year');
-    // const sellInTotal = calculateTotal('sell_in_aa');
-    // const sellOutTotal = calculateTotal('sell_out_aa');
+    // Calculate M8 Predict totals using the same logic as getM8TotalsForNextYear and renderSummaryColumns
+    // Use getFieldNameForRowType to get the field name, same as renderSummaryColumns does
+    const rowType = "M8 Predict";
+    const fieldName = getFieldNameForRowType(rowType);
+    const targetYear = new Date().getFullYear() + 1;
     
-    // Check if M8 Predict has meaningful current-year-only data
-    const currentYear = new Date().getFullYear() + 1;
-    const hasCurrentYearM8Data = customers.some(customer => {
-      return Object.keys(customer.months).some(monthKey => {
-        if (shouldShowValueForYear(monthKey, currentYear)) {
-          const monthData = customer.months[monthKey];
-          return monthData && (monthData.actual_by_m8 || 0) > 0;
-        }
-        return false;
-      });
-    });
+    // Calculate using the same logic as renderSummaryColumns calculateCurrentYearSum
+    const calculateCurrentYearSum = (attribute: 'attr_1' | 'attr_2' | 'attr_3') => {
+      return customersToUse.reduce((total, customer) => {
+        let customerTotal = 0;
+        Object.keys(customer.months).forEach(monthKey => {
+          if (shouldShowValueForYear(monthKey, targetYear)) {
+            const monthData = customer.months[monthKey];
+            if (monthData && fieldName) {
+              const fieldValue = monthData[fieldName as keyof typeof monthData] || 0;
+              
+              if (attribute === 'attr_3') {
+                // Cajas: use raw values (already in cajas units)
+                customerTotal += fieldValue;
+              } else {
+                // Litros/Pesos: multiply by attribute multiplier
+                const multiplier = customer[attribute] || 0;
+                customerTotal += fieldValue * multiplier;
+              }
+            }
+          }
+        });
+        return total + customerTotal;
+      }, 0);
+    };
     
-    // Check if any of the main metrics have non-zero values
-    const hasMainData = m8PredictTotal > 0 || kamForecastTotal > 0;
-    // effectiveForecastTotal > 0 || 
-    //                lastYearTotal > 0 || sellInTotal > 0 || sellOutTotal > 0;
+    // Calculate M8 Predict totals (cajas, litros, pesos)
+    const cajas = calculateCurrentYearSum('attr_3');
+    const litros = calculateCurrentYearSum('attr_1');
+    const pesos = calculateCurrentYearSum('attr_2');
     
-    // For metrics to show, we need both main data AND current year M8 data
-    // This ensures the metrics section only appears when M8 Predict actually has current year values
-    const hasRelevantData = hasMainData && hasCurrentYearM8Data;
-    
-    // Also check if any customer has meaningful values for the general data availability
-    const hasCustomerData = customers.some(customer => customerHasValues(customer));
-    
-    return hasRelevantData || (hasMainData && hasCustomerData);
-  }, [customers, calculateTotal, customerHasValues, shouldShowValueForYear]);
+    // Show the Metrics table if any of the M8 Predict values (cajas, litros, pesos) are greater than 0
+    return cajas > 0 || litros > 0 || pesos > 0;
+  }, [customers, selectedCustomerId, shouldShowValueForYear, getFieldNameForRowType]);
 
   // Calculate sales trends when filters change
   useEffect(() => {
@@ -3368,11 +3485,7 @@ useEffect(() => {
   const m8PredictCajasTotal = getM8PredictTotal('actual_by_m8_cajas');
   const m8PredictLitrosTotal = getM8PredictTotal('actual_by_m8_litros');
   const m8PredictPesosTotal = getM8PredictTotal('actual_by_m8_pesos');
-console.log('📊 M8 Predict Totals:',  {
-  cajas: m8PredictCajasTotal,
-  litros: m8PredictLitrosTotal,
-  pesos: m8PredictPesosTotal
-});
+
 
   // ===== KAM Adjustments Inline Editing Handlers =====
   const handleDoubleClick = useCallback((customerId: string, month: string, currentValue: number) => {
@@ -3428,11 +3541,11 @@ console.log('📊 M8 Predict Totals:',  {
         if (productLocations && productLocations.length > 0) {
           const locationId = productLocations[0]; // Use first available location
           const locationName = advancedFilters.availableLocations[locationId];
-          console.log('✅ Found location_id from FilterPanel:', {
-            location_id: locationId,
-            location_name: locationName,
-            product_id: productId
-          });
+          // console.log('✅ Found location_id from FilterPanel:', {
+          //   location_id: locationId,
+          //   location_name: locationName,
+          //   product_id: productId
+          // });
           return locationId;
         }
       }
@@ -3687,29 +3800,98 @@ console.log('📊 M8 Predict Totals:',  {
     }
   };
 
-  const getM8TotalsForNextYear = () => {
-  const customersToUse = customers;
-  // Use your existing logic for summary columns
-  // This matches the renderSummaryColumns logic for "M8 Predict"
-  const fieldName = 'actual_by_m8';
-  const targetYear = new Date().getFullYear() + 1;
+  const getM8TotalsForNextYear = (customersToUse: CustomerData[] = customers) => {
+    // Use the exact same logic as renderSummaryColumns for "M8 Predict" Total column
+    // This ensures the Metrics section shows the same values as the Data table
+    // Use getFieldNameForRowType to get the field name, same as renderSummaryColumns does
+    const rowType = "M8 Predict";
+    const fieldName = getFieldNameForRowType(rowType);
+    const targetYear = new Date().getFullYear() + 1;
 
-  let cajas = 0, litros = 0, pesos = 0;
-  customersToUse.forEach(customer => {
-    Object.keys(customer.months).forEach(monthKey => {
-      if (shouldShowValueForYear(monthKey, targetYear)) {
-        const monthData = customer.months[monthKey];
-        if (monthData) {
-          const value = monthData[fieldName] || 0;
-          cajas += value;
-          litros += value * (customer.attr_1 || 0);
-          pesos += value * (customer.attr_2 || 0);
-        }
-      }
-    });
-  });
+    // Calculate using the same logic as renderSummaryColumns calculateCurrentYearSum
+    const calculateCurrentYearSum = (attribute: 'attr_1' | 'attr_2' | 'attr_3') => {
+      return customersToUse.reduce((total, customer) => {
+        let customerTotal = 0;
+        Object.keys(customer.months).forEach(monthKey => {
+          if (shouldShowValueForYear(monthKey, targetYear)) {
+            const monthData = customer.months[monthKey];
+            if (monthData && fieldName) {
+              const fieldValue = monthData[fieldName as keyof typeof monthData] || 0;
+              
+              if (attribute === 'attr_3') {
+                // Cajas: use raw values (already in cajas units)
+                customerTotal += fieldValue;
+              } else {
+                // Litros/Pesos: multiply by attribute multiplier
+                const multiplier = customer[attribute] || 0;
+                customerTotal += fieldValue * multiplier;
+              }
+            }
+          }
+        });
+        return total + customerTotal;
+      }, 0);
+    };
+
+    // For M8 Predict, Total is the same as YTD/YTG since we only show one year
+    const cajas = calculateCurrentYearSum('attr_3');
+    const litros = calculateCurrentYearSum('attr_1');
+    const pesos = calculateCurrentYearSum('attr_2');
+
   return { cajas, litros, pesos };
 }
+
+  // Calculate M8 Predict quarterly totals (cajas, litros, pesos) for next year
+  const getM8PredictQuarterlyTotals = (customersToUse: CustomerData[]) => {
+    const fieldName = 'actual_by_m8';
+    const targetYear = new Date().getFullYear() + 1;
+    
+    // Quarter month abbreviations mapping
+    const quarterMonths: { [key: string]: string[] } = {
+      'Q1': ['ene', 'feb', 'mar'],
+      'Q2': ['abr', 'may', 'jun'],
+      'Q3': ['jul', 'ago', 'sep'],
+      'Q4': ['oct', 'nov', 'dic']
+    };
+    
+    const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+    const result: { [key: string]: { cajas: number; litros: number; pesos: number } } = {};
+    
+    quarters.forEach(quarter => {
+      let cajas = 0, litros = 0, pesos = 0;
+      const monthAbbrs = quarterMonths[quarter];
+      const yearShort = String(targetYear).slice(-2);
+      
+      customersToUse.forEach(customer => {
+        monthAbbrs.forEach(monthAbbr => {
+          const monthKey = `${monthAbbr}-${yearShort}`;
+          const monthData = customer.months[monthKey];
+          if (monthData) {
+            const value = monthData[fieldName] || 0;
+            // Cajas: use raw value (actual_by_m8 is already in cajas)
+            cajas += value;
+            // Litros: multiply by attr_1
+            litros += value * (customer.attr_1 || 0);
+            // Pesos: multiply by attr_2
+            pesos += value * (customer.attr_2 || 0);
+          }
+        });
+      });
+      
+      result[quarter] = { cajas, litros, pesos };
+    });
+    
+    // Calculate total across all quarters
+    const total = quarters.reduce((acc, quarter) => ({
+      cajas: acc.cajas + result[quarter].cajas,
+      litros: acc.litros + result[quarter].litros,
+      pesos: acc.pesos + result[quarter].pesos
+    }), { cajas: 0, litros: 0, pesos: 0 });
+    
+    result['TOTAL'] = total;
+    
+    return result;
+  }
 
   const handleSaveEdit = useCallback(async (customerId: string, month: string) => {
     const newValue = parseFloat(editingValue) || 0;
@@ -3793,6 +3975,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
       const marcaNames = advancedFilters.marca?.length > 0 ? advancedFilters.marca : null;
       const productLines = advancedFilters.productLine?.length > 0 ? advancedFilters.productLine : null;
       const productIds = advancedFilters.selectedProducts?.length > 0 ? advancedFilters.selectedProducts : null;
+      const customerIds = advancedFilters.selectedCustomers?.length > 0 ? advancedFilters.selectedCustomers : null;
       // Si quieres filtrar por clientes específicos, usa advancedFilters.selectedCustomers
 
       const { data, error } = await (supabase as any)
@@ -3801,8 +3984,8 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
           p_month_abbr: monthAbbr,
           p_year: year,
           p_kam_value: newValue,
-          p_customer_ids: null, // null = todos los clientes
-          p_product_ids: null,
+          p_customer_ids: customerIds, // Pass filtered customers if any, null = todos los clientes
+          p_product_ids: productIds, // Pass filtered products if any, null = todos los productos
           p_marca_names: marcaNames,
           p_product_lines: productLines
         });
@@ -4062,7 +4245,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
             <Filter className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
             Filtros Avanzados
           </CardTitle>
-          <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+          {/* <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
               <span className="font-medium">Filtrado automático activo</span>
@@ -4070,7 +4253,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
             <p className="mt-1 text-xs text-green-600">
               Los datos se actualizan automáticamente al seleccionar filtros. No es necesario presionar botones adicionales.
             </p>
-          </div>
+          </div> */}
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
           <FilterPanel 
@@ -4233,51 +4416,38 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
 
       
       {/* Forecast Metrics Card - Only show when there's meaningful data */}
+      
       {hasDataForMetricsAndCharts() && (
         <Card className="w-full max-w-full mb-6">
           <CardHeader className="pb-4">
             <CardTitle className="text-base sm:text-lg flex items-center gap-2">
               <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-              Forecast Collaboration Metrics
+               Forecast Collaboration Metrics
             </CardTitle>
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
 
           {/* Mixed Chart with Multiple Y-Axis */}
           {(() => {
-            // Use filtered customers (already filtered by advanced filters in fetchForecastData)
-            const filteredCustomers = customers;
+            // Use the exact same customer selection logic as the Data table's "todos los clientes" row
+            // The Data table uses 'customers' directly, not filteredCustomers
+            const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
+              ? customers.filter(customer => customer.customer_node_id === selectedCustomerId)
+              : customers;
             
+            // Use the same calculation logic as the Data table's "todos los clientes" row for M8 Predict
+            // This ensures the Metrics section shows the exact same values as the Data table
+            const { cajas, litros, pesos } = getM8TotalsForNextYear(customersToUse);
+            // Calculate raw M8 Predict total for summary cards (sum of actual_by_m8 values)
             const m8PredictTotal = calculateTotal('actual_by_m8');
-            console.log('M8 Predict Total:', m8PredictTotal);
             const kamForecastTotal = calculateTotal('kam_forecast_correction');
             // const effectiveForecastTotal = calculateTotal('effective_forecast');
             // const lastYearTotal = calculateTotal('last_year');
-            
-            // Calculate totals for M8 Predict using the same logic as data table
-            // Only calculate these if there's actual current-year M8 data to avoid showing misleading zero-based calculations
-            const currentYear = new Date().getFullYear();
-            const hasRealM8Data = filteredCustomers.some(customer => 
-              Object.keys(customer.months).some(monthKey => {
-                if (shouldShowValueForYear(monthKey, currentYear -1)) {
-                  const monthData = customer.months[monthKey];
-                  return monthData && (monthData.actual_by_m8 || 0) > 0;
-                }
-                return false;
-              })
-            );
 
-            const m8PredictCajasTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_3', 'Total', calculateM8Metric('actual_by_m8')) : 0;
-            const m8PredictLitrosTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_1', 'Total', calculateM8Metric('actual_by_m8')) : 0;
-            const m8PredictPesosTotal = hasRealM8Data ? calculateAggregateForAllCustomers(filteredCustomers, 'attr_2', 'Total', calculateM8Metric('actual_by_m8')) : 0;
-            console.log('M8 Predict Litros Total:', m8PredictLitrosTotal);
             // Calculate monthly data for the chart using filtered customers
             // Note: filteredCustomers is already filtered by advanced filters (marca, productLine, etc.)
             // via the applyAdvancedFilters function in fetchForecastData
             const chartData = months.map(month => {
-              const customersToUse = selectedCustomerId && selectedCustomerId !== 'all' 
-                ? filteredCustomers.filter(customer => customer.customer_node_id === selectedCustomerId)
-                : filteredCustomers;
               
               const lastYear = customersToUse.reduce((sum, customer) => {
                 const monthData = customer.months[month];
@@ -4359,8 +4529,10 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
               ))
             );
 
-
-            const { cajas, litros, pesos } = getM8TotalsForNextYear();
+            // Use the same calculation logic as the Forecast Collaboration Data table M8 Predict row
+            // cajas, litros, pesos are already calculated above using getM8TotalsForNextYear(customersToUse)
+            const m8Quarterly = getM8PredictQuarterlyTotals(customersToUse);
+            
             return (
               
               <div className="space-y-6">
@@ -4375,7 +4547,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                       </div>
                       <div>
                         <p className="text-3xl font-bold text-blue-700">
-                           {(cajas / 1000000).toFixed(1)} M
+                           {cajas.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                         </p>
                         <p className="text-gray-600 text-sm font-medium">CAJAS</p>
                         <p className={`text-sm font-semibold mt-1 ${
@@ -4394,7 +4566,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                       </div>
                       <div>
                         <p className="text-3xl font-bold text-orange-600">
-                           {(litros / 1000000).toFixed(1)} M
+                           {litros.toLocaleString('es-MX', { maximumFractionDigits: 1 })}
                         </p>
                         <p className="text-gray-600 text-sm font-medium">LITROS</p>
                         <p className={`text-sm font-semibold mt-1 ${
@@ -4413,7 +4585,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                       </div>
                       <div>
                         <p className="text-3xl font-bold text-green-700">
-                           {(pesos / 1000000).toFixed(1)} M
+                           {pesos.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                         </p>
                         <p className="text-gray-600 text-sm font-medium">PESOS</p>
                         <p className={`text-sm font-semibold mt-1 ${
@@ -4426,7 +4598,7 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                     </div>
                   </div>
 
-                  {/* Bottom Table - Quarterly Breakdown */}
+                  {/* Bottom Table - M8 Predict Quarterly Breakdown */}
                   <div className="mt-6 w-full overflow-x-auto">
                     <table className="w-full min-w-[600px] text-center border-collapse">
                       <thead>
@@ -4439,118 +4611,58 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                         </tr>
                       </thead>
                       <tbody className="text-gray-700">
-                        {/* Effective Forecast Row */}
-                        <tr>
+                        {/* M8 Predict CAJAS Row */}
+                        <tr className="font-medium">
                           <td className="py-2">
-                            {chartData.length >= 3 ? (chartData.slice(0, 3).reduce((sum, data) => sum + data.effectiveForecast, 0) / 1000).toFixed(0) : '0'}
+                            {m8Quarterly.Q1.cajas.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
                           <td className="py-2">
-                            {chartData.length >= 6 ? (chartData.slice(3, 6).reduce((sum, data) => sum + data.effectiveForecast, 0) / 1000).toFixed(0) : '0'}
+                            {m8Quarterly.Q2.cajas.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
                           <td className="py-2">
-                            {chartData.length >= 9 ? (chartData.slice(6, 9).reduce((sum, data) => sum + data.effectiveForecast, 0) / 1000).toFixed(0) : '0'}
+                            {m8Quarterly.Q3.cajas.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
                           <td className="py-2">
-                            {chartData.length >= 12 ? (chartData.slice(9, 12).reduce((sum, data) => sum + data.effectiveForecast, 0) / 1000).toFixed(0) : '0'}
+                            {m8Quarterly.Q4.cajas.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
-                          {/* <td className="py-2 font-semibold">
-                            {(effectiveForecastTotal / 1000).toFixed(0)}
-                          </td> */}
-                        </tr>
-                        {/* KAM Forecast Row */}
-                        <tr>
-                          <td className="py-2">
-                            {chartData.length >= 3 ? (chartData.slice(0, 3).reduce((sum, data) => sum + data.kamForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 6 ? (chartData.slice(3, 6).reduce((sum, data) => sum + data.kamForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 9 ? (chartData.slice(6, 9).reduce((sum, data) => sum + data.kamForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2">
-                            {chartData.length >= 12 ? (chartData.slice(9, 12).reduce((sum, data) => sum + data.kamForecast, 0) / 1000).toFixed(0) : '0'}
-                          </td>
-                          <td className="py-2 font-semibold">
-                            {(kamForecastTotal / 1000).toFixed(0)}
+                          <td className="py-2 font-bold text-blue-700">
+                            {cajas.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
                         </tr>
-                        {/* Last Year Row */}
-                        <tr>
+                        {/* M8 Predict LITROS Row */}
+                        <tr className="font-medium">
                           <td className="py-2">
-                            {chartData.length >= 3 ? (chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0) / 1000).toFixed(0) : '0'}
+                            {m8Quarterly.Q1.litros.toLocaleString('es-MX', { maximumFractionDigits: 1 })}
                           </td>
                           <td className="py-2">
-                            {chartData.length >= 6 ? (chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0) / 1000).toFixed(0) : '0'}
+                            {m8Quarterly.Q2.litros.toLocaleString('es-MX', { maximumFractionDigits: 1 })}
                           </td>
                           <td className="py-2">
-                            {chartData.length >= 9 ? (chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0) / 1000).toFixed(0) : '0'}
+                            {m8Quarterly.Q3.litros.toLocaleString('es-MX', { maximumFractionDigits: 1 })}
                           </td>
                           <td className="py-2">
-                            {chartData.length >= 12 ? (chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0) / 1000).toFixed(0) : '0'}
+                            {m8Quarterly.Q4.litros.toLocaleString('es-MX', { maximumFractionDigits: 1 })}
                           </td>
-                          {/* <td className="py-2 font-semibold">
-                            {(lastYearTotal / 1000).toFixed(0)}
-                          </td> */}
+                          <td className="py-2 font-bold text-orange-600">
+                            {litros.toLocaleString('es-MX', { maximumFractionDigits: 1 })}
+                          </td>
                         </tr>
-                        {/* Growth Percentage Row */}
-                        <tr className="text-sm">
+                        {/* M8 Predict PESOS Row */}
+                        <tr className="font-medium">
                           <td className="py-2">
-                            <div className={`flex items-center justify-center gap-1 ${
-                              chartData.length >= 3 && chartData.slice(0, 3).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                              chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0) ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {chartData.length >= 3 && chartData.slice(0, 3).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                               chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0) ? 
-                               <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                              {chartData.length >= 3 ? ((chartData.slice(0, 3).reduce((sum, data) => sum + data.effectiveForecast, 0) - 
-                                 chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0)) /
-                                 Math.max(chartData.slice(0, 3).reduce((sum, data) => sum + data.lastYear, 0), 1) * 100).toFixed(1) : '0.0'}%
-                            </div>
+                            {m8Quarterly.Q1.pesos.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
                           <td className="py-2">
-                            <div className={`flex items-center justify-center gap-1 ${
-                              chartData.length >= 6 && chartData.slice(3, 6).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                              chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0) ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {chartData.length >= 6 && chartData.slice(3, 6).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                               chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0) ? 
-                               <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                              {chartData.length >= 6 ? ((chartData.slice(3, 6).reduce((sum, data) => sum + data.effectiveForecast, 0) - 
-                                 chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0)) /
-                                 Math.max(chartData.slice(3, 6).reduce((sum, data) => sum + data.lastYear, 0), 1) * 100).toFixed(1) : '0.0'}%
-                            </div>
+                            {m8Quarterly.Q2.pesos.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
                           <td className="py-2">
-                            <div className={`flex items-center justify-center gap-1 ${
-                              chartData.length >= 9 && chartData.slice(6, 9).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                              chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0) ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {chartData.length >= 9 && chartData.slice(6, 9).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                               chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0) ? 
-                               <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                              {chartData.length >= 9 ? ((chartData.slice(6, 9).reduce((sum, data) => sum + data.effectiveForecast, 0) - 
-                                 chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0)) /
-                                 Math.max(chartData.slice(6, 9).reduce((sum, data) => sum + data.lastYear, 0), 1) * 100).toFixed(1) : '0.0'}%
-                            </div>
+                            {m8Quarterly.Q3.pesos.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
                           <td className="py-2">
-                            <div className={`flex items-center justify-center gap-1 ${
-                              chartData.length >= 12 && chartData.slice(9, 12).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                              chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0) ? 'text-green-600' : 'text-red-600'
-                            }`}>
-                              {chartData.length >= 12 && chartData.slice(9, 12).reduce((sum, data) => sum + data.effectiveForecast, 0) > 
-                               chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0) ? 
-                               <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
-                              {chartData.length >= 12 ? ((chartData.slice(9, 12).reduce((sum, data) => sum + data.effectiveForecast, 0) - 
-                                 chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0)) /
-                                 Math.max(chartData.slice(9, 12).reduce((sum, data) => sum + data.lastYear, 0), 1) * 100).toFixed(1) : '0.0'}%
-                            </div>
+                            {m8Quarterly.Q4.pesos.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
-                          <td className={`py-2 font-semibold ${
-                            salesTrends.growthPercentage >= 0 ? 'text-green-600' : 'text-red-600'
-                          }`}>
-                            {salesTrends.growthPercentage >= 0 ? '+' : ''}{salesTrends.growthPercentage.toFixed(1)}%
+                          <td className="py-2 font-bold text-green-700">
+                            {pesos.toLocaleString('es-MX', { maximumFractionDigits: 0 })}
                           </td>
                         </tr>
                       </tbody>
@@ -4562,11 +4674,11 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                 <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-sm font-medium text-orange-700">M8 predict</div>
+                      <div className="text-sm font-medium text-orange-700">M8 Predict</div>
                       <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                     </div>
                     <div className="text-xl font-bold text-orange-800">
-                      {m8PredictTotal.toLocaleString('es-MX')}
+                      {cajas.toLocaleString('es-MX')}
                     </div>
                   </div>
                   
@@ -5815,12 +5927,12 @@ const handleInlineEditSave = useCallback(async (customerId: string, month: strin
                       : customers;
                     
                     // 🔍 DEBUG: Log customers being displayed
-                    console.log('🎨 RENDERING M8 Predict Row - Customers to display:', {
-                      total_customers: customersToUse.length,
-                      customer_ids: customersToUse.map(c => c.customer_node_id).slice(0, 10),
-                      product_ids: customersToUse.map(c => c.product_id).slice(0, 10),
-                      location_ids: customersToUse.map(c => c.location_node_id).slice(0, 10)
-                    });
+                    // console.log('🎨 RENDERING M8 Predict Row - Customers to display:', {
+                    //   total_customers: customersToUse.length,
+                    //   customer_ids: customersToUse.map(c => c.customer_node_id).slice(0, 10),
+                    //   product_ids: customersToUse.map(c => c.product_id).slice(0, 10),
+                    //   location_ids: customersToUse.map(c => c.location_node_id).slice(0, 10)
+                    // });
                     const targetYear = new Date().getFullYear() + 1; //
                     
                     return (

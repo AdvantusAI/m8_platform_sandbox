@@ -3711,7 +3711,7 @@ useEffect(() => {
         p_marca_names: advancedFilters.marca
       });
       const { data, error } = await (supabase as any)
-          .schema('m8_schema')
+          
         .schema('m8_schema')
       .rpc('update_commercial_input_approved', {
       p_month_abbr: monthAbbr, // e.g. 'ene'
